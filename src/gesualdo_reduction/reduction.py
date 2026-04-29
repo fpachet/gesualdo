@@ -1,4 +1,4 @@
-"""Rhythm-first madrigal-to-string-quartet reduction helpers.
+"""Rhythm-first madrigal-to-string-ensemble reduction helpers.
 
 The reducer in this module is deliberately conservative: selected output notes
 are copied from real source note events, then split only where source barlines
@@ -10,9 +10,9 @@ from __future__ import annotations
 import copy
 from dataclasses import dataclass, replace
 from fractions import Fraction
-from itertools import groupby
+from itertools import groupby, permutations
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Callable, Iterable, Sequence
 
 from music21 import (
     base,
@@ -41,6 +41,7 @@ MAX_DENOMINATOR = 4096
 RANGES = {
     "vln1": (55, 100),  # G3..E7
     "vln2": (55, 88),  # G3..E6
+    "vda": (45, 88),  # A2..E6, configurable viola d'amore default
     "vla": (48, 88),  # C3..E6
     "vc": (36, 72),  # C2..C5
 }
@@ -102,6 +103,186 @@ class Fragment:
         return self.offset + self.duration
 
 
+@dataclass(frozen=True)
+class TargetPart:
+    """One instrumental destination in a reduction profile."""
+
+    id: str
+    name: str
+    midi_range: tuple[int, int]
+    instrument_factory: Callable[[], instrument.Instrument]
+    clef_factory: Callable[[], clef.Clef]
+    role: str = "inner"
+    preferred_register: tuple[int, int] | None = None
+
+    def make_instrument(self) -> instrument.Instrument:
+        return self.instrument_factory()
+
+    def make_clef(self) -> clef.Clef:
+        return self.clef_factory()
+
+
+@dataclass(frozen=True)
+class EnsembleProfile:
+    """Instrument layout and score metadata for a reduction target."""
+
+    name: str
+    title_suffix: str
+    parts: tuple[TargetPart, ...]
+    minimum_source_parts: int = 2
+
+    def target(self, target_id: str) -> TargetPart:
+        for part in self.parts:
+            if part.id == target_id:
+                return part
+        raise KeyError(f"Unknown target part: {target_id}")
+
+    def _single_role(self, role: str) -> TargetPart:
+        matches = [part for part in self.parts if part.role == role]
+        if len(matches) != 1:
+            raise ValueError(f"Expected exactly one {role!r} part in {self.name}; found {len(matches)}.")
+        return matches[0]
+
+    @property
+    def top_part(self) -> TargetPart:
+        return self._single_role("top")
+
+    @property
+    def bottom_part(self) -> TargetPart:
+        return self._single_role("bottom")
+
+    @property
+    def inner_parts(self) -> tuple[TargetPart, ...]:
+        return tuple(part for part in self.parts if part.role == "inner")
+
+
+@dataclass(frozen=True)
+class ReductionConfig:
+    """Runtime options shared by reduction policies."""
+
+    enforce_ranges: bool = ENFORCE_RANGES
+    register_split: int = REGISTER_SPLIT
+
+
+@dataclass(frozen=True)
+class ReductionContext:
+    """Source-derived material needed by assignment policies."""
+
+    source_score: stream.Score
+    source_parts: tuple[stream.Stream, ...]
+    bars: tuple[Bar, ...]
+    top_index: int
+    bottom_index: int
+    middle_indices: tuple[int, ...]
+    key_signatures: dict[Fraction, list[key.KeySignature]]
+    top_events: tuple[SourceEvent, ...]
+    bottom_events: tuple[SourceEvent, ...]
+    middle_events: tuple[SourceEvent, ...]
+
+
+def viole_damour_instrument() -> instrument.Instrument:
+    """Create a generic music21 instrument entry for viole d'amour."""
+
+    inst = instrument.Instrument()
+    inst.instrumentName = "Viole d'amour"
+    inst.instrumentAbbreviation = "Vle. d'am."
+    return inst
+
+
+STRING_QUARTET = EnsembleProfile(
+    name="string_quartet",
+    title_suffix="String Quartet Reduction",
+    minimum_source_parts=4,
+    parts=(
+        TargetPart(
+            id="vln1",
+            name="Violin I",
+            midi_range=RANGES["vln1"],
+            instrument_factory=instrument.Violin,
+            clef_factory=clef.TrebleClef,
+            role="top",
+            preferred_register=(67, 96),
+        ),
+        TargetPart(
+            id="vln2",
+            name="Violin II",
+            midi_range=RANGES["vln2"],
+            instrument_factory=instrument.Violin,
+            clef_factory=clef.TrebleClef,
+            preferred_register=(60, 88),
+        ),
+        TargetPart(
+            id="vla",
+            name="Viola",
+            midi_range=RANGES["vla"],
+            instrument_factory=instrument.Viola,
+            clef_factory=clef.AltoClef,
+            preferred_register=(48, 72),
+        ),
+        TargetPart(
+            id="vc",
+            name="Violoncello",
+            midi_range=RANGES["vc"],
+            instrument_factory=instrument.Violoncello,
+            clef_factory=clef.BassClef,
+            role="bottom",
+            preferred_register=(36, 60),
+        ),
+    ),
+)
+
+
+QUARTET_PLUS_VIOLE = EnsembleProfile(
+    name="quartet_plus_viole",
+    title_suffix="String Quartet + Viole d'amour Reduction",
+    minimum_source_parts=5,
+    parts=(
+        TargetPart(
+            id="vln1",
+            name="Violin I",
+            midi_range=RANGES["vln1"],
+            instrument_factory=instrument.Violin,
+            clef_factory=clef.TrebleClef,
+            role="top",
+            preferred_register=(67, 96),
+        ),
+        TargetPart(
+            id="vln2",
+            name="Violin II",
+            midi_range=RANGES["vln2"],
+            instrument_factory=instrument.Violin,
+            clef_factory=clef.TrebleClef,
+            preferred_register=(62, 88),
+        ),
+        TargetPart(
+            id="vda",
+            name="Viole d'amour",
+            midi_range=RANGES["vda"],
+            instrument_factory=viole_damour_instrument,
+            clef_factory=clef.AltoClef,
+            preferred_register=(55, 79),
+        ),
+        TargetPart(
+            id="vla",
+            name="Viola",
+            midi_range=RANGES["vla"],
+            instrument_factory=instrument.Viola,
+            clef_factory=clef.AltoClef,
+            preferred_register=(48, 72),
+        ),
+        TargetPart(
+            id="vc",
+            name="Violoncello",
+            midi_range=RANGES["vc"],
+            instrument_factory=instrument.Violoncello,
+            clef_factory=clef.BassClef,
+            role="bottom",
+            preferred_register=(36, 60),
+        ),
+    ),
+)
+
+
 def ql_to_fraction(value) -> Fraction:
     """Convert a music21 quarterLength/offset into a stable rational value."""
 
@@ -132,6 +313,19 @@ def octave_fit(midi_pitch: int | None, low: int, high: int) -> int | None:
     while fitted > high:
         fitted -= 12
     return fitted
+
+
+def octave_candidates(midi_pitch: int, low: int, high: int) -> list[int]:
+    candidates: list[int] = []
+    base_pitch = int(midi_pitch)
+    for octave_shift in range(-8, 9):
+        candidate = base_pitch + 12 * octave_shift
+        if low <= candidate <= high:
+            candidates.append(candidate)
+    if candidates:
+        return candidates
+    fitted = octave_fit(base_pitch, low, high)
+    return [] if fitted is None else [fitted]
 
 
 def part_median_pitch(part: stream.Part) -> float:
@@ -536,20 +730,148 @@ def _dedupe_candidates(candidates: Sequence[SourceEvent]) -> list[SourceEvent]:
     return list(best_by_pitch.values())
 
 
-def select_middle_events(
+def _fit_events_to_target(
+    events: Sequence[SourceEvent],
+    target: TargetPart,
+    config: ReductionConfig,
+) -> list[SourceEvent]:
+    if not config.enforce_ranges:
+        return list(events)
+    return [fit_event_to_range(event, *target.midi_range) for event in events]
+
+
+def _extract_voice_events_for_target(
+    source_part: stream.Stream,
+    source_index: int,
+    target: TargetPart,
+) -> list[SourceEvent]:
+    chord_policy = "bottom" if target.role == "bottom" else "top"
+    return extract_events(source_part, source_index, include_rests=True, chord_policy=chord_policy)
+
+
+def _ordered_source_indices_by_median(source_parts: Sequence[stream.Stream]) -> list[int]:
+    medians = []
+    for index, part in enumerate(source_parts):
+        median = part_median_pitch(part)
+        if median == median:
+            medians.append((index, median))
+    return [
+        index
+        for index, _median in sorted(medians, key=lambda item: item[1], reverse=True)
+    ]
+
+
+def _register_fit_score(target: TargetPart, midi_pitch: int, config: ReductionConfig) -> float:
+    low, high = target.preferred_register or target.midi_range
+    if low <= midi_pitch <= high:
+        center = (low + high) / 2
+        return abs(midi_pitch - center) / 100
+    return min(abs(midi_pitch - low), abs(midi_pitch - high)) + 1
+
+
+def _choose_single_target(
+    event: SourceEvent,
+    available: Sequence[TargetPart],
+    last_pitch: dict[str, int | None],
+    config: ReductionConfig,
+) -> TargetPart:
+    if event.pitch_midi is None:
+        raise ValueError(f"Cannot assign unpitched event {event.source_id}.")
+    if len(available) == 1:
+        return available[0]
+
+    midi_pitch = int(event.pitch_midi)
+    if all(last_pitch[target.id] is None for target in available):
+        if len(available) == 2:
+            return available[0] if midi_pitch >= config.register_split else available[-1]
+        return min(
+            available,
+            key=lambda target: (_register_fit_score(target, midi_pitch, config), available.index(target)),
+        )
+
+    empty_targets = [target for target in available if last_pitch[target.id] is None]
+    if empty_targets:
+        return min(
+            empty_targets,
+            key=lambda target: (_register_fit_score(target, midi_pitch, config), available.index(target)),
+        )
+
+    return min(
+        available,
+        key=lambda target: (abs(midi_pitch - int(last_pitch[target.id])), available.index(target)),
+    )
+
+
+def _assignment_cost(
+    event: SourceEvent,
+    target: TargetPart,
+    *,
+    candidate_rank: int,
+    target_rank: int,
+    last_pitch: dict[str, int | None],
+    config: ReductionConfig,
+) -> float:
+    if event.pitch_midi is None:
+        return float("inf")
+
+    midi_pitch = int(event.pitch_midi)
+    fitted_pitch = octave_fit(midi_pitch, *target.midi_range) if config.enforce_ranges else midi_pitch
+    if fitted_pitch is None:
+        return float("inf")
+
+    previous = last_pitch[target.id]
+    voice_cost = 0 if previous is None else abs(fitted_pitch - previous)
+    order_cost = abs(candidate_rank - target_rank) if previous is None else 0
+    range_cost = abs(fitted_pitch - midi_pitch) / 12
+    register_cost = _register_fit_score(target, fitted_pitch, config)
+    return voice_cost * 10 + order_cost * 3 + range_cost + register_cost / 10
+
+
+def _match_events_to_targets(
+    events: Sequence[SourceEvent],
+    available: Sequence[TargetPart],
+    last_pitch: dict[str, int | None],
+    config: ReductionConfig,
+) -> list[tuple[TargetPart, SourceEvent]]:
+    if not events:
+        return []
+    if len(events) == 1:
+        return [(_choose_single_target(events[0], available, last_pitch, config), events[0])]
+
+    ranked_events = sorted(events, key=lambda ev: int(ev.pitch_midi), reverse=True)
+    best_cost = float("inf")
+    best_pairs: list[tuple[TargetPart, SourceEvent]] = []
+    target_ranks = {target.id: index for index, target in enumerate(available)}
+
+    for target_perm in permutations(available, len(ranked_events)):
+        cost = sum(
+            _assignment_cost(
+                event,
+                target,
+                candidate_rank=event_rank,
+                target_rank=target_ranks[target.id],
+                last_pitch=last_pitch,
+                config=config,
+            )
+            for event_rank, (event, target) in enumerate(zip(ranked_events, target_perm, strict=True))
+        )
+        if cost < best_cost:
+            best_cost = cost
+            best_pairs = list(zip(target_perm, ranked_events, strict=True))
+
+    return best_pairs
+
+
+def _select_inner_events(
     middle_events: Sequence[SourceEvent],
     top_events: Sequence[SourceEvent],
     bottom_events: Sequence[SourceEvent],
-    *,
-    enforce_ranges: bool = ENFORCE_RANGES,
-    register_split: int = REGISTER_SPLIT,
-) -> tuple[list[SourceEvent], list[SourceEvent]]:
-    """Select real middle-note events for Violin II and Viola."""
-
-    v2_events: list[SourceEvent] = []
-    vla_events: list[SourceEvent] = []
-    busy_until = {"v2": Fraction(0, 1), "vla": Fraction(0, 1)}
-    last_pitch: dict[str, int | None] = {"v2": None, "vla": None}
+    targets: Sequence[TargetPart],
+    config: ReductionConfig,
+) -> dict[str, list[SourceEvent]]:
+    selected: dict[str, list[SourceEvent]] = {target.id: [] for target in targets}
+    busy_until = {target.id: Fraction(0, 1) for target in targets}
+    last_pitch: dict[str, int | None] = {target.id: None for target in targets}
 
     note_events = sorted(
         [event for event in middle_events if not event.is_rest and event.pitch_midi is not None],
@@ -558,7 +880,7 @@ def select_middle_events(
 
     for start, group_iter in groupby(note_events, key=lambda ev: ev.start):
         group = list(group_iter)
-        available = [name for name in ("v2", "vla") if busy_until[name] <= start]
+        available = [target for target in targets if busy_until[target.id] <= start]
         if not available:
             continue
 
@@ -590,51 +912,319 @@ def select_middle_events(
             chosen.append(candidate)
             seen_pitch_classes.add(pc)
 
-        if not chosen:
-            continue
-
-        assignments: list[tuple[str, SourceEvent]] = []
-        if len(chosen) >= 2 and "v2" in available and "vla" in available:
-            hi, lo = sorted(chosen[:2], key=lambda ev: int(ev.pitch_midi), reverse=True)
-            if last_pitch["v2"] is not None and last_pitch["vla"] is not None:
-                normal = abs(int(hi.pitch_midi) - last_pitch["v2"]) + abs(int(lo.pitch_midi) - last_pitch["vla"])
-                swapped = abs(int(lo.pitch_midi) - last_pitch["v2"]) + abs(int(hi.pitch_midi) - last_pitch["vla"])
-                if swapped < normal:
-                    hi, lo = lo, hi
-            assignments = [("v2", hi), ("vla", lo)]
-        else:
-            event = chosen[0]
-            if len(available) == 1:
-                target = available[0]
-            elif last_pitch["v2"] is None and last_pitch["vla"] is None:
-                target = "v2" if int(event.pitch_midi) >= register_split else "vla"
-            elif last_pitch["v2"] is None:
-                target = "v2"
-            elif last_pitch["vla"] is None:
-                target = "vla"
-            else:
-                target = (
-                    "v2"
-                    if abs(int(event.pitch_midi) - last_pitch["v2"])
-                    <= abs(int(event.pitch_midi) - last_pitch["vla"])
-                    else "vla"
-                )
-            assignments = [(target, event)]
-
-        for target, event in assignments:
-            if event.start < busy_until[target]:
+        for target, event in _match_events_to_targets(chosen, available, last_pitch, config):
+            if event.start < busy_until[target.id]:
                 continue
-            if enforce_ranges:
-                low, high = RANGES["vln2"] if target == "v2" else RANGES["vla"]
-                event = fit_event_to_range(event, low, high)
-            if target == "v2":
-                v2_events.append(event)
-            else:
-                vla_events.append(event)
-            busy_until[target] = event.end
-            last_pitch[target] = event.pitch_midi
+            if config.enforce_ranges:
+                event = fit_event_to_range(event, *target.midi_range)
+            selected[target.id].append(event)
+            busy_until[target.id] = event.end
+            last_pitch[target.id] = event.pitch_midi
 
-    return v2_events, vla_events
+    return selected
+
+
+class AssignmentPolicy:
+    """Assign source events to target parts in an ensemble profile."""
+
+    def assign(
+        self,
+        context: ReductionContext,
+        profile: EnsembleProfile,
+        config: ReductionConfig,
+    ) -> dict[str, list[SourceEvent]]:
+        raise NotImplementedError
+
+
+class RegisterAssignmentPolicy(AssignmentPolicy):
+    """Keep outer voices and reduce all middle events into available inner parts."""
+
+    def assign(
+        self,
+        context: ReductionContext,
+        profile: EnsembleProfile,
+        config: ReductionConfig,
+    ) -> dict[str, list[SourceEvent]]:
+        assignments: dict[str, list[SourceEvent]] = {part.id: [] for part in profile.parts}
+        top_target = profile.top_part
+        bottom_target = profile.bottom_part
+
+        top_events = _fit_events_to_target(context.top_events, top_target, config)
+        bottom_events = _fit_events_to_target(context.bottom_events, bottom_target, config)
+        assignments[top_target.id] = top_events
+        assignments[bottom_target.id] = bottom_events
+
+        inner_assignments = _select_inner_events(
+            context.middle_events,
+            [event for event in top_events if not event.is_rest],
+            [event for event in bottom_events if not event.is_rest],
+            profile.inner_parts,
+            config,
+        )
+        assignments.update(inner_assignments)
+        return assignments
+
+
+class VoiceOrderAssignmentPolicy(AssignmentPolicy):
+    """Map voices one-to-one by register when source and target counts match."""
+
+    def __init__(self, fallback: AssignmentPolicy | None = None) -> None:
+        self.fallback = fallback or RegisterAssignmentPolicy()
+
+    def assign(
+        self,
+        context: ReductionContext,
+        profile: EnsembleProfile,
+        config: ReductionConfig,
+    ) -> dict[str, list[SourceEvent]]:
+        if len(context.source_parts) != len(profile.parts):
+            return self.fallback.assign(context, profile, config)
+
+        ordered_indices = _ordered_source_indices_by_median(context.source_parts)
+        if len(ordered_indices) != len(profile.parts):
+            return self.fallback.assign(context, profile, config)
+
+        assignments: dict[str, list[SourceEvent]] = {}
+        for target, source_index in zip(profile.parts, ordered_indices, strict=True):
+            events = _extract_voice_events_for_target(context.source_parts[source_index], source_index, target)
+            assignments[target.id] = _fit_events_to_target(events, target, config)
+        return assignments
+
+
+def _pitch_sweetspot_cost(target: TargetPart, midi_pitch: int) -> float:
+    pref_low, pref_high = target.preferred_register or target.midi_range
+    pref_center = (pref_low + pref_high) / 2
+    pref_span = max(pref_high - pref_low, 1)
+    center_cost = abs(midi_pitch - pref_center) / pref_span
+
+    if midi_pitch < pref_low:
+        register_cost = pref_low - midi_pitch
+    elif midi_pitch > pref_high:
+        register_cost = midi_pitch - pref_high
+    else:
+        register_cost = center_cost * 0.5
+
+    return register_cost + center_cost
+
+
+def _voice_sweetspot_cost(
+    events: Sequence[SourceEvent],
+    target: TargetPart,
+    *,
+    prefer_registers: bool = True,
+) -> float:
+    weighted_cost = 0.0
+    total_weight = 0.0
+    for event in events:
+        if event.is_rest or event.pitch_midi is None:
+            continue
+        if prefer_registers:
+            fitted_pitch = _preferred_register_fit(int(event.pitch_midi), target)
+        else:
+            fitted_pitch = octave_fit(int(event.pitch_midi), *target.midi_range)
+        if fitted_pitch is None:
+            continue
+        weight = float(event.duration)
+        octave_displacement_cost = abs(fitted_pitch - int(event.pitch_midi)) / 12
+        weighted_cost += (_pitch_sweetspot_cost(target, fitted_pitch) + octave_displacement_cost * 3) * weight
+        total_weight += weight
+    if total_weight == 0:
+        return 0.0
+    return weighted_cost / total_weight
+
+
+def _preferred_register_fit(
+    midi_pitch: int | None,
+    target: TargetPart,
+    previous_pitch: int | None = None,
+) -> int | None:
+    if midi_pitch is None:
+        return None
+    candidates = octave_candidates(int(midi_pitch), *target.midi_range)
+    if not candidates:
+        return None
+    return min(
+        candidates,
+        key=lambda candidate: (
+            _pitch_sweetspot_cost(target, candidate)
+            + abs(candidate - int(midi_pitch)) / 12 * 2
+            + (0 if previous_pitch is None else abs(candidate - previous_pitch) / 12),
+            abs(candidate - int(midi_pitch)),
+        ),
+    )
+
+
+def _fit_events_to_preferred_register(
+    events: Sequence[SourceEvent],
+    target: TargetPart,
+    config: ReductionConfig,
+) -> list[SourceEvent]:
+    if not config.enforce_ranges:
+        return list(events)
+
+    fitted_events: list[SourceEvent] = []
+    previous_pitch: int | None = None
+    for event in events:
+        if event.is_rest or event.pitch_midi is None:
+            fitted_events.append(event)
+            continue
+        fitted_pitch = _preferred_register_fit(event.pitch_midi, target, previous_pitch)
+        fitted_event = replace(event, pitch_midi=fitted_pitch)
+        fitted_events.append(fitted_event)
+        previous_pitch = fitted_pitch
+    return fitted_events
+
+
+def _inversion_count(values: Sequence[int]) -> int:
+    count = 0
+    for left_index, left in enumerate(values):
+        for right in values[left_index + 1:]:
+            if left > right:
+                count += 1
+    return count
+
+
+class SweetSpotAssignmentPolicy(AssignmentPolicy):
+    """Map equal voice/target counts by instrumental sweet spots while preserving outer voices."""
+
+    def __init__(
+        self,
+        fallback: AssignmentPolicy | None = None,
+        *,
+        preserve_outer_voices: bool = True,
+        prefer_registers: bool = True,
+        order_weight: float = 1.0,
+        crossing_weight: float = 2.0,
+    ) -> None:
+        self.fallback = fallback or VoiceOrderAssignmentPolicy()
+        self.preserve_outer_voices = preserve_outer_voices
+        self.prefer_registers = prefer_registers
+        self.order_weight = order_weight
+        self.crossing_weight = crossing_weight
+
+    def assign(
+        self,
+        context: ReductionContext,
+        profile: EnsembleProfile,
+        config: ReductionConfig,
+    ) -> dict[str, list[SourceEvent]]:
+        if len(context.source_parts) != len(profile.parts):
+            return self.fallback.assign(context, profile, config)
+
+        ordered_indices = _ordered_source_indices_by_median(context.source_parts)
+        if len(ordered_indices) != len(profile.parts):
+            return self.fallback.assign(context, profile, config)
+
+        if not self.preserve_outer_voices:
+            return self._assign_all_targets(context, profile, config, ordered_indices)
+
+        top_target = profile.top_part
+        bottom_target = profile.bottom_part
+        middle_sources = ordered_indices[1:-1]
+        middle_targets = list(profile.inner_parts)
+        if len(middle_sources) != len(middle_targets):
+            return self.fallback.assign(context, profile, config)
+
+        source_events = {
+            source_index: _extract_voice_events_for_target(
+                context.source_parts[source_index],
+                source_index,
+                top_target,
+            )
+            for source_index in middle_sources
+        }
+
+        target_positions = {target.id: index for index, target in enumerate(middle_targets)}
+        best_cost = float("inf")
+        best_pairs: list[tuple[TargetPart, int]] = []
+        for target_perm in permutations(middle_targets):
+            target_position_sequence = [target_positions[target.id] for target in target_perm]
+            cost = _inversion_count(target_position_sequence) * self.crossing_weight
+            for source_rank, (source_index, target) in enumerate(zip(middle_sources, target_perm, strict=True)):
+                cost += _voice_sweetspot_cost(
+                    source_events[source_index],
+                    target,
+                    prefer_registers=self.prefer_registers,
+                )
+                cost += abs(source_rank - target_positions[target.id]) * self.order_weight
+            if cost < best_cost:
+                best_cost = cost
+                best_pairs = list(zip(target_perm, middle_sources, strict=True))
+
+        pairs = [
+            (top_target, ordered_indices[0]),
+            *best_pairs,
+            (bottom_target, ordered_indices[-1]),
+        ]
+        return self._build_assignments(context, profile, config, pairs)
+
+    def _assign_all_targets(
+        self,
+        context: ReductionContext,
+        profile: EnsembleProfile,
+        config: ReductionConfig,
+        ordered_indices: Sequence[int],
+    ) -> dict[str, list[SourceEvent]]:
+        source_events = {
+            source_index: _extract_voice_events_for_target(
+                context.source_parts[source_index],
+                source_index,
+                profile.parts[0],
+            )
+            for source_index in ordered_indices
+        }
+        target_positions = {target.id: index for index, target in enumerate(profile.parts)}
+        best_cost = float("inf")
+        best_pairs: list[tuple[TargetPart, int]] = []
+        for target_perm in permutations(profile.parts):
+            target_position_sequence = [target_positions[target.id] for target in target_perm]
+            cost = _inversion_count(target_position_sequence) * self.crossing_weight
+            for source_rank, (source_index, target) in enumerate(zip(ordered_indices, target_perm, strict=True)):
+                cost += _voice_sweetspot_cost(
+                    source_events[source_index],
+                    target,
+                    prefer_registers=self.prefer_registers,
+                )
+                cost += abs(source_rank - target_positions[target.id]) * self.order_weight
+            if cost < best_cost:
+                best_cost = cost
+                best_pairs = list(zip(target_perm, ordered_indices, strict=True))
+        return self._build_assignments(context, profile, config, best_pairs)
+
+    def _build_assignments(
+        self,
+        context: ReductionContext,
+        profile: EnsembleProfile,
+        config: ReductionConfig,
+        target_source_pairs: Sequence[tuple[TargetPart, int]],
+    ) -> dict[str, list[SourceEvent]]:
+        assignments: dict[str, list[SourceEvent]] = {part.id: [] for part in profile.parts}
+        for target, source_index in target_source_pairs:
+            events = _extract_voice_events_for_target(context.source_parts[source_index], source_index, target)
+            if self.prefer_registers:
+                assignments[target.id] = _fit_events_to_preferred_register(events, target, config)
+            else:
+                assignments[target.id] = _fit_events_to_target(events, target, config)
+        return assignments
+
+
+def select_middle_events(
+    middle_events: Sequence[SourceEvent],
+    top_events: Sequence[SourceEvent],
+    bottom_events: Sequence[SourceEvent],
+    *,
+    enforce_ranges: bool = ENFORCE_RANGES,
+    register_split: int = REGISTER_SPLIT,
+) -> tuple[list[SourceEvent], list[SourceEvent]]:
+    """Select real middle-note events for Violin II and Viola."""
+    selected = _select_inner_events(
+        middle_events,
+        top_events,
+        bottom_events,
+        STRING_QUARTET.inner_parts,
+        ReductionConfig(enforce_ranges=enforce_ranges, register_split=register_split),
+    )
+    return selected["vln2"], selected["vla"]
 
 
 def copy_top_staff_markings(src_score: stream.Score, out_score: stream.Score, bars: Sequence[Bar]) -> None:
@@ -668,93 +1258,164 @@ def copy_top_staff_markings(src_score: stream.Score, out_score: stream.Score, ba
         insert_at_source_offset(offset, expressions.TextExpression(text_expression.content))
 
 
+class ReductionBuilder:
+    """Build a measured reduction from an ensemble profile and assignment policy."""
+
+    def __init__(
+        self,
+        profile: EnsembleProfile,
+        *,
+        config: ReductionConfig | None = None,
+        policy: AssignmentPolicy | None = None,
+    ) -> None:
+        self.profile = profile
+        self.config = config or ReductionConfig()
+        self.policy = policy or RegisterAssignmentPolicy()
+
+    def build_context(self, src_score: stream.Score) -> ReductionContext:
+        bars = tuple(build_bar_map(src_score))
+        if not bars:
+            raise ValueError("Could not derive any source bars.")
+
+        parts = tuple(src_score.parts) if src_score.parts else (src_score,)
+        if len(parts) < self.profile.minimum_source_parts:
+            raise ValueError(
+                f"Expected at least {self.profile.minimum_source_parts} parts for "
+                f"{self.profile.name}; found {len(parts)}."
+            )
+
+        top_index, bottom_index = identify_outer_parts(parts)
+        middle_indices = tuple(index for index in range(len(parts)) if index not in (top_index, bottom_index))
+        key_signatures = collect_key_signatures(src_score, bars)
+
+        top_events = tuple(extract_events(parts[top_index], top_index, include_rests=True, chord_policy="top"))
+        bottom_events = tuple(extract_events(parts[bottom_index], bottom_index, include_rests=True, chord_policy="bottom"))
+        middle_events = tuple(
+            event
+            for index in middle_indices
+            for event in extract_events(parts[index], index, include_rests=False, chord_policy="all")
+        )
+
+        return ReductionContext(
+            source_score=src_score,
+            source_parts=parts,
+            bars=bars,
+            top_index=top_index,
+            bottom_index=bottom_index,
+            middle_indices=middle_indices,
+            key_signatures=key_signatures,
+            top_events=top_events,
+            bottom_events=bottom_events,
+            middle_events=middle_events,
+        )
+
+    def build_score(self, src_score: stream.Score) -> stream.Score:
+        context = self.build_context(src_score)
+        assignments = self.policy.assign(context, self.profile, self.config)
+
+        out = stream.Score()
+        out.insert(0, metadata.Metadata())
+        if src_score.metadata:
+            out.metadata.title = ((src_score.metadata.title or "") + f" - {self.profile.title_suffix}").strip(" -")
+            out.metadata.composer = src_score.metadata.composer
+
+        for target in self.profile.parts:
+            measured_part = build_measured_part(
+                assignments.get(target.id, []),
+                context.bars,
+                part_name=target.name,
+                instrument_obj=target.make_instrument(),
+                clef_obj=target.make_clef(),
+                key_signatures=context.key_signatures,
+            )
+            out.insert(0, measured_part)
+
+        copy_top_staff_markings(src_score, out, context.bars)
+        validate_score_measures(out, context.bars)
+        return out
+
+
+def build_ensemble_score(
+    src_score: stream.Score,
+    profile: EnsembleProfile = STRING_QUARTET,
+    *,
+    config: ReductionConfig | None = None,
+    policy: AssignmentPolicy | None = None,
+) -> stream.Score:
+    return ReductionBuilder(profile, config=config, policy=policy).build_score(src_score)
+
+
 def build_quartet_score(
     src_score: stream.Score,
     *,
     enforce_ranges: bool = ENFORCE_RANGES,
     register_split: int = REGISTER_SPLIT,
 ) -> stream.Score:
-    bars = build_bar_map(src_score)
-    if not bars:
-        raise ValueError("Could not derive any source bars.")
-
-    parts = list(src_score.parts) if src_score.parts else [src_score]
-    if len(parts) < 4:
-        raise ValueError(f"Expected at least 4 parts; found {len(parts)}.")
-
-    top_index, bottom_index = identify_outer_parts(parts)
-    middle_indices = [index for index in range(len(parts)) if index not in (top_index, bottom_index)]
-    key_signatures = collect_key_signatures(src_score, bars)
-
-    top_events = extract_events(parts[top_index], top_index, include_rests=True, chord_policy="top")
-    bottom_events = extract_events(parts[bottom_index], bottom_index, include_rests=True, chord_policy="bottom")
-    middle_events = [
-        event
-        for index in middle_indices
-        for event in extract_events(parts[index], index, include_rests=False, chord_policy="all")
-    ]
-
-    if enforce_ranges:
-        top_events = [fit_event_to_range(event, *RANGES["vln1"]) for event in top_events]
-        bottom_events = [fit_event_to_range(event, *RANGES["vc"]) for event in bottom_events]
-
-    top_note_events = [event for event in top_events if not event.is_rest]
-    bottom_note_events = [event for event in bottom_events if not event.is_rest]
-    v2_events, vla_events = select_middle_events(
-        middle_events,
-        top_note_events,
-        bottom_note_events,
-        enforce_ranges=enforce_ranges,
-        register_split=register_split,
+    return build_ensemble_score(
+        src_score,
+        STRING_QUARTET,
+        config=ReductionConfig(enforce_ranges=enforce_ranges, register_split=register_split),
+        policy=RegisterAssignmentPolicy(),
     )
 
-    quartet_parts = [
-        build_measured_part(
-            top_events,
-            bars,
-            part_name="Violin I",
-            instrument_obj=instrument.Violin(),
-            clef_obj=clef.TrebleClef(),
-            key_signatures=key_signatures,
-        ),
-        build_measured_part(
-            v2_events,
-            bars,
-            part_name="Violin II",
-            instrument_obj=instrument.Violin(),
-            clef_obj=clef.TrebleClef(),
-            key_signatures=key_signatures,
-        ),
-        build_measured_part(
-            vla_events,
-            bars,
-            part_name="Viola",
-            instrument_obj=instrument.Viola(),
-            clef_obj=clef.AltoClef(),
-            key_signatures=key_signatures,
-        ),
-        build_measured_part(
-            bottom_events,
-            bars,
-            part_name="Violoncello",
-            instrument_obj=instrument.Violoncello(),
-            clef_obj=clef.BassClef(),
-            key_signatures=key_signatures,
-        ),
-    ]
 
-    out = stream.Score()
-    out.insert(0, metadata.Metadata())
-    if src_score.metadata:
-        out.metadata.title = ((src_score.metadata.title or "") + " - String Quartet Reduction").strip(" -")
-        out.metadata.composer = src_score.metadata.composer
+def build_quartet_plus_viole_score(
+    src_score: stream.Score,
+    *,
+    enforce_ranges: bool = ENFORCE_RANGES,
+    register_split: int = REGISTER_SPLIT,
+    one_to_one_when_possible: bool = True,
+) -> stream.Score:
+    policy: AssignmentPolicy
+    if one_to_one_when_possible:
+        policy = VoiceOrderAssignmentPolicy()
+    else:
+        policy = RegisterAssignmentPolicy()
+    return build_ensemble_score(
+        src_score,
+        QUARTET_PLUS_VIOLE,
+        config=ReductionConfig(enforce_ranges=enforce_ranges, register_split=register_split),
+        policy=policy,
+    )
 
-    for quartet_part in quartet_parts:
-        out.insert(0, quartet_part)
 
-    copy_top_staff_markings(src_score, out, bars)
-    validate_score_measures(out, bars)
-    return out
+def build_quartet_plus_viole_sweetspot_score(
+    src_score: stream.Score,
+    *,
+    enforce_ranges: bool = ENFORCE_RANGES,
+    register_split: int = REGISTER_SPLIT,
+    prefer_registers: bool = True,
+    order_weight: float = 1.0,
+    crossing_weight: float = 2.0,
+) -> stream.Score:
+    return build_ensemble_score(
+        src_score,
+        QUARTET_PLUS_VIOLE,
+        config=ReductionConfig(enforce_ranges=enforce_ranges, register_split=register_split),
+        policy=SweetSpotAssignmentPolicy(
+            prefer_registers=prefer_registers,
+            order_weight=order_weight,
+            crossing_weight=crossing_weight,
+        ),
+    )
+
+
+def reduce_to_ensemble(
+    midi_path: str | Path,
+    profile: EnsembleProfile = STRING_QUARTET,
+    semitones: int = SEMITONES,
+    out_path: str | Path = OUT_PATH,
+    *,
+    config: ReductionConfig | None = None,
+    policy: AssignmentPolicy | None = None,
+) -> stream.Score:
+    src_score = converter.parse(midi_path)
+    if semitones:
+        src_score = src_score.transpose(semitones)
+    out_score = build_ensemble_score(src_score, profile, config=config, policy=policy)
+    out_score.write("musicxml", fp=str(out_path))
+    print(f"Written: {out_path}")
+    return out_score
 
 
 def reduce_to_quartet(
@@ -765,14 +1426,60 @@ def reduce_to_quartet(
     enforce_ranges: bool = ENFORCE_RANGES,
     register_split: int = REGISTER_SPLIT,
 ) -> stream.Score:
-    src_score = converter.parse(midi_path)
-    if semitones:
-        src_score = src_score.transpose(semitones)
-    out_score = build_quartet_score(
-        src_score,
-        enforce_ranges=enforce_ranges,
-        register_split=register_split,
+    return reduce_to_ensemble(
+        midi_path,
+        STRING_QUARTET,
+        semitones=semitones,
+        out_path=out_path,
+        config=ReductionConfig(enforce_ranges=enforce_ranges, register_split=register_split),
+        policy=RegisterAssignmentPolicy(),
     )
-    out_score.write("musicxml", fp=str(out_path))
-    print(f"Written: {out_path}")
-    return out_score
+
+
+def reduce_to_quartet_plus_viole(
+    midi_path: str | Path,
+    semitones: int = SEMITONES,
+    out_path: str | Path = "gesualdo_quartet_plus_viole.musicxml",
+    *,
+    enforce_ranges: bool = ENFORCE_RANGES,
+    register_split: int = REGISTER_SPLIT,
+    one_to_one_when_possible: bool = True,
+) -> stream.Score:
+    policy: AssignmentPolicy
+    if one_to_one_when_possible:
+        policy = VoiceOrderAssignmentPolicy()
+    else:
+        policy = RegisterAssignmentPolicy()
+    return reduce_to_ensemble(
+        midi_path,
+        QUARTET_PLUS_VIOLE,
+        semitones=semitones,
+        out_path=out_path,
+        config=ReductionConfig(enforce_ranges=enforce_ranges, register_split=register_split),
+        policy=policy,
+    )
+
+
+def reduce_to_quartet_plus_viole_sweetspot(
+    midi_path: str | Path,
+    semitones: int = SEMITONES,
+    out_path: str | Path = "gesualdo_quartet_plus_viole_sweetspot.musicxml",
+    *,
+    enforce_ranges: bool = ENFORCE_RANGES,
+    register_split: int = REGISTER_SPLIT,
+    prefer_registers: bool = True,
+    order_weight: float = 1.0,
+    crossing_weight: float = 2.0,
+) -> stream.Score:
+    return reduce_to_ensemble(
+        midi_path,
+        QUARTET_PLUS_VIOLE,
+        semitones=semitones,
+        out_path=out_path,
+        config=ReductionConfig(enforce_ranges=enforce_ranges, register_split=register_split),
+        policy=SweetSpotAssignmentPolicy(
+            prefer_registers=prefer_registers,
+            order_weight=order_weight,
+            crossing_weight=crossing_weight,
+        ),
+    )

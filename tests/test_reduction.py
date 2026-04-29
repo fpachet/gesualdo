@@ -8,6 +8,8 @@ from music21 import meter, note, stream
 
 from gesualdo_reduction.reduction import (
     build_bar_map,
+    build_quartet_plus_viole_sweetspot_score,
+    build_quartet_plus_viole_score,
     build_quartet_score,
     extract_events,
     ql_to_fraction,
@@ -118,3 +120,101 @@ def test_middle_reduction_only_outputs_real_source_note_events():
         assert source_id in source_events
         assert ql_to_fraction(output_note.quarterLength) == source_events[source_id]
 
+
+def test_quartet_plus_viole_maps_five_voices_one_to_one_by_register():
+    score = make_score(
+        [
+            make_part("tenor", [(0, 4, "E4")]),
+            make_part("cantus", [(0, 4, "C6")]),
+            make_part("quintus", [(0, 4, "A4")]),
+            make_part("bassus", [(0, 4, "C2")]),
+            make_part("altus", [(0, 4, "G5")]),
+        ]
+    )
+
+    bars = build_bar_map(score)
+    reduced = build_quartet_plus_viole_score(score, enforce_ranges=False)
+
+    assert_measures_are_exact(reduced, bars)
+    assert [part.partName for part in reduced.parts] == [
+        "Violin I",
+        "Violin II",
+        "Viole d'amour",
+        "Viola",
+        "Violoncello",
+    ]
+
+    first_source_indices = []
+    for part in reduced.parts:
+        measure = list(part.getElementsByClass(stream.Measure))[0]
+        first_source_indices.append(measure.notes[0].editorial.sourcePartIndex)
+
+    assert first_source_indices == [1, 4, 2, 0, 3]
+
+
+def test_quartet_plus_viole_reduces_six_voices_to_five_instruments():
+    score = make_score(
+        [
+            make_part("top", [(0, 4, "C6")]),
+            make_part("inner 1", [(0, 4, "D5")]),
+            make_part("inner 2", [(0, 4, "A4")]),
+            make_part("inner 3", [(0, 4, "G4")]),
+            make_part("inner 4", [(0, 4, "E4")]),
+            make_part("bottom", [(0, 4, "C2")]),
+        ]
+    )
+
+    bars = build_bar_map(score)
+    reduced = build_quartet_plus_viole_score(score, enforce_ranges=False)
+
+    assert_measures_are_exact(reduced, bars)
+    assert len(reduced.parts) == 5
+
+    inner_notes = []
+    for part in reduced.parts[1:4]:
+        measure = list(part.getElementsByClass(stream.Measure))[0]
+        inner_notes.extend(measure.notes)
+
+    assert len(inner_notes) == 3
+    assert all(hasattr(output_note.editorial, "sourceEventId") for output_note in inner_notes)
+
+
+def test_quartet_plus_viole_sweetspot_can_remap_inner_voices():
+    score = make_score(
+        [
+            make_part("top", [(0, 4, "C6")]),
+            make_part("upper middle", [(0, 4, "B4")]),
+            make_part("lower weighted", [(0, 3, "D3"), (3, Fraction(1, 2), "G4"), (Fraction(7, 2), Fraction(1, 2), "G4")]),
+            make_part("higher weighted", [(0, 3, "C5"), (3, Fraction(1, 2), "E4"), (Fraction(7, 2), Fraction(1, 2), "E4")]),
+            make_part("bottom", [(0, 4, "C2")]),
+        ]
+    )
+
+    bars = build_bar_map(score)
+    reduced = build_quartet_plus_viole_sweetspot_score(score, enforce_ranges=False, prefer_registers=False)
+
+    assert_measures_are_exact(reduced, bars)
+
+    first_source_indices = []
+    for part in reduced.parts:
+        measure = list(part.getElementsByClass(stream.Measure))[0]
+        first_source_indices.append(measure.notes[0].editorial.sourcePartIndex)
+
+    assert first_source_indices == [0, 1, 3, 2, 4]
+
+
+def test_quartet_plus_viole_sweetspot_prefers_register_octaves():
+    score = make_score(
+        [
+            make_part("top", [(0, 4, "C6")]),
+            make_part("upper middle", [(0, 4, "B3")]),
+            make_part("viole candidate", [(0, 4, "A3")]),
+            make_part("viola candidate", [(0, 4, "E3")]),
+            make_part("bottom", [(0, 4, "C2")]),
+        ]
+    )
+
+    reduced = build_quartet_plus_viole_sweetspot_score(score, enforce_ranges=True)
+    violin_2_measure = list(reduced.parts[1].getElementsByClass(stream.Measure))[0]
+
+    assert violin_2_measure.notes[0].pitch.midi == 71

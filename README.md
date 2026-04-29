@@ -1,9 +1,10 @@
 # Gesualdo Reduction
 
-Experimental work on reducing six-voice madrigals into string-quartet material.
+Experimental work on reducing Gesualdo madrigals into string-ensemble material.
 
 This is a standalone Python project for reducing Gesualdo madrigal MIDI into
-string-quartet MusicXML. It includes a local `data/gesualdo/` folder so the
+MusicXML for configurable string ensembles. It includes a local `data/gesualdo/`
+folder so the
 default examples do not depend on a sibling MusES checkout for score data.
 
 ## Install
@@ -49,10 +50,19 @@ This writes:
 data/gesualdo/gesualdo_quartet_rhythm_first.musicxml
 ```
 
+The reduction core is profile-based. The default preset is `STRING_QUARTET`;
+`QUARTET_PLUS_VIOLE` adds a fifth `Viole d'amour` part and can either map five
+source voices one-to-one by register or reduce six voices into the three inner
+instrumental parts.
+`SweetSpotAssignmentPolicy` keeps the outer voices fixed, can remap equal-count
+inner voices when another assignment better fits the target instruments, and
+can place notes by octave in each instrument's preferred register.
+
 ## Layout
 
 - `src/gesualdo_reduction/analysis.py`: MusES-based analysis helpers and CLI.
-- `src/gesualdo_reduction/reduction.py`: rhythm-first MusicXML reduction.
+- `src/gesualdo_reduction/reduction.py`: rhythm-first MusicXML reduction,
+  ensemble profiles, and assignment policies.
 - `data/gesualdo/`: local Gesualdo MIDI/reference data.
 - `tests/`: project-level tests.
 - `experiments/`: preserved exploratory scripts.
