@@ -2,22 +2,21 @@
 
 Experimental work on reducing six-voice madrigals into string-quartet material.
 
-This is a standalone Python project that uses MusES for temporal musical
-objects, MIDI IO, pitch utilities, and chordification. It lives in the MusES
-repository for now, but it has its own package metadata, tests, CLI entrypoint,
-and dependency boundary.
+This is a standalone Python project for reducing Gesualdo madrigal MIDI into
+string-quartet MusicXML. It includes a local `data/gesualdo/` folder so the
+default examples do not depend on a sibling MusES checkout for score data.
 
 ## Install
 
 From this directory:
 
 ```bash
-uv sync
+uv sync --extra notation
 uv run pytest -q
 ```
 
-The `pyproject.toml` uses the parent checkout of MusES as an editable local
-dependency via `tool.uv.sources`.
+The `pyproject.toml` still uses the parent checkout of MusES as an editable
+local dependency for the analysis helpers via `tool.uv.sources`.
 
 For non-uv workflows, install MusES first from the repository root, then install
 this project:
@@ -32,15 +31,29 @@ python -m pip install -e .
 Analyze a madrigal MIDI file:
 
 ```bash
-uv run gesualdo-analyze ../muses/data/gesualdo/gesualdo_vi_libro_madrigali_22.mid
+uv run gesualdo-analyze data/gesualdo/gesualdo_vi_libro_madrigali_22.mid
 ```
 
 The current analysis reports voice ranges, a rough global transposition plan,
 and dense sonorities found through MusES chordification.
 
+Generate the current rhythm-first quartet reduction:
+
+```bash
+uv run python experiments/reduction.py
+```
+
+This writes:
+
+```text
+data/gesualdo/gesualdo_quartet_rhythm_first.musicxml
+```
+
 ## Layout
 
 - `src/gesualdo_reduction/analysis.py`: MusES-based analysis helpers and CLI.
+- `src/gesualdo_reduction/reduction.py`: rhythm-first MusicXML reduction.
+- `data/gesualdo/`: local Gesualdo MIDI/reference data.
 - `tests/`: project-level tests.
 - `experiments/`: preserved exploratory scripts.
 

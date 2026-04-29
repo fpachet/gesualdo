@@ -12,8 +12,8 @@ from gesualdo_reduction.reduction import (
 
 if __name__ == "__main__":
     project_root = Path(__file__).resolve().parents[1]
-    midi_path = project_root.parent / "muses" / "data" / "gesualdo" / "gesualdo_vi_libro_madrigali_22.mid"
-    out_path = project_root / "gesualdo_quartet_V2.musicxml"
+    midi_path = project_root / "data" / "gesualdo" / "gesualdo_vi_libro_madrigali_22.mid"
+    out_path = project_root / "data" / "gesualdo" / "gesualdo_quartet_rhythm_first.musicxml"
     reduce_to_quartet(
         midi_path,
         semitones=SEMITONES,
