@@ -1,0 +1,40 @@
+[project]
+name = "gesualdo-reduction"
+version = "0.1.0"
+description = "Experimental madrigal-to-string-quartet reduction tools built on MusES."
+authors = [
+    { name = "Francois Pachet", email = "pachet@gmail.com" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "muses",
+    "mido~=1.3.3",
+    "numpy~=2.2.4",
+]
+
+[project.optional-dependencies]
+notation = [
+    "music21",
+]
+
+[project.scripts]
+gesualdo-analyze = "gesualdo_reduction.analysis:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.uv.sources]
+muses = { path = "../muses", editable = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+]

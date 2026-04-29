@@ -1,0 +1,120 @@
+from fractions import Fraction
+
+import pytest
+
+pytest.importorskip("music21")
+
+from music21 import meter, note, stream
+
+from gesualdo_reduction.reduction import (
+    build_bar_map,
+    build_quartet_score,
+    extract_events,
+    ql_to_fraction,
+    validate_score_measures,
+)
+
+
+def make_part(name, events):
+    part = stream.Part()
+    part.partName = name
+    part.insert(0, meter.TimeSignature("4/4"))
+    for offset, duration, pitch_name in events:
+        element = note.Rest(quarterLength=duration) if pitch_name is None else note.Note(pitch_name, quarterLength=duration)
+        part.insert(offset, element)
+    return part
+
+
+def make_score(parts):
+    score = stream.Score()
+    for part in parts:
+        score.insert(0, part)
+    return score
+
+
+def assert_measures_are_exact(score, bars):
+    validate_score_measures(score, bars)
+    for part in score.parts:
+        for measure, bar in zip(part.getElementsByClass(stream.Measure), bars, strict=True):
+            total = sum((ql_to_fraction(el.quarterLength) for el in measure.notesAndRests), Fraction(0, 1))
+            assert total == bar.duration
+
+
+def test_outer_repeated_notes_are_not_merged():
+    score = make_score(
+        [
+            make_part("top", [(0, 1, "C6"), (1, 1, "C6"), (2, 2, None)]),
+            make_part("middle 1", [(0, 1, "E4"), (1, 1, "F4"), (2, 2, None)]),
+            make_part("middle 2", [(0, 2, "G4"), (2, 2, None)]),
+            make_part("bottom", [(0, 4, "C2")]),
+        ]
+    )
+
+    bars = build_bar_map(score)
+    reduced = build_quartet_score(score, enforce_ranges=False)
+
+    assert_measures_are_exact(reduced, bars)
+    violin_1_measure = list(reduced.parts[0].getElementsByClass(stream.Measure))[0]
+    violin_1_notes = [el for el in violin_1_measure.notesAndRests if el.isNote]
+
+    assert [ql_to_fraction(el.offset) for el in violin_1_notes] == [Fraction(0, 1), Fraction(1, 1)]
+    assert [ql_to_fraction(el.quarterLength) for el in violin_1_notes] == [Fraction(1, 1), Fraction(1, 1)]
+    assert violin_1_notes[0].editorial.sourceEventId != violin_1_notes[1].editorial.sourceEventId
+
+
+def test_notes_crossing_barlines_are_split_and_tied():
+    score = make_score(
+        [
+            make_part("top", [(0, 6, "C6")]),
+            make_part("middle 1", [(0, 1, "E4")]),
+            make_part("middle 2", [(0, 1, "G4")]),
+            make_part("bottom", [(0, 6, "C2")]),
+        ]
+    )
+
+    bars = build_bar_map(score)
+    reduced = build_quartet_score(score, enforce_ranges=False)
+
+    assert_measures_are_exact(reduced, bars)
+    violin_1_measures = list(reduced.parts[0].getElementsByClass(stream.Measure))
+    first_note = violin_1_measures[0].notes[0]
+    second_note = violin_1_measures[1].notes[0]
+
+    assert ql_to_fraction(first_note.quarterLength) == Fraction(4, 1)
+    assert ql_to_fraction(second_note.quarterLength) == Fraction(2, 1)
+    assert first_note.tie.type == "start"
+    assert second_note.tie.type == "stop"
+    assert first_note.editorial.sourceEventId == second_note.editorial.sourceEventId
+
+
+def test_middle_reduction_only_outputs_real_source_note_events():
+    score = make_score(
+        [
+            make_part("top", [(0, 4, "B5")]),
+            make_part("middle 1", [(0, Fraction(3, 2), "E4")]),
+            make_part("middle 2", [(0, Fraction(1, 2), "G4"), (2, 1, "A4")]),
+            make_part("bottom", [(0, 4, "C2")]),
+        ]
+    )
+
+    bars = build_bar_map(score)
+    reduced = build_quartet_score(score, enforce_ranges=False)
+
+    assert_measures_are_exact(reduced, bars)
+
+    source_events = {}
+    for part_index in (1, 2):
+        for event in extract_events(score.parts[part_index], part_index, include_rests=False, chord_policy="all"):
+            source_events[event.source_id] = event.duration
+
+    middle_output_notes = []
+    for part in reduced.parts[1:3]:
+        for measure in part.getElementsByClass(stream.Measure):
+            middle_output_notes.extend(measure.notes)
+
+    assert middle_output_notes
+    for output_note in middle_output_notes:
+        source_id = output_note.editorial.sourceEventId
+        assert source_id in source_events
+        assert ql_to_fraction(output_note.quarterLength) == source_events[source_id]
+
