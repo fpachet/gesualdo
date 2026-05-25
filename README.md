@@ -37,6 +37,9 @@ uv run gesualdo-analyze data/gesualdo/gesualdo_vi_libro_madrigali_22.mid
 
 The current analysis reports voice ranges, a rough global transposition plan,
 and dense sonorities found through MusES chordification.
+Reduction entry points choose a target-aware global transposition by default;
+pass an explicit `semitones` value to force a fixed transposition such as the
+older hand-tuned `-9`.
 
 Generate the current rhythm-first quartet reduction:
 
@@ -57,6 +60,9 @@ instrumental parts.
 `SweetSpotAssignmentPolicy` keeps the outer voices fixed, can remap equal-count
 inner voices when another assignment better fits the target instruments, and
 can place notes by octave in each instrument's preferred register.
+`build_piano_score`/`reduce_to_piano` create a two-staff piano reduction: upper
+voices are kept as independent right-hand notation voices and lower voices as
+independent left-hand notation voices.
 
 ## Layout
 

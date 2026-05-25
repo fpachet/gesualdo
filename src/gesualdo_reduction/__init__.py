@@ -4,7 +4,9 @@ from gesualdo_reduction.analysis import analyze_midi, dense_chords, transpositio
 
 _REDUCTION_EXPORTS = {
     "AssignmentPolicy",
+    "DEFAULT_TRANSPOSITION_CANDIDATES",
     "EnsembleProfile",
+    "PIANO_REDUCTION",
     "QUARTET_PLUS_VIOLE",
     "ReductionBuilder",
     "ReductionConfig",
@@ -12,15 +14,20 @@ _REDUCTION_EXPORTS = {
     "STRING_QUARTET",
     "SweetSpotAssignmentPolicy",
     "TargetPart",
+    "TranspositionChoice",
     "VoiceOrderAssignmentPolicy",
     "build_ensemble_score",
+    "build_piano_score",
     "build_quartet_plus_viole_sweetspot_score",
     "build_quartet_plus_viole_score",
     "build_quartet_score",
+    "choose_global_transposition",
     "reduce_to_ensemble",
+    "reduce_to_piano",
     "reduce_to_quartet_plus_viole_sweetspot",
     "reduce_to_quartet",
     "reduce_to_quartet_plus_viole",
+    "score_global_transposition",
 }
 
 
@@ -34,7 +41,9 @@ def __getattr__(name: str):
 
 __all__ = [
     "AssignmentPolicy",
+    "DEFAULT_TRANSPOSITION_CANDIDATES",
     "EnsembleProfile",
+    "PIANO_REDUCTION",
     "QUARTET_PLUS_VIOLE",
     "ReductionBuilder",
     "ReductionConfig",
@@ -42,17 +51,22 @@ __all__ = [
     "STRING_QUARTET",
     "SweetSpotAssignmentPolicy",
     "TargetPart",
+    "TranspositionChoice",
     "VoiceOrderAssignmentPolicy",
     "analyze_midi",
     "build_ensemble_score",
+    "build_piano_score",
     "build_quartet_plus_viole_sweetspot_score",
     "build_quartet_plus_viole_score",
     "build_quartet_score",
+    "choose_global_transposition",
     "dense_chords",
     "reduce_to_ensemble",
+    "reduce_to_piano",
     "reduce_to_quartet_plus_viole_sweetspot",
     "reduce_to_quartet",
     "reduce_to_quartet_plus_viole",
+    "score_global_transposition",
     "transposition_plan",
     "voice_ranges",
 ]

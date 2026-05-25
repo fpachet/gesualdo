@@ -23,6 +23,7 @@ from music21 import (
     expressions,
     instrument,
     key,
+    layout,
     metadata,
     meter,
     note,
@@ -37,6 +38,7 @@ OUT_PATH = "gesualdo_quartet_V2.musicxml"
 ENFORCE_RANGES = True
 REGISTER_SPLIT = 60
 MAX_DENOMINATOR = 4096
+DEFAULT_TRANSPOSITION_CANDIDATES = tuple(range(-18, 7))
 
 RANGES = {
     "vln1": (55, 100),  # G3..E7
@@ -44,6 +46,8 @@ RANGES = {
     "vda": (45, 88),  # A2..E6, configurable viola d'amore default
     "vla": (48, 88),  # C3..E6
     "vc": (36, 72),  # C2..C5
+    "pno_rh": (48, 108),  # C3..C8
+    "pno_lh": (21, 72),  # A0..C5
 }
 
 
@@ -180,6 +184,15 @@ class ReductionContext:
     middle_events: tuple[SourceEvent, ...]
 
 
+@dataclass(frozen=True)
+class TranspositionChoice:
+    """A scored global transposition candidate."""
+
+    semitones: int
+    score: float
+    candidate_scores: tuple[tuple[int, float], ...]
+
+
 def viole_damour_instrument() -> instrument.Instrument:
     """Create a generic music21 instrument entry for viole d'amour."""
 
@@ -275,6 +288,33 @@ QUARTET_PLUS_VIOLE = EnsembleProfile(
             name="Violoncello",
             midi_range=RANGES["vc"],
             instrument_factory=instrument.Violoncello,
+            clef_factory=clef.BassClef,
+            role="bottom",
+            preferred_register=(36, 60),
+        ),
+    ),
+)
+
+
+PIANO_REDUCTION = EnsembleProfile(
+    name="piano",
+    title_suffix="Piano Reduction",
+    minimum_source_parts=2,
+    parts=(
+        TargetPart(
+            id="pno_rh",
+            name="Piano",
+            midi_range=RANGES["pno_rh"],
+            instrument_factory=instrument.Piano,
+            clef_factory=clef.TrebleClef,
+            role="top",
+            preferred_register=(60, 84),
+        ),
+        TargetPart(
+            id="pno_lh",
+            name="Piano",
+            midi_range=RANGES["pno_lh"],
+            instrument_factory=instrument.Piano,
             clef_factory=clef.BassClef,
             role="bottom",
             preferred_register=(36, 60),
@@ -589,7 +629,7 @@ def _make_rest_fragment_element(event: SourceEvent | None, duration: Fraction) -
     return rest
 
 
-def _insert_fragment(measure: stream.Measure, fragment: Fragment, bar: Bar) -> None:
+def _insert_fragment(measure: stream.Stream, fragment: Fragment, bar: Bar) -> None:
     if fragment.is_generated_rest or fragment.event is None:
         element = _make_rest_fragment_element(None, fragment.duration)
     elif fragment.event.is_rest:
@@ -597,6 +637,44 @@ def _insert_fragment(measure: stream.Measure, fragment: Fragment, bar: Bar) -> N
     else:
         element = _make_note_fragment_element(fragment.event, fragment.offset, fragment.duration, bar)
     measure.insert(fraction_to_ql(fragment.offset), element)
+
+
+def _insert_complete_fragments(
+    container: stream.Stream,
+    sorted_events: Sequence[SourceEvent],
+    bar: Bar,
+    *,
+    part_name: str,
+) -> None:
+    fragments = [
+        fragment
+        for event in sorted_events
+        if (fragment := _event_fragments_for_bar(event, bar)) is not None
+    ]
+    fragments.sort(key=lambda frag: (frag.offset, frag.end, frag.event.source_id if frag.event else ""))
+
+    cursor = Fraction(0, 1)
+    for fragment in fragments:
+        if fragment.offset < cursor:
+            source_id = fragment.event.source_id if fragment.event else "<generated>"
+            raise MeasureValidationError(
+                f"{part_name} has overlapping source events near measure {bar.number}: {source_id}"
+            )
+        if fragment.offset > cursor:
+            _insert_fragment(
+                container,
+                Fragment(event=None, offset=cursor, duration=fragment.offset - cursor, is_generated_rest=True),
+                bar,
+            )
+        _insert_fragment(container, fragment, bar)
+        cursor = fragment.end
+
+    if cursor < bar.duration:
+        _insert_fragment(
+            container,
+            Fragment(event=None, offset=cursor, duration=bar.duration - cursor, is_generated_rest=True),
+            bar,
+        )
 
 
 def build_measured_part(
@@ -624,39 +702,50 @@ def build_measured_part(
         for key_sig in key_signatures.get(bar.start, []):
             measure.insert(0, copy.deepcopy(key_sig))
 
-        fragments = [
-            fragment
-            for event in sorted_events
-            if (fragment := _event_fragments_for_bar(event, bar)) is not None
-        ]
-        fragments.sort(key=lambda frag: (frag.offset, frag.end, frag.event.source_id if frag.event else ""))
-
-        cursor = Fraction(0, 1)
-        for fragment in fragments:
-            if fragment.offset < cursor:
-                source_id = fragment.event.source_id if fragment.event else "<generated>"
-                raise MeasureValidationError(
-                    f"{part_name} has overlapping source events near measure {bar.number}: {source_id}"
-                )
-            if fragment.offset > cursor:
-                _insert_fragment(
-                    measure,
-                    Fragment(event=None, offset=cursor, duration=fragment.offset - cursor, is_generated_rest=True),
-                    bar,
-                )
-            _insert_fragment(measure, fragment, bar)
-            cursor = fragment.end
-
-        if cursor < bar.duration:
-            _insert_fragment(
-                measure,
-                Fragment(event=None, offset=cursor, duration=bar.duration - cursor, is_generated_rest=True),
-                bar,
-            )
-
+        _insert_complete_fragments(measure, sorted_events, bar, part_name=part_name)
         part.insert(fraction_to_ql(bar.start), measure)
 
     validate_measured_part(part, bars)
+    return part
+
+
+def build_measured_piano_staff(
+    voice_event_groups: Sequence[Sequence[SourceEvent]],
+    bars: Sequence[Bar],
+    *,
+    target: TargetPart,
+    key_signatures: dict[Fraction, list[key.KeySignature]] | None = None,
+) -> stream.PartStaff:
+    """Build one piano staff with independent source voices as notation voices."""
+
+    part = stream.PartStaff()
+    part.partName = target.name
+    part.partAbbreviation = "Pno."
+    part.insert(0, copy.deepcopy(target.make_instrument()))
+    part.insert(0, copy.deepcopy(target.make_clef()))
+    key_signatures = key_signatures or {}
+    sorted_groups = [
+        sorted(events, key=lambda ev: (ev.start, ev.end, ev.source_id))
+        for events in voice_event_groups
+    ]
+    if not sorted_groups:
+        sorted_groups = [[]]
+
+    for bar in bars:
+        measure = stream.Measure(number=bar.number)
+        if bar.time_signature is not None:
+            measure.insert(0, meter.TimeSignature(bar.time_signature.ratioString))
+        for key_sig in key_signatures.get(bar.start, []):
+            measure.insert(0, copy.deepcopy(key_sig))
+
+        for voice_index, events in enumerate(sorted_groups, start=1):
+            voice = stream.Voice(id=str(voice_index))
+            _insert_complete_fragments(voice, events, bar, part_name=f"{target.name} voice {voice_index}")
+            measure.insert(0, voice)
+
+        part.insert(fraction_to_ql(bar.start), measure)
+
+    validate_measured_piano_staff(part, bars)
     return part
 
 
@@ -693,9 +782,55 @@ def validate_measured_part(part: stream.Part, bars: Sequence[Bar]) -> None:
             )
 
 
+def validate_measured_voice(voice: stream.Voice, bars: Sequence[Bar], bar: Bar, part_name: str) -> None:
+    items = sorted(voice.notesAndRests, key=lambda el: ql_to_fraction(el.offset))
+    cursor = Fraction(0, 1)
+    for element in items:
+        offset = ql_to_fraction(element.offset)
+        duration = ql_to_fraction(element.quarterLength)
+        if duration <= 0:
+            raise MeasureValidationError(f"{part_name} measure {bar.number} has zero-length element.")
+        if offset != cursor:
+            relation = "overlap" if offset < cursor else "gap"
+            raise MeasureValidationError(
+                f"{part_name} measure {bar.number} voice {voice.id} has a {relation} at {cursor}."
+            )
+        cursor = offset + duration
+        if cursor > bar.duration:
+            raise MeasureValidationError(f"{part_name} measure {bar.number} voice {voice.id} is overfull.")
+        if element.isNote and not hasattr(element.editorial, "sourceEventId"):
+            raise MeasureValidationError(
+                f"{part_name} measure {bar.number} voice {voice.id} contains an untraced output note."
+            )
+    if cursor != bar.duration:
+        raise MeasureValidationError(
+            f"{part_name} measure {bar.number} voice {voice.id} duration {cursor} != expected {bar.duration}."
+        )
+
+
+def validate_measured_piano_staff(part: stream.PartStaff, bars: Sequence[Bar]) -> None:
+    measures = list(part.getElementsByClass(stream.Measure))
+    if len(measures) != len(bars):
+        raise MeasureValidationError(
+            f"{part.partName or '<part>'} has {len(measures)} measures; expected {len(bars)}."
+        )
+
+    for measure, bar in zip(measures, bars, strict=True):
+        voices = list(measure.voices)
+        if not voices:
+            raise MeasureValidationError(f"{part.partName} measure {bar.number} has no voices.")
+        for voice in voices:
+            validate_measured_voice(voice, bars, bar, part.partName or "<part>")
+
+
 def validate_score_measures(score: stream.Score, bars: Sequence[Bar]) -> None:
     for part in score.parts:
         validate_measured_part(part, bars)
+
+
+def validate_piano_score_measures(score: stream.Score, bars: Sequence[Bar]) -> None:
+    for part in score.parts:
+        validate_measured_piano_staff(part, bars)
 
 
 def active_pitch_at(events: Sequence[SourceEvent], offset: Fraction) -> int | None:
@@ -1075,6 +1210,155 @@ def _fit_events_to_preferred_register(
     return fitted_events
 
 
+def _target_pitch_transposition_cost(target: TargetPart, transposed_pitch: int) -> float:
+    fitted_pitch = _preferred_register_fit(transposed_pitch, target)
+    if fitted_pitch is None:
+        return 10_000.0
+    octave_displacement = abs(fitted_pitch - transposed_pitch) / 12
+    return _pitch_sweetspot_cost(target, fitted_pitch) + octave_displacement * 6
+
+
+def _voice_transposition_cost(
+    events: Sequence[SourceEvent],
+    target: TargetPart,
+    semitones: int,
+) -> float:
+    weighted_cost = 0.0
+    total_weight = 0.0
+    for event in events:
+        if event.is_rest or event.pitch_midi is None:
+            continue
+        weight = float(event.duration)
+        weighted_cost += _target_pitch_transposition_cost(target, int(event.pitch_midi) + semitones) * weight
+        total_weight += weight
+    if total_weight == 0:
+        return 0.0
+    return weighted_cost / total_weight
+
+
+def _source_voice_groups_for_transposition(
+    src_score: stream.Score,
+    profile: EnsembleProfile,
+    *,
+    right_hand_voice_count: int | None = None,
+) -> list[tuple[list[SourceEvent], TargetPart]]:
+    parts = tuple(src_score.parts) if src_score.parts else (src_score,)
+    ordered_indices = _ordered_source_indices_by_median(parts)
+    if not ordered_indices:
+        raise ValueError("Could not identify source voices; no pitched material found.")
+
+    if profile is PIANO_REDUCTION or profile.name == PIANO_REDUCTION.name:
+        if right_hand_voice_count is None:
+            right_hand_voice_count = (len(ordered_indices) + 1) // 2
+        right_hand_voice_count = max(1, min(len(ordered_indices), right_hand_voice_count))
+        right_target = profile.target("pno_rh")
+        left_target = profile.target("pno_lh")
+        result: list[tuple[list[SourceEvent], TargetPart]] = []
+        for source_index in ordered_indices[:right_hand_voice_count]:
+            result.append((_extract_voice_events_for_target(parts[source_index], source_index, right_target), right_target))
+        for source_index in ordered_indices[right_hand_voice_count:]:
+            result.append((_extract_voice_events_for_target(parts[source_index], source_index, left_target), left_target))
+        return result
+
+    if len(ordered_indices) == len(profile.parts):
+        return [
+            (_extract_voice_events_for_target(parts[source_index], source_index, target), target)
+            for target, source_index in zip(profile.parts, ordered_indices, strict=True)
+        ]
+
+    top_target = profile.top_part
+    bottom_target = profile.bottom_part
+    inner_targets = profile.inner_parts
+    if not inner_targets:
+        inner_targets = tuple(part for part in profile.parts if part.role not in {"top", "bottom"})
+    result = [
+        (_extract_voice_events_for_target(parts[ordered_indices[0]], ordered_indices[0], top_target), top_target),
+    ]
+    for source_index in ordered_indices[1:-1]:
+        source_events = extract_events(parts[source_index], source_index, include_rests=True, chord_policy="top")
+        if inner_targets:
+            best_target = min(
+                inner_targets,
+                key=lambda target: _voice_transposition_cost(source_events, target, 0),
+            )
+        else:
+            best_target = top_target
+        result.append((source_events, best_target))
+    result.append(
+        (_extract_voice_events_for_target(parts[ordered_indices[-1]], ordered_indices[-1], bottom_target), bottom_target)
+    )
+    return result
+
+
+def score_global_transposition(
+    src_score: stream.Score,
+    profile: EnsembleProfile,
+    semitones: int,
+    *,
+    right_hand_voice_count: int | None = None,
+) -> float:
+    voice_groups = _source_voice_groups_for_transposition(
+        src_score,
+        profile,
+        right_hand_voice_count=right_hand_voice_count,
+    )
+    weighted_score = 0.0
+    total_weight = 0.0
+    for events, target in voice_groups:
+        voice_weight = sum(float(event.duration) for event in events if not event.is_rest and event.pitch_midi is not None)
+        if voice_weight <= 0:
+            continue
+        weighted_score += _voice_transposition_cost(events, target, semitones) * voice_weight
+        total_weight += voice_weight
+    if total_weight == 0:
+        return abs(semitones) * 0.01
+    return weighted_score / total_weight + abs(semitones) * 0.01
+
+
+def choose_global_transposition(
+    src_score: stream.Score,
+    profile: EnsembleProfile,
+    *,
+    candidate_semitones: Sequence[int] = DEFAULT_TRANSPOSITION_CANDIDATES,
+    right_hand_voice_count: int | None = None,
+) -> TranspositionChoice:
+    if not candidate_semitones:
+        raise ValueError("candidate_semitones must not be empty.")
+    candidate_scores = tuple(
+        (int(semitones), score_global_transposition(
+            src_score,
+            profile,
+            int(semitones),
+            right_hand_voice_count=right_hand_voice_count,
+        ))
+        for semitones in candidate_semitones
+    )
+    best_semitones, best_score = min(candidate_scores, key=lambda item: (item[1], abs(item[0]), item[0]))
+    return TranspositionChoice(
+        semitones=best_semitones,
+        score=best_score,
+        candidate_scores=candidate_scores,
+    )
+
+
+def _transpose_score_for_reduction(
+    src_score: stream.Score,
+    profile: EnsembleProfile,
+    semitones: int | None,
+    *,
+    candidate_semitones: Sequence[int] = DEFAULT_TRANSPOSITION_CANDIDATES,
+    right_hand_voice_count: int | None = None,
+) -> tuple[stream.Score, int]:
+    if semitones is None:
+        semitones = choose_global_transposition(
+            src_score,
+            profile,
+            candidate_semitones=candidate_semitones,
+            right_hand_voice_count=right_hand_voice_count,
+        ).semitones
+    return (src_score.transpose(semitones) if semitones else src_score, int(semitones))
+
+
 def _inversion_count(values: Sequence[int]) -> int:
     count = 0
     for left_index, left in enumerate(values):
@@ -1345,6 +1629,80 @@ def build_ensemble_score(
     return ReductionBuilder(profile, config=config, policy=policy).build_score(src_score)
 
 
+def build_piano_score(
+    src_score: stream.Score,
+    *,
+    enforce_ranges: bool = ENFORCE_RANGES,
+    right_hand_voice_count: int | None = None,
+    prefer_hand_registers: bool = False,
+) -> stream.Score:
+    bars = build_bar_map(src_score)
+    if not bars:
+        raise ValueError("Could not derive any source bars.")
+
+    parts = tuple(src_score.parts) if src_score.parts else (src_score,)
+    ordered_indices = _ordered_source_indices_by_median(parts)
+    if not ordered_indices:
+        raise ValueError("Could not identify source voices; no pitched material found.")
+
+    if right_hand_voice_count is None:
+        right_hand_voice_count = (len(ordered_indices) + 1) // 2
+    right_hand_voice_count = max(1, min(len(ordered_indices), right_hand_voice_count))
+
+    right_target = PIANO_REDUCTION.target("pno_rh")
+    left_target = PIANO_REDUCTION.target("pno_lh")
+    config = ReductionConfig(enforce_ranges=enforce_ranges)
+    key_signatures = collect_key_signatures(src_score, bars)
+
+    def voice_groups(source_indices: Sequence[int], target: TargetPart) -> list[list[SourceEvent]]:
+        groups: list[list[SourceEvent]] = []
+        for source_index in source_indices:
+            events = _extract_voice_events_for_target(parts[source_index], source_index, target)
+            if prefer_hand_registers:
+                events = _fit_events_to_preferred_register(events, target, config)
+            else:
+                events = _fit_events_to_target(events, target, config)
+            groups.append(events)
+        return groups
+
+    right_indices = ordered_indices[:right_hand_voice_count]
+    left_indices = ordered_indices[right_hand_voice_count:]
+    right_staff = build_measured_piano_staff(
+        voice_groups(right_indices, right_target),
+        bars,
+        target=right_target,
+        key_signatures=key_signatures,
+    )
+    left_staff = build_measured_piano_staff(
+        voice_groups(left_indices, left_target),
+        bars,
+        target=left_target,
+        key_signatures=key_signatures,
+    )
+
+    out = stream.Score()
+    out.insert(0, metadata.Metadata())
+    if src_score.metadata:
+        out.metadata.title = ((src_score.metadata.title or "") + f" - {PIANO_REDUCTION.title_suffix}").strip(" -")
+        out.metadata.composer = src_score.metadata.composer
+
+    out.insert(0, right_staff)
+    out.insert(0, left_staff)
+    out.insert(
+        0,
+        layout.StaffGroup(
+            [right_staff, left_staff],
+            name="Piano",
+            abbreviation="Pno.",
+            symbol="brace",
+        ),
+    )
+
+    copy_top_staff_markings(src_score, out, bars)
+    validate_piano_score_measures(out, bars)
+    return out
+
+
 def build_quartet_score(
     src_score: stream.Score,
     *,
@@ -1403,28 +1761,35 @@ def build_quartet_plus_viole_sweetspot_score(
 def reduce_to_ensemble(
     midi_path: str | Path,
     profile: EnsembleProfile = STRING_QUARTET,
-    semitones: int = SEMITONES,
+    semitones: int | None = None,
     out_path: str | Path = OUT_PATH,
     *,
     config: ReductionConfig | None = None,
     policy: AssignmentPolicy | None = None,
+    candidate_semitones: Sequence[int] = DEFAULT_TRANSPOSITION_CANDIDATES,
 ) -> stream.Score:
     src_score = converter.parse(midi_path)
-    if semitones:
-        src_score = src_score.transpose(semitones)
+    src_score, chosen_semitones = _transpose_score_for_reduction(
+        src_score,
+        profile,
+        semitones,
+        candidate_semitones=candidate_semitones,
+    )
     out_score = build_ensemble_score(src_score, profile, config=config, policy=policy)
+    out_score.editorial.globalTransposition = chosen_semitones
     out_score.write("musicxml", fp=str(out_path))
-    print(f"Written: {out_path}")
+    print(f"Written: {out_path} (semitones={chosen_semitones})")
     return out_score
 
 
 def reduce_to_quartet(
     midi_path: str | Path,
-    semitones: int = SEMITONES,
+    semitones: int | None = None,
     out_path: str | Path = OUT_PATH,
     *,
     enforce_ranges: bool = ENFORCE_RANGES,
     register_split: int = REGISTER_SPLIT,
+    candidate_semitones: Sequence[int] = DEFAULT_TRANSPOSITION_CANDIDATES,
 ) -> stream.Score:
     return reduce_to_ensemble(
         midi_path,
@@ -1433,17 +1798,19 @@ def reduce_to_quartet(
         out_path=out_path,
         config=ReductionConfig(enforce_ranges=enforce_ranges, register_split=register_split),
         policy=RegisterAssignmentPolicy(),
+        candidate_semitones=candidate_semitones,
     )
 
 
 def reduce_to_quartet_plus_viole(
     midi_path: str | Path,
-    semitones: int = SEMITONES,
+    semitones: int | None = None,
     out_path: str | Path = "gesualdo_quartet_plus_viole.musicxml",
     *,
     enforce_ranges: bool = ENFORCE_RANGES,
     register_split: int = REGISTER_SPLIT,
     one_to_one_when_possible: bool = True,
+    candidate_semitones: Sequence[int] = DEFAULT_TRANSPOSITION_CANDIDATES,
 ) -> stream.Score:
     policy: AssignmentPolicy
     if one_to_one_when_possible:
@@ -1457,12 +1824,13 @@ def reduce_to_quartet_plus_viole(
         out_path=out_path,
         config=ReductionConfig(enforce_ranges=enforce_ranges, register_split=register_split),
         policy=policy,
+        candidate_semitones=candidate_semitones,
     )
 
 
 def reduce_to_quartet_plus_viole_sweetspot(
     midi_path: str | Path,
-    semitones: int = SEMITONES,
+    semitones: int | None = None,
     out_path: str | Path = "gesualdo_quartet_plus_viole_sweetspot.musicxml",
     *,
     enforce_ranges: bool = ENFORCE_RANGES,
@@ -1470,6 +1838,7 @@ def reduce_to_quartet_plus_viole_sweetspot(
     prefer_registers: bool = True,
     order_weight: float = 1.0,
     crossing_weight: float = 2.0,
+    candidate_semitones: Sequence[int] = DEFAULT_TRANSPOSITION_CANDIDATES,
 ) -> stream.Score:
     return reduce_to_ensemble(
         midi_path,
@@ -1482,4 +1851,35 @@ def reduce_to_quartet_plus_viole_sweetspot(
             order_weight=order_weight,
             crossing_weight=crossing_weight,
         ),
+        candidate_semitones=candidate_semitones,
     )
+
+
+def reduce_to_piano(
+    midi_path: str | Path,
+    semitones: int | None = None,
+    out_path: str | Path = "gesualdo_piano_reduction.musicxml",
+    *,
+    enforce_ranges: bool = ENFORCE_RANGES,
+    right_hand_voice_count: int | None = None,
+    prefer_hand_registers: bool = False,
+    candidate_semitones: Sequence[int] = DEFAULT_TRANSPOSITION_CANDIDATES,
+) -> stream.Score:
+    src_score = converter.parse(midi_path)
+    src_score, chosen_semitones = _transpose_score_for_reduction(
+        src_score,
+        PIANO_REDUCTION,
+        semitones,
+        candidate_semitones=candidate_semitones,
+        right_hand_voice_count=right_hand_voice_count,
+    )
+    out_score = build_piano_score(
+        src_score,
+        enforce_ranges=enforce_ranges,
+        right_hand_voice_count=right_hand_voice_count,
+        prefer_hand_registers=prefer_hand_registers,
+    )
+    out_score.editorial.globalTransposition = chosen_semitones
+    out_score.write("musicxml", fp=str(out_path))
+    print(f"Written: {out_path} (semitones={chosen_semitones})")
+    return out_score

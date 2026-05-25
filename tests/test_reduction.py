@@ -7,12 +7,16 @@ pytest.importorskip("music21")
 from music21 import meter, note, stream
 
 from gesualdo_reduction.reduction import (
+    PIANO_REDUCTION,
     build_bar_map,
+    build_piano_score,
     build_quartet_plus_viole_sweetspot_score,
     build_quartet_plus_viole_score,
     build_quartet_score,
+    choose_global_transposition,
     extract_events,
     ql_to_fraction,
+    reduce_to_piano,
     validate_score_measures,
 )
 
@@ -218,3 +222,65 @@ def test_quartet_plus_viole_sweetspot_prefers_register_octaves():
     violin_2_measure = list(reduced.parts[1].getElementsByClass(stream.Measure))[0]
 
     assert violin_2_measure.notes[0].pitch.midi == 71
+
+
+def test_piano_reduction_distributes_voices_across_two_staves(tmp_path):
+    score = make_score(
+        [
+            make_part("top", [(0, 4, "C6")]),
+            make_part("upper middle", [(0, 4, "G5")]),
+            make_part("middle", [(0, 4, "A4")]),
+            make_part("lower middle", [(0, 4, "E4")]),
+            make_part("bottom", [(0, 4, "C2")]),
+        ]
+    )
+
+    reduced = build_piano_score(score, enforce_ranges=False)
+
+    assert len(reduced.parts) == 2
+    right_measure = list(reduced.parts[0].getElementsByClass(stream.Measure))[0]
+    left_measure = list(reduced.parts[1].getElementsByClass(stream.Measure))[0]
+    assert len(right_measure.voices) == 3
+    assert len(left_measure.voices) == 2
+
+    right_source_indices = [voice.notes[0].editorial.sourcePartIndex for voice in right_measure.voices]
+    left_source_indices = [voice.notes[0].editorial.sourcePartIndex for voice in left_measure.voices]
+    assert right_source_indices == [0, 1, 2]
+    assert left_source_indices == [3, 4]
+
+    out_path = tmp_path / "piano.musicxml"
+    reduced.write("musicxml", fp=str(out_path))
+    musicxml = out_path.read_text()
+    assert "<part-name>Piano</part-name>" in musicxml
+    assert "<staves>2</staves>" in musicxml
+
+
+def test_global_transposition_prefers_target_registers():
+    score = make_score(
+        [
+            make_part("top", [(0, 4, "C7")]),
+            make_part("bottom", [(0, 4, "C5")]),
+        ]
+    )
+
+    choice = choose_global_transposition(score, PIANO_REDUCTION, candidate_semitones=range(-12, 1))
+
+    assert choice.semitones == -12
+    assert choice.score < dict(choice.candidate_scores)[0]
+
+
+def test_reduce_to_piano_uses_adaptive_transposition_by_default(tmp_path):
+    score = make_score(
+        [
+            make_part("top", [(0, 4, "C7")]),
+            make_part("bottom", [(0, 4, "C5")]),
+        ]
+    )
+    midi_path = tmp_path / "source.mid"
+    out_path = tmp_path / "piano.musicxml"
+    score.write("midi", fp=str(midi_path))
+
+    reduced = reduce_to_piano(midi_path, out_path=out_path, candidate_semitones=range(-12, 1))
+
+    assert reduced.editorial.globalTransposition == -12
+    assert out_path.exists()
