@@ -32,7 +32,7 @@ python -m pip install -e .
 Analyze a madrigal MIDI file:
 
 ```bash
-uv run gesualdo-analyze data/gesualdo/gesualdo_vi_libro_madrigali_22.mid
+uv run gesualdo-analyze data/gesualdo/kdf_madrigals/gesualdo_vi_libro_madrigali_22_\(c\)icking-archive.mid
 ```
 
 The current analysis reports voice ranges, a rough global transposition plan,
@@ -50,8 +50,11 @@ uv run python experiments/reduction.py
 This writes:
 
 ```text
-data/gesualdo/gesualdo_quartet_rhythm_first.musicxml
+data/gesualdo/kdf_reductions/gesualdo_vi_libro_madrigali_22_(c)icking-archive_quartet_rhythm_first.musicxml
 ```
+
+Older fixed-transposition single-piece `Gia piansi` renders are kept under
+`data/gesualdo/archive/legacy_gia_pensi_fixed_transposition/`.
 
 The reduction core is profile-based. The default preset is `STRING_QUARTET`;
 `QUARTET_PLUS_VIOLE` adds a fifth `Viole d'amour` part and can either map five

@@ -5,18 +5,28 @@ from pathlib import Path
 from gesualdo_reduction.reduction import (
     ENFORCE_RANGES,
     REGISTER_SPLIT,
-    SEMITONES,
     reduce_to_quartet,
 )
 
 
 if __name__ == "__main__":
     project_root = Path(__file__).resolve().parents[1]
-    midi_path = project_root / "data" / "gesualdo" / "gesualdo_vi_libro_madrigali_22.mid"
-    out_path = project_root / "data" / "gesualdo" / "gesualdo_quartet_rhythm_first.musicxml"
+    midi_path = (
+        project_root
+        / "data"
+        / "gesualdo"
+        / "kdf_madrigals"
+        / "gesualdo_vi_libro_madrigali_22_(c)icking-archive.mid"
+    )
+    out_path = (
+        project_root
+        / "data"
+        / "gesualdo"
+        / "kdf_reductions"
+        / "gesualdo_vi_libro_madrigali_22_(c)icking-archive_quartet_rhythm_first.musicxml"
+    )
     reduce_to_quartet(
         midi_path,
-        semitones=SEMITONES,
         out_path=out_path,
         enforce_ranges=ENFORCE_RANGES,
         register_split=REGISTER_SPLIT,
