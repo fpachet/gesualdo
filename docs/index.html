@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gesualdo Quartet Reductions | Conductor Evaluation</title>
+    <meta
+      name="description"
+      content="Listening and score review page for evaluating Gesualdo madrigal reductions for string quartet."
+    >
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div>
+        <p class="kicker">Gesualdo reduction dossier</p>
+        <h1>String Quartet Concert Evaluation</h1>
+      </div>
+      <nav class="top-links" aria-label="Repository links">
+        <a href="https://github.com/fpachet/gesualdo#readme">README</a>
+        <a href="https://github.com/fpachet/gesualdo">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="review-shell">
+      <aside class="catalog-panel" aria-label="Madrigal catalog">
+        <div class="catalog-controls">
+          <label class="search-label" for="search">Search</label>
+          <input id="search" type="search" autocomplete="off" placeholder="Title, book, or file">
+
+          <div class="segmented" role="group" aria-label="Book filter">
+            <button class="is-active" type="button" data-book="all">All</button>
+            <button type="button" data-book="IV">Book IV</button>
+            <button type="button" data-book="VI">Book VI</button>
+          </div>
+
+          <label class="search-label" for="sort">Sort</label>
+          <select id="sort">
+            <option value="order">Book order</option>
+            <option value="duration-desc">Longest first</option>
+            <option value="duration-asc">Shortest first</option>
+            <option value="transposition">Transposition</option>
+            <option value="readiness">Readiness rating</option>
+          </select>
+        </div>
+
+        <div class="stat-strip" aria-label="Corpus summary">
+          <div><strong id="visibleCount">37</strong><span>shown</span></div>
+          <div><strong>37</strong><span>MP3</span></div>
+          <div><strong>4</strong><span>parts</span></div>
+        </div>
+
+        <div id="pieceList" class="piece-list" aria-label="Madrigals"></div>
+      </aside>
+
+      <section class="review-panel" aria-live="polite">
+        <div class="work-header">
+          <div>
+            <p id="selectedBook" class="kicker">Book VI</p>
+            <h2 id="selectedTitle">22. Già piansi nel dolore</h2>
+          </div>
+          <button id="shortlist" class="shortlist-button" type="button">Shortlist</button>
+        </div>
+
+        <div class="media-grid">
+          <section class="audio-section" aria-label="Listening desk">
+            <audio id="player" controls preload="metadata"></audio>
+            <dl class="metadata-grid">
+              <div>
+                <dt>Measures</dt>
+                <dd id="selectedMeasures">58</dd>
+              </div>
+              <div>
+                <dt>Transposition</dt>
+                <dd id="selectedSemitones">0</dd>
+              </div>
+              <div>
+                <dt>Fit score</dt>
+                <dd id="selectedScore">0.331850</dd>
+              </div>
+              <div>
+                <dt>Audio length</dt>
+                <dd id="selectedDuration">--:--</dd>
+              </div>
+            </dl>
+            <div class="asset-links">
+              <a id="scoreLink" href="#">MusicXML</a>
+              <a id="mp3Link" href="#">MP3</a>
+              <a id="midiLink" href="#">Source MIDI</a>
+            </div>
+          </section>
+
+          <figure class="score-preview">
+            <img src="assets/gia-piansi-score-preview-1.png" alt="First page of the Gia piansi string quartet reduction">
+            <figcaption>Engraving sample from the quartet reduction set</figcaption>
+            <div class="score-page-links" aria-label="Engraving sample pages">
+              <a href="assets/gia-piansi-score-preview-1.png">Page 1</a>
+              <a href="assets/gia-piansi-score-preview-2.png">Page 2</a>
+              <a href="assets/gia-piansi-score-preview-3.png">Page 3</a>
+              <a href="assets/gia-piansi-score-preview-4.png">Page 4</a>
+            </div>
+          </figure>
+        </div>
+
+        <section class="criteria-panel" aria-label="Evaluation">
+          <div class="criteria-grid">
+            <fieldset class="rating-row" data-criterion="readiness">
+              <legend>Concert readiness</legend>
+              <div class="rating-buttons" role="radiogroup" aria-label="Concert readiness"></div>
+            </fieldset>
+            <fieldset class="rating-row" data-criterion="playability">
+              <legend>Playability</legend>
+              <div class="rating-buttons" role="radiogroup" aria-label="Playability"></div>
+            </fieldset>
+            <fieldset class="rating-row" data-criterion="balance">
+              <legend>Balance</legend>
+              <div class="rating-buttons" role="radiogroup" aria-label="Balance"></div>
+            </fieldset>
+            <fieldset class="rating-row" data-criterion="clarity">
+              <legend>Score clarity</legend>
+              <div class="rating-buttons" role="radiogroup" aria-label="Score clarity"></div>
+            </fieldset>
+          </div>
+
+          <label class="notes-label" for="notes">Conductor notes</label>
+          <textarea id="notes" rows="6" placeholder="Balance, idiomatic writing, page turns, rehearsal risk"></textarea>
+
+          <div class="review-actions">
+            <button id="exportCsv" type="button">Export Review CSV</button>
+            <p id="saveState">Saved locally</p>
+          </div>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

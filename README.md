@@ -34,6 +34,18 @@ The MP3 batch contains one audio file per string quartet reduction. The files
 are 44.1 kHz MP3s at 128 kbps; the largest file is about 5.3 MB. These files
 are intended to be usable directly by a static listening page.
 
+## Conductor Evaluation Page
+
+A static review page for quartet conductors lives in `docs/index.html`. It
+provides a searchable listening catalog, direct MP3 and MusicXML links,
+piece-level ratings, shortlist marking, local notes, and CSV export for review
+sessions.
+
+The page can be hosted directly from this GitHub repository with GitHub Pages.
+In the repository settings, choose Pages, deploy from the `main` branch, and set
+the publishing folder to `/docs`. The root `index.html` also redirects to the
+same page if Pages is configured from the repository root instead.
+
 ## Install
 
 From this directory:
