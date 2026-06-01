@@ -96,6 +96,27 @@ network. It does not learn from examples or invent new melodic material. Its
 intelligence is encoded as score analysis, constraint solving, search, and
 cost-based assignment over the source musical events.
 
+The musical problem is best understood as a constrained multi-objective
+optimization problem. The target score should preserve as much of the original
+madrigal as possible while also becoming idiomatic for the chosen instruments.
+The objectives are sometimes aligned and sometimes in tension:
+
+- optimize each instrument's sweet spot and playable range;
+- optimize harmonic coverage, especially when a target voice is available and
+  the source sonority contains an important missing pitch class;
+- optimize faithfulness to the original, notably rhythmic placement, source
+  attacks, durations, register contour, and traceability to real source notes;
+- optimize voice continuity, avoiding isolated singleton notes that appear only
+  because a voice happened to be idle for one chord;
+- minimize voice crossing, abrupt octave displacement, unnecessary doubling,
+  and unstable reassignment of similar source material between instruments.
+
+The current implementation approximates this formulation with deterministic
+symbolic search and local cost functions. It does not yet solve one global
+integer program over the whole madrigal, but the code is organized around the
+same ingredients: hard validity constraints, soft musical objectives, and
+source-event provenance for every emitted note.
+
 The reducer first parses the madrigal into exact source events: note/rest
 starts, durations, source part IDs, pitch classes, ties, bar boundaries, time
 signatures, key signatures, and voice ranges. Output notes are copied from real
@@ -112,12 +133,15 @@ long structural tones matter more than brief passing tones.
 For the main string quartet reduction, the reducer identifies the highest and
 lowest source voices by median pitch and preserves them as Violin I and Cello.
 The middle voices are then reduced into Violin II and Viola. At each source
-onset, it chooses real middle-note events that add pitch classes not already
+onset, it chooses real source-note events that add pitch classes not already
 covered by the outer voices, favors fresh attacks over tied continuations,
 prefers tones that widen the sonority from the outer anchors, and avoids
-duplicating pitch classes. Selected events are assigned to the available inner
-instruments by minimizing a cost that combines register fit, melodic continuity,
-range displacement, and voice-order stability.
+duplicating pitch classes. When an outer voice is temporarily idle, it may
+borrow a nearby uncovered source line to improve harmonic coverage, but only
+when doing so forms a musically continuous gesture rather than a stray isolated
+note. Selected events are assigned to the available instruments by minimizing a
+cost that combines register fit, melodic continuity, range displacement, and
+voice-order stability.
 
 For five-part outputs, `QUARTET_PLUS_VIOLE` adds a `Viole d'amour` part. When
 the source and target have the same number of voices, the basic policy maps
