@@ -8,8 +8,8 @@
       name="description"
       content="Listening and score review page for evaluating Gesualdo madrigal reductions for string quartet."
     >
-    <link rel="stylesheet" href="styles.css">
-    <script src="app.js" defer></script>
+    <link rel="stylesheet" href="styles.css?v=20260601-score-fit2">
+    <script src="app.js?v=20260601-score-fit2" defer></script>
   </head>
   <body>
     <header class="site-header">
@@ -92,14 +92,17 @@
           </section>
 
           <figure class="score-preview">
-            <img src="assets/gia-piansi-score-preview-1.png" alt="First page of the Gia piansi string quartet reduction">
-            <figcaption>Engraving sample from the quartet reduction set</figcaption>
-            <div class="score-page-links" aria-label="Engraving sample pages">
-              <a href="assets/gia-piansi-score-preview-1.png">Page 1</a>
-              <a href="assets/gia-piansi-score-preview-2.png">Page 2</a>
-              <a href="assets/gia-piansi-score-preview-3.png">Page 3</a>
-              <a href="assets/gia-piansi-score-preview-4.png">Page 4</a>
+            <div class="score-toolbar">
+              <p id="scoreStatus">Loading score</p>
+              <div class="score-controls" aria-label="Score page controls">
+                <button id="scorePrev" type="button" aria-label="Previous score page">&lsaquo;</button>
+                <select id="scorePageSelect" aria-label="Score page"></select>
+                <span id="scorePage">-- / --</span>
+                <button id="scoreNext" type="button" aria-label="Next score page">&rsaquo;</button>
+              </div>
             </div>
+            <div id="scoreViewer" class="score-viewer" aria-live="polite"></div>
+            <figcaption id="scoreCaption">Selected score</figcaption>
           </figure>
         </div>
 

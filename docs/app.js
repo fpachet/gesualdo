@@ -1,5 +1,16 @@
 const RAW_BASE = "https://raw.githubusercontent.com/fpachet/gesualdo/main/";
 const STORAGE_KEY = "gesualdo-quartet-review-v1";
+const VEROVIO_SCRIPT_URL = "https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js";
+const SCORE_RENDER_OPTIONS = {
+  inputFrom: "xml",
+  breaks: "auto",
+  scale: 32,
+  pageWidth: 1700,
+  pageHeight: 2200,
+  adjustPageHeight: true,
+  footer: "none",
+  svgViewBox: true,
+};
 
 const CATALOG = [
   { book: "IV", title: "1. Luci serena e chiare", filename: "gesualdo_iv_libro_madrigali_1_(c)icking-archive.mid", durationQuarters: 344.0, semitones: -1, score: 0.362301, musicxml: "data/gesualdo/kdf_reductions/gesualdo_iv_libro_madrigali_1_(c)icking-archive_quartet_rhythm_first.musicxml", mp3: "data/gesualdo/kdf_reductions_mp3/gesualdo_iv_libro_madrigali_1_(c)icking-archive_quartet_rhythm_first.mp3", measures: "86,86,86,86" },
@@ -60,6 +71,13 @@ const elements = {
   scoreLink: document.getElementById("scoreLink"),
   mp3Link: document.getElementById("mp3Link"),
   midiLink: document.getElementById("midiLink"),
+  scoreStatus: document.getElementById("scoreStatus"),
+  scoreViewer: document.getElementById("scoreViewer"),
+  scoreCaption: document.getElementById("scoreCaption"),
+  scorePrev: document.getElementById("scorePrev"),
+  scoreNext: document.getElementById("scoreNext"),
+  scorePage: document.getElementById("scorePage"),
+  scorePageSelect: document.getElementById("scorePageSelect"),
   shortlist: document.getElementById("shortlist"),
   notes: document.getElementById("notes"),
   saveState: document.getElementById("saveState"),
@@ -69,7 +87,16 @@ const elements = {
 const state = {
   book: "all",
   currentId: decodeURIComponent(window.location.hash.slice(1)) || "gesualdo_vi_libro_madrigali_22_(c)icking-archive",
+  scorePage: 1,
   reviews: loadReviews(),
+};
+
+const scoreRenderer = {
+  toolkit: null,
+  readyPromise: null,
+  currentPieceId: "",
+  pageCount: 0,
+  requestToken: 0,
 };
 
 function loadReviews() {
@@ -138,6 +165,244 @@ function formatDuration(seconds) {
   const minutes = Math.floor(rounded / 60);
   const remainder = String(rounded % 60).padStart(2, "0");
   return `${minutes}:${remainder}`;
+}
+
+function scoreFileName(piece) {
+  return piece.musicxml.split("/").pop();
+}
+
+function svgLength(value) {
+  const match = String(value || "").match(/^([\d.]+)/);
+  return match ? Number(match[1]) : 0;
+}
+
+function fitScoreSvg(svg) {
+  const document = new DOMParser().parseFromString(svg, "image/svg+xml");
+  const svgElement = document.documentElement;
+  if (svgElement.nodeName.toLowerCase() !== "svg") {
+    return svg;
+  }
+
+  const width = svgLength(svgElement.getAttribute("width"));
+  const height = svgLength(svgElement.getAttribute("height"));
+  if (!svgElement.getAttribute("viewBox") && width > 0 && height > 0) {
+    svgElement.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  }
+
+  svgElement.removeAttribute("width");
+  svgElement.removeAttribute("height");
+  svgElement.setAttribute("preserveAspectRatio", "xMinYMin meet");
+  svgElement.classList.add("rendered-score");
+
+  return new XMLSerializer().serializeToString(svgElement);
+}
+
+function loadVerovioScript() {
+  if (window.verovio?.toolkit) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = VEROVIO_SCRIPT_URL;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Could not load the Verovio renderer."));
+    document.head.append(script);
+  });
+}
+
+function waitForVerovioRuntime() {
+  return new Promise((resolve, reject) => {
+    const module = window.verovio?.module;
+    if (!module || !window.verovio?.toolkit) {
+      reject(new Error("Verovio did not initialize."));
+      return;
+    }
+
+    if (module.calledRun) {
+      resolve();
+      return;
+    }
+
+    const previousHandler = module.onRuntimeInitialized;
+    const timeout = window.setTimeout(() => {
+      reject(new Error("Verovio took too long to initialize."));
+    }, 20000);
+
+    module.onRuntimeInitialized = () => {
+      window.clearTimeout(timeout);
+      if (typeof previousHandler === "function") {
+        previousHandler();
+      }
+      resolve();
+    };
+  });
+}
+
+function initializeScoreRenderer() {
+  if (!scoreRenderer.readyPromise) {
+    scoreRenderer.readyPromise = loadVerovioScript()
+      .then(waitForVerovioRuntime)
+      .then(() => {
+        scoreRenderer.toolkit = new window.verovio.toolkit();
+        return scoreRenderer.toolkit;
+      })
+      .catch((error) => {
+        scoreRenderer.readyPromise = null;
+        throw error;
+      });
+  }
+  return scoreRenderer.readyPromise;
+}
+
+function setScoreLoading(piece, label) {
+  elements.scoreStatus.textContent = label;
+  elements.scoreCaption.textContent = `${piece.title} | Book ${piece.book}`;
+  elements.scoreViewer.replaceChildren();
+  const message = document.createElement("p");
+  message.className = "score-message";
+  message.textContent = label;
+  elements.scoreViewer.append(message);
+}
+
+function updateScoreControls() {
+  const hasPages = scoreRenderer.pageCount > 0;
+  elements.scorePage.textContent = hasPages ? `/ ${scoreRenderer.pageCount}` : "-- / --";
+  elements.scorePageSelect.disabled = !hasPages;
+  if (!hasPages) {
+    elements.scorePageSelect.replaceChildren();
+  } else if (elements.scorePageSelect.options.length !== scoreRenderer.pageCount) {
+    elements.scorePageSelect.replaceChildren(
+      ...Array.from({ length: scoreRenderer.pageCount }, (_, index) => {
+        const option = document.createElement("option");
+        option.value = String(index + 1);
+        option.textContent = `Page ${index + 1}`;
+        return option;
+      }),
+    );
+  }
+  if (hasPages) {
+    elements.scorePageSelect.value = String(state.scorePage);
+  }
+  elements.scorePrev.disabled = !hasPages || state.scorePage <= 1;
+  elements.scoreNext.disabled = !hasPages || state.scorePage >= scoreRenderer.pageCount;
+}
+
+function renderScorePage(piece = currentPiece()) {
+  if (!scoreRenderer.toolkit || scoreRenderer.pageCount < 1) {
+    updateScoreControls();
+    return;
+  }
+
+  state.scorePage = Math.min(Math.max(state.scorePage, 1), scoreRenderer.pageCount);
+  const svg = scoreRenderer.toolkit.renderToSVG(state.scorePage, false);
+  if (!svg) {
+    throw new Error("The selected page could not be rendered.");
+  }
+
+  elements.scoreViewer.innerHTML = fitScoreSvg(svg);
+  elements.scoreStatus.textContent = piece.title;
+  elements.scoreCaption.textContent = `${piece.title} | Book ${piece.book}`;
+  updateScoreControls();
+}
+
+function showScoreError(piece, error) {
+  scoreRenderer.pageCount = 0;
+  elements.scoreStatus.textContent = "Score preview unavailable";
+  elements.scoreCaption.textContent = `${piece.title} | Book ${piece.book}`;
+  elements.scoreViewer.replaceChildren();
+
+  const message = document.createElement("p");
+  message.className = "score-message";
+  message.textContent = error.message || "The score preview could not be loaded.";
+
+  const link = document.createElement("a");
+  link.href = encodedAssetUrl(piece.musicxml);
+  link.target = "_blank";
+  link.rel = "noopener";
+  link.download = scoreFileName(piece);
+  link.textContent = "Open MusicXML";
+
+  elements.scoreViewer.append(message, link);
+  updateScoreControls();
+}
+
+async function loadScorePreview(piece) {
+  const token = ++scoreRenderer.requestToken;
+  state.scorePage = 1;
+  scoreRenderer.currentPieceId = piece.id;
+  scoreRenderer.pageCount = 0;
+  updateScoreControls();
+  setScoreLoading(piece, "Loading score");
+
+  try {
+    const toolkit = await initializeScoreRenderer();
+    if (token !== scoreRenderer.requestToken) {
+      return;
+    }
+
+    setScoreLoading(piece, "Loading MusicXML");
+    const response = await fetch(encodedAssetUrl(piece.musicxml));
+    if (!response.ok) {
+      throw new Error(`MusicXML request failed with ${response.status}.`);
+    }
+
+    const musicxml = await response.text();
+    if (token !== scoreRenderer.requestToken) {
+      return;
+    }
+
+    toolkit.setOptions(SCORE_RENDER_OPTIONS);
+    if (!toolkit.loadData(musicxml)) {
+      throw new Error("MusicXML could not be loaded by Verovio.");
+    }
+
+    scoreRenderer.pageCount = Math.max(1, toolkit.getPageCount());
+    renderScorePage(piece);
+  } catch (error) {
+    if (token === scoreRenderer.requestToken) {
+      showScoreError(piece, error);
+    }
+  }
+}
+
+function changeScorePage(delta) {
+  if (!scoreRenderer.pageCount) {
+    return;
+  }
+  const nextPage = Math.min(Math.max(state.scorePage + delta, 1), scoreRenderer.pageCount);
+  if (nextPage === state.scorePage) {
+    return;
+  }
+  state.scorePage = nextPage;
+  renderScorePage(currentPiece());
+}
+
+function selectScorePage(value) {
+  if (!scoreRenderer.pageCount) {
+    return;
+  }
+  const nextPage = Math.min(Math.max(Number(value), 1), scoreRenderer.pageCount);
+  if (!Number.isFinite(nextPage) || nextPage === state.scorePage) {
+    return;
+  }
+  state.scorePage = nextPage;
+  renderScorePage(currentPiece());
+}
+
+function handleScoreKeydown(event) {
+  if (["INPUT", "SELECT", "TEXTAREA"].includes(event.target.tagName)) {
+    return;
+  }
+  if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    changeScorePage(-1);
+  }
+  if (event.key === "ArrowRight") {
+    event.preventDefault();
+    changeScorePage(1);
+  }
 }
 
 function currentPiece() {
@@ -235,6 +500,7 @@ function renderSelected() {
   elements.shortlist.textContent = review.shortlisted ? "Shortlisted" : "Shortlist";
   elements.notes.value = review.notes || "";
   renderRatingControls(review);
+  loadScorePreview(piece);
 }
 
 function setAssetLink(link, path, fileName) {
@@ -357,6 +623,10 @@ function attachEvents() {
   elements.shortlist.addEventListener("click", toggleShortlist);
   elements.notes.addEventListener("input", updateNotes);
   elements.exportCsv.addEventListener("click", exportCsv);
+  elements.scorePrev.addEventListener("click", () => changeScorePage(-1));
+  elements.scoreNext.addEventListener("click", () => changeScorePage(1));
+  elements.scorePageSelect.addEventListener("change", () => selectScorePage(elements.scorePageSelect.value));
+  document.addEventListener("keydown", handleScoreKeydown);
   elements.audio.addEventListener("loadedmetadata", () => {
     elements.selectedDuration.textContent = formatDuration(elements.audio.duration);
   });
