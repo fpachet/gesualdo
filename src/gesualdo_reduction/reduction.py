@@ -865,6 +865,108 @@ def _dedupe_candidates(candidates: Sequence[SourceEvent]) -> list[SourceEvent]:
     return list(best_by_pitch.values())
 
 
+def _pitched_events(events: Sequence[SourceEvent]) -> list[SourceEvent]:
+    return [event for event in events if not event.is_rest and event.pitch_midi is not None]
+
+
+def _event_overlaps_interval(event: SourceEvent, start: Fraction, end: Fraction) -> bool:
+    return not event.is_rest and event.start < end and start < event.end
+
+
+def _target_is_free_for_event(
+    target: TargetPart,
+    event: SourceEvent,
+    selected: dict[str, list[SourceEvent]],
+) -> bool:
+    return not any(
+        _event_overlaps_interval(existing, event.start, event.end)
+        for existing in selected[target.id]
+    )
+
+
+def _active_pitches_from_assignments(
+    selected: dict[str, list[SourceEvent]],
+    offset: Fraction,
+) -> list[int]:
+    return [
+        int(event.pitch_midi)
+        for events in selected.values()
+        for event in events
+        if event.pitch_midi is not None and event.start <= offset < event.end
+    ]
+
+
+def _latest_pitch_before(events: Sequence[SourceEvent], offset: Fraction) -> int | None:
+    previous_events = [
+        event
+        for event in events
+        if event.pitch_midi is not None and event.end <= offset
+    ]
+    if not previous_events:
+        return None
+    return int(max(previous_events, key=lambda event: (event.end, event.start, event.source_id)).pitch_midi)
+
+
+def _has_nearby_uncovered_event(
+    event: SourceEvent,
+    events_by_part: dict[int, Sequence[SourceEvent]],
+    top_events: Sequence[SourceEvent],
+    bottom_events: Sequence[SourceEvent],
+    *,
+    lookahead: Fraction,
+) -> bool:
+    if event.pitch_midi is None:
+        return False
+    end = event.start + lookahead
+    for sibling in events_by_part.get(event.part_index, ()):
+        if sibling.pitch_midi is None or sibling.start < event.start or sibling.start > end:
+            continue
+        outer_pitches = [active_pitch_at(top_events, sibling.start), active_pitch_at(bottom_events, sibling.start)]
+        covered = {pitch % 12 for pitch in outer_pitches if pitch is not None}
+        if sibling.pitch_midi % 12 not in covered:
+            return True
+    return False
+
+
+def _has_borrowed_neighbor(
+    event: SourceEvent,
+    borrowed_events: Sequence[SourceEvent],
+    *,
+    max_gap: Fraction,
+) -> bool:
+    for other in borrowed_events:
+        if other.source_id == event.source_id or other.part_index != event.part_index:
+            continue
+        gap_after = other.start - event.end
+        gap_before = event.start - other.end
+        if Fraction(0, 1) <= gap_after <= max_gap or Fraction(0, 1) <= gap_before <= max_gap:
+            return True
+    return False
+
+
+def _prune_isolated_borrowed_events(
+    selected: dict[str, list[SourceEvent]],
+    initial_events_by_target: dict[str, Sequence[SourceEvent]],
+    *,
+    max_gap: Fraction = Fraction(1, 1),
+) -> None:
+    for target_id, initial_events in initial_events_by_target.items():
+        initial_source_ids = {event.source_id for event in initial_events}
+        borrowed_events = [
+            event
+            for event in selected[target_id]
+            if event.source_id not in initial_source_ids
+        ]
+        if not borrowed_events:
+            continue
+
+        kept: list[SourceEvent] = []
+        for event in selected[target_id]:
+            if event.source_id in initial_source_ids or _has_borrowed_neighbor(event, borrowed_events, max_gap=max_gap):
+                kept.append(event)
+        selected[target_id] = kept
+
+
 def _fit_events_to_target(
     events: Sequence[SourceEvent],
     target: TargetPart,
@@ -967,11 +1069,19 @@ def _match_events_to_targets(
     available: Sequence[TargetPart],
     last_pitch: dict[str, int | None],
     config: ReductionConfig,
+    can_assign: Callable[[TargetPart, SourceEvent], bool] | None = None,
 ) -> list[tuple[TargetPart, SourceEvent]]:
     if not events:
         return []
     if len(events) == 1:
-        return [(_choose_single_target(events[0], available, last_pitch, config), events[0])]
+        assignable = [
+            target
+            for target in available
+            if can_assign is None or can_assign(target, events[0])
+        ]
+        if not assignable:
+            return []
+        return [(_choose_single_target(events[0], assignable, last_pitch, config), events[0])]
 
     ranked_events = sorted(events, key=lambda ev: int(ev.pitch_midi), reverse=True)
     best_cost = float("inf")
@@ -979,6 +1089,11 @@ def _match_events_to_targets(
     target_ranks = {target.id: index for index, target in enumerate(available)}
 
     for target_perm in permutations(available, len(ranked_events)):
+        if can_assign is not None and any(
+            not can_assign(target, event)
+            for event, target in zip(ranked_events, target_perm, strict=True)
+        ):
+            continue
         cost = sum(
             _assignment_cost(
                 event,
@@ -1003,27 +1118,43 @@ def _select_inner_events(
     bottom_events: Sequence[SourceEvent],
     targets: Sequence[TargetPart],
     config: ReductionConfig,
+    *,
+    initial_events_by_target: dict[str, Sequence[SourceEvent]] | None = None,
+    allow_supporting_doublings: bool = False,
+    support_lookahead: Fraction = Fraction(4, 1),
 ) -> dict[str, list[SourceEvent]]:
-    selected: dict[str, list[SourceEvent]] = {target.id: [] for target in targets}
-    busy_until = {target.id: Fraction(0, 1) for target in targets}
+    initial_events_by_target = initial_events_by_target or {}
+    selected: dict[str, list[SourceEvent]] = {
+        target.id: list(initial_events_by_target.get(target.id, ()))
+        for target in targets
+    }
+    borrowed_target_ids = set(initial_events_by_target)
     last_pitch: dict[str, int | None] = {target.id: None for target in targets}
 
     note_events = sorted(
         [event for event in middle_events if not event.is_rest and event.pitch_midi is not None],
         key=lambda ev: (ev.start, ev.end, ev.source_id),
     )
+    events_by_part: dict[int, list[SourceEvent]] = {}
+    for event in note_events:
+        events_by_part.setdefault(event.part_index, []).append(event)
 
     for start, group_iter in groupby(note_events, key=lambda ev: ev.start):
         group = list(group_iter)
-        available = [target for target in targets if busy_until[target.id] <= start]
-        if not available:
-            continue
+        last_pitch = {
+            target.id: _latest_pitch_before(selected[target.id], start)
+            for target in targets
+        }
 
+        active_output_pitches = _active_pitches_from_assignments(selected, start)
         outer_pitches = [active_pitch_at(top_events, start), active_pitch_at(bottom_events, start)]
-        covered = {pitch % 12 for pitch in outer_pitches if pitch is not None}
+        if not active_output_pitches:
+            active_output_pitches = [pitch for pitch in outer_pitches if pitch is not None]
+        covered = {pitch % 12 for pitch in active_output_pitches if pitch is not None}
+        deduped = _dedupe_candidates(group)
         candidates = [
             event
-            for event in _dedupe_candidates(group)
+            for event in deduped
             if event.pitch_midi is not None and event.pitch_midi % 12 not in covered
         ]
         anchors = [pitch for pitch in outer_pitches if pitch is not None]
@@ -1036,25 +1167,112 @@ def _select_inner_events(
             )
         )
 
-        chosen: list[SourceEvent] = []
+        primary_chosen: list[SourceEvent] = []
         seen_pitch_classes = set(covered)
+        chosen_source_ids: set[str] = set()
         for candidate in candidates:
-            if len(chosen) >= len(available):
+            if len(primary_chosen) >= len(targets):
                 break
             pc = candidate.pitch_midi % 12
             if pc in seen_pitch_classes:
                 continue
-            chosen.append(candidate)
+            if not any(_target_is_free_for_event(target, candidate, selected) for target in targets):
+                continue
+            primary_chosen.append(candidate)
+            chosen_source_ids.add(candidate.source_id)
             seen_pitch_classes.add(pc)
 
-        for target, event in _match_events_to_targets(chosen, available, last_pitch, config):
-            if event.start < busy_until[target.id]:
+        nonborrowed_targets = [
+            target
+            for target in targets
+            if target.id not in borrowed_target_ids
+        ]
+        nonborrowed_capacity = sum(
+            1
+            for target in nonborrowed_targets
+            if any(_target_is_free_for_event(target, event, selected) for event in primary_chosen)
+        )
+        # Preserve newly exposed pitch classes on the regular inner targets when possible.
+        # Borrowed outer targets are used only when inner capacity is genuinely exhausted.
+        primary_target_pool = nonborrowed_targets if len(primary_chosen) <= nonborrowed_capacity else list(targets)
+
+        primary_pairs: list[tuple[TargetPart, SourceEvent]] = []
+        while primary_chosen:
+            primary_pairs = _match_events_to_targets(
+                primary_chosen,
+                primary_target_pool,
+                last_pitch,
+                config,
+                can_assign=lambda target, event: _target_is_free_for_event(target, event, selected),
+            )
+            if primary_pairs:
+                break
+            if primary_target_pool != list(targets):
+                primary_target_pool = list(targets)
                 continue
+            primary_chosen.pop()
+
+        for target, event in primary_pairs:
             if config.enforce_ranges:
                 event = fit_event_to_range(event, *target.midi_range)
             selected[target.id].append(event)
-            busy_until[target.id] = event.end
             last_pitch[target.id] = event.pitch_midi
+
+        if allow_supporting_doublings:
+            supporting_candidates = [
+                event
+                for event in deduped
+                if event.pitch_midi is not None
+                and event.source_id not in chosen_source_ids
+                and event.pitch_midi % 12 in covered
+                and event.pitch_midi % 12 not in {chosen_event.pitch_midi % 12 for chosen_event in primary_chosen}
+                and _has_nearby_uncovered_event(
+                    event,
+                    events_by_part,
+                    top_events,
+                    bottom_events,
+                    lookahead=support_lookahead,
+                )
+            ]
+            supporting_candidates.sort(
+                key=lambda ev: (
+                    not _is_new_onset(ev),
+                    ev.start,
+                    -ev.duration,
+                    ev.source_id,
+                )
+            )
+            # Supporting doublings are phrase glue for later coverage, so they may only
+            # occupy borrowed outer targets after the primary coverage notes are placed.
+            borrowed_targets = [
+                target
+                for target in targets
+                if target.id in borrowed_target_ids
+            ]
+            supporting_chosen: list[SourceEvent] = []
+            for candidate in supporting_candidates:
+                if len(supporting_chosen) >= len(borrowed_targets):
+                    break
+                if not any(_target_is_free_for_event(target, candidate, selected) for target in borrowed_targets):
+                    continue
+                supporting_chosen.append(candidate)
+                chosen_source_ids.add(candidate.source_id)
+
+            support_pairs = _match_events_to_targets(
+                supporting_chosen,
+                borrowed_targets,
+                last_pitch,
+                config,
+                can_assign=lambda target, event: _target_is_free_for_event(target, event, selected),
+            )
+            for target, event in support_pairs:
+                if config.enforce_ranges:
+                    event = fit_event_to_range(event, *target.midi_range)
+                selected[target.id].append(event)
+                last_pitch[target.id] = event.pitch_midi
+
+    if initial_events_by_target:
+        _prune_isolated_borrowed_events(selected, initial_events_by_target)
 
     return selected
 
@@ -1072,7 +1290,7 @@ class AssignmentPolicy:
 
 
 class RegisterAssignmentPolicy(AssignmentPolicy):
-    """Keep outer voices and reduce all middle events into available inner parts."""
+    """Keep outer voices, borrowing their idle target parts for coverage passages."""
 
     def assign(
         self,
@@ -1080,23 +1298,25 @@ class RegisterAssignmentPolicy(AssignmentPolicy):
         profile: EnsembleProfile,
         config: ReductionConfig,
     ) -> dict[str, list[SourceEvent]]:
-        assignments: dict[str, list[SourceEvent]] = {part.id: [] for part in profile.parts}
         top_target = profile.top_part
         bottom_target = profile.bottom_part
 
         top_events = _fit_events_to_target(context.top_events, top_target, config)
         bottom_events = _fit_events_to_target(context.bottom_events, bottom_target, config)
-        assignments[top_target.id] = top_events
-        assignments[bottom_target.id] = bottom_events
+        fixed_outer_events = {
+            top_target.id: _pitched_events(top_events),
+            bottom_target.id: _pitched_events(bottom_events),
+        }
 
-        inner_assignments = _select_inner_events(
+        assignments = _select_inner_events(
             context.middle_events,
             [event for event in top_events if not event.is_rest],
             [event for event in bottom_events if not event.is_rest],
-            profile.inner_parts,
+            profile.parts,
             config,
+            initial_events_by_target=fixed_outer_events,
+            allow_supporting_doublings=True,
         )
-        assignments.update(inner_assignments)
         return assignments
 
 

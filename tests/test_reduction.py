@@ -125,6 +125,46 @@ def test_middle_reduction_only_outputs_real_source_note_events():
         assert ql_to_fraction(output_note.quarterLength) == source_events[source_id]
 
 
+def test_idle_outer_part_can_borrow_continuous_line_for_coverage():
+    score = make_score(
+        [
+            make_part("top", [(0, 8, None), (8, 4, "C6")]),
+            make_part("middle 1", [(2, 2, "E4"), (4, 2, "E4"), (6, 2, "G4"), (8, 4, None)]),
+            make_part("middle 2", [(2, 2, "C4"), (4, 2, "C4"), (6, 2, "D4"), (8, 4, None)]),
+            make_part("middle 3", [(2, 2, "G3"), (4, 2, "G3"), (6, 2, "B-3"), (8, 4, None)]),
+            make_part("bottom", [(0, 8, "C3"), (8, 4, "C3")]),
+        ]
+    )
+
+    bars = build_bar_map(score)
+    reduced = build_quartet_score(score, enforce_ranges=False)
+
+    assert_measures_are_exact(reduced, bars)
+
+    output_at_six = []
+    for part in reduced.parts:
+        for element in part.flatten().notes:
+            start = ql_to_fraction(element.offset)
+            end = start + ql_to_fraction(element.quarterLength)
+            if start <= Fraction(6, 1) < end:
+                output_at_six.append(element.pitch.midi % 12)
+
+    assert set(output_at_six) == {0, 2, 7, 10}
+
+    borrowed_violin_1_notes = [
+        element
+        for element in reduced.parts[0].flatten().notes
+        if ql_to_fraction(element.offset) < Fraction(8, 1)
+    ]
+    assert [ql_to_fraction(element.offset) for element in borrowed_violin_1_notes] == [
+        Fraction(2, 1),
+        Fraction(4, 1),
+        Fraction(6, 1),
+    ]
+    assert [element.pitch.nameWithOctave for element in borrowed_violin_1_notes] == ["C4", "C4", "D4"]
+    assert {element.editorial.sourcePartIndex for element in borrowed_violin_1_notes} == {2}
+
+
 def test_quartet_plus_viole_maps_five_voices_one_to_one_by_register():
     score = make_score(
         [

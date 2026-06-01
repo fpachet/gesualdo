@@ -18,17 +18,11 @@ collected in `data/gesualdo/kdf_madrigals/`.
 | --- | --- | ---: | --- |
 | Original madrigal MIDIs | `data/gesualdo/kdf_madrigals/` | 37 | Source material from books IV and VI, indexed by `kdf_madrigals_manifest.tsv`. |
 | String quartet reductions | `data/gesualdo/kdf_reductions/` | 37 | Rhythm-first MusicXML for Violin I, Violin II, Viola, and Violoncello. |
-| Piano reductions | `data/gesualdo/kdf_reductions_piano/` | 37 | Two-staff MusicXML with independent source voices retained as notation voices. |
-| String quartet + viole reductions | `data/gesualdo/kdf_reductions_quartet_plus_viole/` | 37 | Five-part MusicXML adding a `Viole d'amour` part. |
-| Sweet-spot quartet + viole reductions | `data/gesualdo/kdf_reductions_quartet_plus_viole_sweetspot/` | 37 | Five-part MusicXML with register-aware voice assignment. |
 | MuseScore quartet MP3 renders | `data/gesualdo/kdf_reductions_mp3/` | 37 | MP3 audio exported from the string quartet MusicXML reductions with MuseScore 4 string sounds. |
 
-All four MusicXML batches completed successfully according to their report TSVs:
+The retained MusicXML batch completed successfully according to its report TSV:
 
 - `data/gesualdo/kdf_reductions_report.tsv`
-- `data/gesualdo/kdf_reductions_piano_report.tsv`
-- `data/gesualdo/kdf_reductions_quartet_plus_viole_report.tsv`
-- `data/gesualdo/kdf_reductions_quartet_plus_viole_sweetspot_report.tsv`
 
 The MP3 batch contains one audio file per string quartet reduction. The files
 are 44.1 kHz MP3s at 128 kbps; the largest file is about 5.3 MB. These files
