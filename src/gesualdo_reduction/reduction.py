@@ -20,6 +20,7 @@ from music21 import (
     clef,
     common,
     converter,
+    dynamics,
     expressions,
     instrument,
     key,
@@ -166,6 +167,9 @@ class ReductionConfig:
 
     enforce_ranges: bool = ENFORCE_RANGES
     register_split: int = REGISTER_SPLIT
+    add_editorial_dynamics: bool = True
+    dynamic_phrase_bars: int = 4
+    dynamic_hairpin_bars: int = 2
 
 
 @dataclass(frozen=True)
@@ -191,6 +195,14 @@ class TranspositionChoice:
     semitones: int
     score: float
     candidate_scores: tuple[tuple[int, float], ...]
+
+
+@dataclass(frozen=True)
+class _DynamicPoint:
+    """A bar-start editorial dynamic mark."""
+
+    bar_index: int
+    level: int
 
 
 def viole_damour_instrument() -> instrument.Instrument:
@@ -589,6 +601,223 @@ def _bar_for_offset(offset: Fraction, bars: Sequence[Bar]) -> Bar | None:
     if bars and offset == bars[-1].end:
         return bars[-1]
     return None
+
+
+_DYNAMIC_NAMES = ("p", "mp", "mf", "f")
+
+
+def _normalize_series(values: Sequence[float]) -> list[float]:
+    if not values:
+        return []
+    low = min(values)
+    high = max(values)
+    if high == low:
+        return [0.5 for _ in values]
+    return [(value - low) / (high - low) for value in values]
+
+
+def _smoothed_profile(values: Sequence[float]) -> list[float]:
+    if len(values) < 3:
+        return list(values)
+    smoothed: list[float] = []
+    for index, value in enumerate(values):
+        previous_value = values[index - 1] if index > 0 else value
+        next_value = values[index + 1] if index + 1 < len(values) else value
+        smoothed.append(0.25 * previous_value + 0.5 * value + 0.25 * next_value)
+    return smoothed
+
+
+def editorial_dynamic_energy_profile(score: stream.Score, bars: Sequence[Bar]) -> list[float]:
+    """Estimate a coarse phrase-level intensity curve from the reduced score."""
+
+    if not bars:
+        return []
+    parts = list(score.parts)
+    if not parts:
+        return []
+
+    measures_by_part = [list(part.getElementsByClass(stream.Measure)) for part in parts]
+    active_counts: list[float] = []
+    attack_counts: list[float] = []
+    average_pitches: list[float] = []
+    spans: list[float] = []
+
+    for bar in bars:
+        pitches: list[int] = []
+        attack_count = 0
+        active_count = 0
+        for measures in measures_by_part:
+            if bar.index >= len(measures):
+                continue
+            notes = list(measures[bar.index].notes)
+            if notes:
+                active_count += 1
+            for element in notes:
+                if isinstance(element, chord.Chord):
+                    pitches.extend(int(pitch.midi) for pitch in element.pitches)
+                elif isinstance(element, note.Note):
+                    pitches.append(int(element.pitch.midi))
+                tie_type = getattr(getattr(element, "tie", None), "type", None)
+                if tie_type not in {"stop", "continue"}:
+                    attack_count += 1
+
+        active_counts.append(active_count / max(len(parts), 1))
+        attack_counts.append(float(attack_count))
+        if pitches:
+            average_pitches.append(sum(pitches) / len(pitches))
+            spans.append(float(max(pitches) - min(pitches)))
+        else:
+            average_pitches.append(0.0)
+            spans.append(0.0)
+
+    normalized_attacks = _normalize_series(attack_counts)
+    normalized_register = _normalize_series(average_pitches)
+    normalized_spans = _normalize_series(spans)
+    raw_profile = [
+        (0.35 * active) + (0.30 * attacks) + (0.20 * register) + (0.15 * span)
+        for active, attacks, register, span in zip(
+            active_counts,
+            normalized_attacks,
+            normalized_register,
+            normalized_spans,
+            strict=True,
+        )
+    ]
+    return _smoothed_profile(raw_profile)
+
+
+def _dynamic_level_for_normalized_energy(value: float) -> int:
+    if value < 0.32:
+        return 0
+    if value < 0.58:
+        return 1
+    if value < 0.83:
+        return 2
+    return 3
+
+
+def _dynamic_levels_for_profile(profile: Sequence[float]) -> list[int]:
+    normalized = _normalize_series(profile)
+    return [_dynamic_level_for_normalized_energy(value) for value in normalized]
+
+
+def _coalesce_dynamic_points(points: Sequence[_DynamicPoint]) -> list[_DynamicPoint]:
+    by_bar: dict[int, int] = {}
+    for point in points:
+        by_bar[point.bar_index] = max(0, min(point.level, len(_DYNAMIC_NAMES) - 1))
+
+    coalesced: list[_DynamicPoint] = []
+    for bar_index in sorted(by_bar):
+        level = by_bar[bar_index]
+        if coalesced and coalesced[-1].level == level:
+            continue
+        coalesced.append(_DynamicPoint(bar_index, level))
+    return coalesced
+
+
+def _editorial_dynamic_points(profile: Sequence[float], phrase_bars: int) -> list[_DynamicPoint]:
+    if not profile:
+        return []
+    if len(profile) == 1:
+        return [_DynamicPoint(0, 1)]
+
+    phrase_bars = max(2, phrase_bars)
+    raw_points: list[_DynamicPoint] = []
+    bar_count = len(profile)
+    levels = _dynamic_levels_for_profile(profile)
+
+    for start in range(0, bar_count, phrase_bars):
+        end = min(bar_count - 1, start + phrase_bars - 1)
+        if start >= end:
+            continue
+        start_level = levels[start]
+        end_level = levels[end]
+        peak = max(range(start, end + 1), key=lambda index: profile[index])
+        peak_level = levels[peak]
+
+        raw_points.append(_DynamicPoint(start, start_level))
+        if peak not in {start, end}:
+            contrast = profile[peak] - max(profile[start], profile[end])
+            if contrast >= 0.08 and peak_level <= max(start_level, end_level):
+                peak_level = min(max(start_level, end_level) + 1, len(_DYNAMIC_NAMES) - 1)
+            if peak_level > start_level or peak_level > end_level:
+                raw_points.append(_DynamicPoint(peak, peak_level))
+        raw_points.append(_DynamicPoint(end, end_level))
+
+    if not raw_points:
+        raw_points.append(_DynamicPoint(0, levels[0]))
+    return _coalesce_dynamic_points(raw_points)
+
+
+def _insert_dynamic_mark(part: stream.Part, bars: Sequence[Bar], point: _DynamicPoint) -> None:
+    measures = list(part.getElementsByClass(stream.Measure))
+    if point.bar_index >= len(measures):
+        return
+    mark = dynamics.Dynamic(_DYNAMIC_NAMES[point.level])
+    mark.placement = "below"
+    measures[point.bar_index].insert(0, mark)
+
+
+def _first_note_between(part: stream.Part, start: Fraction, end: Fraction) -> note.GeneralNote | None:
+    candidates = []
+    for element in part.recurse().notes:
+        element_offset = absolute_offset(element, part)
+        if start <= element_offset < end:
+            candidates.append((element_offset, element))
+    if not candidates:
+        return None
+    return min(candidates, key=lambda item: item[0])[1]
+
+
+def _insert_dynamic_hairpin(
+    score: stream.Score,
+    part: stream.Part,
+    bars: Sequence[Bar],
+    start: _DynamicPoint,
+    end: _DynamicPoint,
+    max_hairpin_bars: int,
+) -> None:
+    if start.level == end.level or start.bar_index >= len(bars) or end.bar_index >= len(bars):
+        return
+    max_hairpin_bars = max(1, max_hairpin_bars)
+    hairpin_start_index = max(start.bar_index, end.bar_index - max_hairpin_bars)
+    start_offset = bars[hairpin_start_index].start
+    end_offset = bars[end.bar_index].start
+    if end_offset <= start_offset:
+        return
+    end_bar = bars[end.bar_index]
+    start_note = _first_note_between(part, start_offset, end_offset)
+    end_note = _first_note_between(part, end_offset, end_bar.end)
+    if start_note is None or end_note is None or start_note is end_note:
+        return
+
+    hairpin = dynamics.Crescendo() if end.level > start.level else dynamics.Diminuendo()
+    hairpin.placement = "below"
+    hairpin.addSpannedElements([start_note, end_note])
+    score.insert(0, hairpin)
+
+
+def add_editorial_dynamics(
+    score: stream.Score,
+    bars: Sequence[Bar],
+    *,
+    phrase_bars: int = 4,
+    max_hairpin_bars: int = 2,
+) -> None:
+    """Add conservative visible dynamics and hairpins for MuseScore playback/export."""
+
+    if not score.parts or not bars:
+        return
+    profile = editorial_dynamic_energy_profile(score, bars)
+    points = _editorial_dynamic_points(profile, phrase_bars)
+    if not points:
+        return
+
+    for part in score.parts:
+        for point in points:
+            _insert_dynamic_mark(part, bars, point)
+        for start, end in zip(points, points[1:], strict=False):
+            _insert_dynamic_hairpin(score, part, bars, start, end, max_hairpin_bars)
 
 
 def _event_fragments_for_bar(event: SourceEvent, bar: Bar) -> Fragment | None:
@@ -1835,6 +2064,13 @@ class ReductionBuilder:
             out.insert(0, measured_part)
 
         copy_top_staff_markings(src_score, out, context.bars)
+        if self.config.add_editorial_dynamics:
+            add_editorial_dynamics(
+                out,
+                context.bars,
+                phrase_bars=self.config.dynamic_phrase_bars,
+                max_hairpin_bars=self.config.dynamic_hairpin_bars,
+            )
         validate_score_measures(out, context.bars)
         return out
 

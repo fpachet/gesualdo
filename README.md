@@ -19,6 +19,7 @@ collected in `data/gesualdo/kdf_madrigals/`.
 | Original madrigal MIDIs | `data/gesualdo/kdf_madrigals/` | 37 | Source material from books IV and VI, indexed by `kdf_madrigals_manifest.tsv`. |
 | String quartet reductions | `data/gesualdo/kdf_reductions/` | 37 | Rhythm-first MusicXML for Violin I, Violin II, Viola, and Violoncello. |
 | MuseScore quartet MP3 renders | `data/gesualdo/kdf_reductions_mp3/` | 37 | MP3 audio exported from the string quartet MusicXML reductions with MuseScore 4 string sounds. |
+| Editorial dynamics examples | `data/gesualdo/dynamic_examples/` | 3 | MusicXML and MuseScore MP3 examples with generated score dynamics and hairpins. |
 
 The retained MusicXML batch completed successfully according to its report TSV:
 
@@ -27,6 +28,36 @@ The retained MusicXML batch completed successfully according to its report TSV:
 The MP3 batch contains one audio file per string quartet reduction. The files
 are 44.1 kHz MP3s at 128 kbps; the largest file is about 5.3 MB. These files
 are intended to be usable directly by a static listening page.
+
+## Editorial Dynamics
+
+The Kunst der Fuge MIDI sources do not contain printed dynamics, and their note
+velocities are flat. The quartet reducer therefore adds an optional editorial
+score-dynamics layer after the notes have been reduced and measured. This pass
+does not alter microtiming or MIDI note velocities; it emits visible MusicXML
+`<dynamics>` and hairpin `<wedge>` directions that MuseScore can interpret for
+notation and playback.
+
+The dynamics pass estimates a coarse bar-level energy contour from the reduced
+score using active part count, attack density, average register, and registral
+span. It maps the local contour to `p`, `mp`, `mf`, and `f`, then adds short
+crescendo and diminuendo wedges around changing regions. By default, phrase
+windows are four bars and hairpins are capped to two bars so the generated
+marks stay locally readable rather than becoming long page-level swells.
+
+This behavior is enabled by default for ensemble reductions and can be tuned or
+disabled through `ReductionConfig`:
+
+```python
+ReductionConfig(
+    add_editorial_dynamics=True,
+    dynamic_phrase_bars=4,
+    dynamic_hairpin_bars=2,
+)
+```
+
+Three generated MusicXML/MP3 examples are kept under
+`data/gesualdo/dynamic_examples/` for quick listening and notation review.
 
 ## Conductor Evaluation Page
 
@@ -171,6 +202,8 @@ whose decisions can be traced back to the original madrigal.
 - `data/gesualdo/kdf_reductions/`: current string quartet MusicXML reductions.
 - `data/gesualdo/kdf_reductions_mp3/`: MuseScore MP3 renders of the quartet
   reductions.
+- `data/gesualdo/dynamic_examples/`: MusicXML and MP3 examples with generated
+  editorial dynamics.
 - `data/gesualdo/`: local Gesualdo MIDI, generated reductions, audio, and
   archived legacy artifacts.
 - `tests/`: project-level tests.

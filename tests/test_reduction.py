@@ -4,10 +4,12 @@ import pytest
 
 pytest.importorskip("music21")
 
-from music21 import meter, note, stream
+from music21 import dynamics, meter, note, stream
 
 from gesualdo_reduction.reduction import (
     PIANO_REDUCTION,
+    ReductionConfig,
+    build_ensemble_score,
     build_bar_map,
     build_piano_score,
     build_quartet_plus_viole_sweetspot_score,
@@ -262,6 +264,82 @@ def test_quartet_plus_viole_sweetspot_prefers_register_octaves():
     violin_2_measure = list(reduced.parts[1].getElementsByClass(stream.Measure))[0]
 
     assert violin_2_measure.notes[0].pitch.midi == 71
+
+
+def test_quartet_reduction_exports_editorial_dynamics_and_hairpins(tmp_path):
+    score = make_score(
+        [
+            make_part("top", [(0, 8, "C5"), (8, 1, "G5"), (9, 1, "A5"), (10, 1, "B5"), (11, 1, "C6")]),
+            make_part("middle 1", [(0, 8, None), (8, 1, "E4"), (9, 1, "F4"), (10, 1, "G4"), (11, 1, "A4")]),
+            make_part("middle 2", [(0, 4, None), (4, 4, "C4"), (8, 4, "E4")]),
+            make_part("bottom", [(0, 12, "C3")]),
+        ]
+    )
+
+    bars = build_bar_map(score)
+    reduced = build_quartet_score(score, enforce_ranges=False)
+    assert_measures_are_exact(reduced, bars)
+
+    out_path = tmp_path / "quartet_with_dynamics.musicxml"
+    reduced.write("musicxml", fp=str(out_path))
+    musicxml = out_path.read_text()
+    assert "<dynamics" in musicxml
+    assert "<wedge" in musicxml
+
+
+def test_editorial_dynamics_can_be_disabled(tmp_path):
+    score = make_score(
+        [
+            make_part("top", [(0, 4, "C6")]),
+            make_part("middle 1", [(0, 4, "E4")]),
+            make_part("middle 2", [(0, 4, "G4")]),
+            make_part("bottom", [(0, 4, "C2")]),
+        ]
+    )
+
+    reduced = build_ensemble_score(
+        score,
+        config=ReductionConfig(enforce_ranges=False, add_editorial_dynamics=False),
+    )
+    out_path = tmp_path / "quartet_without_dynamics.musicxml"
+    reduced.write("musicxml", fp=str(out_path))
+    musicxml = out_path.read_text()
+    assert "<dynamics" not in musicxml
+    assert "<wedge" not in musicxml
+
+
+def test_editorial_hairpins_are_locally_bounded():
+    score = make_score(
+        [
+            make_part("top", [(0, 8, "C5"), (8, 1, "G5"), (9, 1, "A5"), (10, 1, "B5"), (11, 1, "C6")]),
+            make_part("middle 1", [(0, 8, None), (8, 1, "E4"), (9, 1, "F4"), (10, 1, "G4"), (11, 1, "A4")]),
+            make_part("middle 2", [(0, 4, None), (4, 4, "C4"), (8, 4, "E4")]),
+            make_part("bottom", [(0, 12, "C3")]),
+        ]
+    )
+    max_bars = 2
+
+    reduced = build_ensemble_score(
+        score,
+        config=ReductionConfig(
+            enforce_ranges=False,
+            dynamic_phrase_bars=4,
+            dynamic_hairpin_bars=max_bars,
+        ),
+    )
+
+    wedges = [
+        spanner
+        for spanner in reduced.spannerBundle
+        if isinstance(spanner, dynamics.DynamicWedge)
+    ]
+    assert wedges
+    for wedge in wedges:
+        start_note, end_note = wedge.getSpannedElements()
+        absolute_start = ql_to_fraction(start_note.getOffsetInHierarchy(reduced))
+        absolute_end = ql_to_fraction(end_note.getOffsetInHierarchy(reduced))
+        duration = absolute_end - absolute_start
+        assert duration <= Fraction(max_bars * 4, 1)
 
 
 def test_piano_reduction_distributes_voices_across_two_staves(tmp_path):
