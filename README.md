@@ -11,16 +11,23 @@ checkout for score data.
 
 ## Current Results
 
-The current corpus is based on the Kunst der Fuge Gesualdo madrigal MIDIs
-collected in `data/gesualdo/kdf_madrigals/`.
+The current reduction corpus is based on the Kunst der Fuge Gesualdo madrigal
+MIDIs collected in `data/gesualdo/kdf_madrigals/`. A broader CPDL source corpus
+is also kept for future experiments over the sacred and secular vocal catalogue.
 
 | Output | Path | Count | Notes |
 | --- | --- | ---: | --- |
 | Original madrigal MIDIs | `data/gesualdo/kdf_madrigals/` | 37 | Source material from books IV and VI, indexed by `kdf_madrigals_manifest.tsv`. |
+| CPDL vocal-work source files | `data/cpdl/` | 397 | MusicXML/MIDI files linked from CPDL's Carlo Gesualdo vocal work pages, indexed by `manifest.tsv`. |
 | String quartet reductions | `data/gesualdo/kdf_reductions/` | 37 | Current GitHub Pages MusicXML book, generated with source-voice enrichment, editorial harmony, and editorial missing thirds. |
 | MuseScore quartet MP3 renders | `data/gesualdo/kdf_reductions_mp3/` | 37 | MP3 audio exported from the current enriched MusicXML book with MuseScore 4 string sounds. |
 | Editorial dynamics examples | `data/gesualdo/dynamic_examples/` | 3 | MusicXML and MuseScore MP3 examples with generated score dynamics and hairpins. |
 | Quartet enrichment examples | `data/gesualdo/enrichment_examples/` | 4 variants | Side-by-side MusicXML/MP3 renders for plain, source-enriched, source-plus-harmony, and source-plus-thirds quartet reductions. |
+
+The CPDL corpus was collected from ChoralWiki's Carlo Gesualdo composer page.
+It includes `.mxl`, `.mid`, and `.midi` files, with source URLs and original
+filenames recorded in `data/cpdl/manifest.tsv`. Pages with no direct
+MusicXML/MIDI links at collection time are listed in `data/cpdl/errors.tsv`.
 
 The retained MusicXML batch completed successfully according to its report TSV:
 
@@ -164,6 +171,15 @@ This writes:
 data/gesualdo/kdf_reductions/gesualdo_vi_libro_madrigali_22_(c)icking-archive_quartet_rhythm_first.musicxml
 ```
 
+Refresh the CPDL Gesualdo source corpus:
+
+```bash
+python scripts/download_cpdl_gesualdo.py --output-dir data/cpdl --workers 2
+```
+
+The downloader uses the public CPDL mirror and falls back to MediaWiki raw
+pages for work pages that do not render cleanly.
+
 Older fixed-transposition single-piece `Gia piansi` renders are kept under
 `data/gesualdo/archive/legacy_gia_pensi_fixed_transposition/`.
 The previous GitHub Pages full-book MusicXML/MP3 generation is preserved under
@@ -252,6 +268,9 @@ whose decisions can be traced back to the original madrigal.
   ensemble profiles, and assignment policies.
 - `docs/reduction_rules.md`: human-readable description of the current
   reduction and enrichment rules.
+- `scripts/download_cpdl_gesualdo.py`: CPDL Gesualdo MusicXML/MIDI collector.
+- `data/cpdl/`: downloaded CPDL MusicXML/MIDI source files, manifest, and
+  collection notes.
 - `data/gesualdo/kdf_madrigals/`: current Kunst der Fuge MIDI sources.
 - `data/gesualdo/kdf_reductions/`: current string quartet MusicXML reductions.
 - `data/gesualdo/kdf_reductions_mp3/`: MuseScore MP3 renders of the quartet
