@@ -2,85 +2,63 @@
 
 The new CPDL corpus contains 34 six-voice work pages with downloaded files:
 32 sacred works and 2 secular works. It also contains one sacred seven-voice
-page. The five-voice batch now uses the existing `QUARTET_PLUS_VIOLE` profile,
-which works well when the source and target both have five parts. Six voices
-need a separate engine because the musical decision is no longer just register
-assignment: the reducer must either preserve all six contrapuntal strands or
-make an explicit, traceable decision about which strand to merge or omit.
+page. The five-voice batch now uses the current enriched string-quartet reducer:
+source-voice enrichment, editorial harmony, and editorial missing thirds. Six
+voices need a separate quartet-compression engine because the reducer must make
+an explicit, traceable decision about which inner strands to preserve, merge,
+or omit.
 
 ## Goal
 
-Add a dedicated CPDL six-voice reduction path without weakening the current
-four- and five-part reducers.
+Add a dedicated CPDL six-voice-to-string-quartet reduction path without
+weakening the current four- and five-voice quartet reducers.
 
-The extension should support two modes:
+The extension should support two analysis views:
 
-1. Six-to-six preservation mode: map six vocal parts to a six-instrument
-   ensemble, preserving outer voices and optimizing the four inner voices.
-2. Six-to-five compression mode: reduce six source voices into the existing
-   `String Quartet + Viole d'amour` ensemble with an explicit omission/merge
-   policy, rather than relying on the current generic voice-count fallback.
+1. Six-to-four production mode: reduce six source voices into the existing
+   enriched `STRING_QUARTET` profile.
+2. Optional six-to-six diagnostic mode: preserve all source voices in a neutral
+   instrumental score only for comparison and coverage auditing.
 
 ## Recommended Engine Shape
 
 Add a new public entry point beside the current five-part helpers:
 
 ```python
-reduce_to_six_voice_ensemble(...)
-reduce_six_to_quartet_plus_viole(...)
+reduce_six_to_quartet(...)
 ```
 
 Internally, keep the same architecture already used by
-`reduce_to_quartet_plus_viole_sweetspot`:
+`reduce_to_quartet`:
 
 - `EnsembleProfile` defines the target instruments and register preferences.
 - `AssignmentPolicy` chooses which source events are emitted by each target.
 - `ReductionConfig` keeps validation, range enforcement, and transposition
   behavior shared with the existing reducer.
 
-## Ensemble Profiles
+## Ensemble Profile
 
-Start with two profiles.
-
-`STRING_SEXTET_GESUALDO`:
+Reuse the existing `STRING_QUARTET` profile:
 
 - Violin I
 - Violin II
-- Viole d'amour
-- Viola I
-- Viola II
+- Viola
 - Violoncello
 
-This keeps the current viole d'amour color while adding a second viola for the
-extra inner contrapuntal strand. The outer voices remain top violin and cello;
-the four middle targets can be assigned by optimization.
-
-`QUARTET_PLUS_VIOLE` six-to-five mode:
-
-- reuse the existing five-part profile;
-- preserve top and bottom whenever possible;
-- compress only the middle four source voices into the three middle target
-  instruments.
+The outer voices remain top violin and cello when possible. The middle four
+source voices are compressed into Violin II and Viola, with controlled borrowing
+into idle outer strings when the current quartet enrichment rules permit it.
 
 ## Assignment Policy
 
-Create `SixVoiceSweetSpotAssignmentPolicy`.
-
-For six-to-six:
+Create `SixVoiceQuartetCompressionPolicy`.
 
 - rank source voices by median sounding pitch;
-- pin the highest source voice to Violin I and the lowest to Violoncello;
-- evaluate all permutations of the four inner source voices over the four
-  inner targets;
-- score each permutation by instrumental sweet spot, range displacement,
-  crossing penalty, source-order stability, and continuity with the previous
-  assignment window.
-
-For six-to-five:
-
-- pin outer voices first, as above;
-- evaluate the four middle source voices against three middle targets;
-- allow one middle source voice to be temporarily omitted or merged per local
+- pin the highest source voice to Violin I and the lowest to Violoncello when
+  the outer voices are active;
+- evaluate the four middle source voices against Violin II, Viola, and any
+  safely borrowable idle outer target;
+- allow middle source voices to be temporarily omitted or merged per local
   window;
 - prefer omitting material that duplicates pitch classes already present,
   sustains through the window, has low rhythmic salience, or is registrally
@@ -116,16 +94,7 @@ five-voice script:
 
 ```bash
 uv run --extra notation python scripts/reduce_cpdl_six_voice.py \
-  --mode six-to-six \
-  --output-dir data/cpdl_reductions/six_voice_string_sextet
-```
-
-and:
-
-```bash
-uv run --extra notation python scripts/reduce_cpdl_six_voice.py \
-  --mode six-to-five \
-  --output-dir data/cpdl_reductions/six_voice_quartet_plus_viole
+  --output-dir data/cpdl_reductions/six_voice_string_quartet_source_plus_thirds
 ```
 
 The report should include work index, section, title, selected source path,
@@ -136,12 +105,10 @@ status, and error.
 
 Add focused tests before running the full CPDL batch:
 
-- six source voices map one-to-one into the six-part profile by register;
-- six-to-six sweet-spot policy can permute only inner voices while preserving
-  top and bottom;
-- six-to-five mode chooses the duplicated or least salient middle voice for
+- six-to-four mode preserves active outer voices where possible;
+- six-to-four mode chooses the duplicated or least salient middle voice for
   omission;
-- six-to-five mode does not omit the only active third of a sonority when a
+- six-to-four mode does not omit the only active third of a sonority when a
   duplicate fifth or octave is available instead;
 - all generated scores pass the existing exact-measure, no-gap, no-overlap,
   and source-provenance validators.
@@ -149,10 +116,10 @@ Add focused tests before running the full CPDL batch:
 ## Milestones
 
 1. Add CPDL six-voice source diagnostics and report counts.
-2. Add `STRING_SEXTET_GESUALDO` and six-to-six assignment tests.
-3. Implement and batch-run six-to-six reductions.
-4. Add six-to-five compression policy and tests.
-5. Batch-run six-to-five reductions and compare coverage metrics with the
-   six-to-six outputs.
+2. Add six-to-four compression policy tests.
+3. Implement and batch-run six-to-four reductions.
+4. Compare coverage metrics with the five-voice quartet batch.
+5. Add optional six-to-six diagnostic output only if coverage auditing needs a
+   full-preservation reference.
 6. Decide whether the single seven-voice sacred work should use a later
-   seven-to-six/seven-to-five extension or stay out of scope for this pass.
+   seven-to-four extension or stay out of scope for this pass.

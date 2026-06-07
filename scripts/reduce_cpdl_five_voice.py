@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate five-part reductions from the CPDL Gesualdo source corpus."""
+"""Generate enriched string-quartet reductions from five-voice CPDL sources."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from pathlib import Path
 
 from music21 import converter
 
-from gesualdo_reduction.reduction import reduce_to_quartet_plus_viole_sweetspot
+from gesualdo_reduction.reduction import reduce_to_quartet
 
 
 FIVE_VOICE_SECTIONS = {
@@ -94,7 +94,7 @@ def main() -> int:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("data/cpdl_reductions/five_voice_quartet_plus_viole"),
+        default=Path("data/cpdl_reductions/five_voice_string_quartet_source_plus_thirds"),
     )
     parser.add_argument("--limit", type=int, default=0, help="Limit works for quick test runs.")
     parser.add_argument("--force", action="store_true", help="Regenerate existing reductions.")
@@ -110,7 +110,7 @@ def main() -> int:
     for ordinal, (work_index, rows) in enumerate(work_groups, start=1):
         first = rows[0]
         work_title = first["work_title"]
-        output_path = args.output_dir / f"{int(work_index):03d}_{slugify(work_title)}__quartet_plus_viole_sweetspot.musicxml"
+        output_path = args.output_dir / f"{int(work_index):03d}_{slugify(work_title)}__string_quartet_source_plus_thirds.musicxml"
         print(f"[{ordinal:03d}/{len(work_groups):03d}] {work_title}", flush=True)
 
         try:
@@ -127,9 +127,12 @@ def main() -> int:
                         reduced = converter.parse(output_path)
                         global_transposition = getattr(reduced.editorial, "globalTransposition", "")
                     else:
-                        reduced = reduce_to_quartet_plus_viole_sweetspot(
+                        reduced = reduce_to_quartet(
                             candidate_row["local_path"],
                             out_path=output_path,
+                            preserve_active_voice_count=True,
+                            add_editorial_harmony=True,
+                            add_editorial_thirds=True,
                         )
                         global_transposition = getattr(reduced.editorial, "globalTransposition", "")
                     source_row = candidate_row
