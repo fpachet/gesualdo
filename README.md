@@ -103,6 +103,9 @@ The comparison set for `Gia piansi nel dolore` is kept in
 - `*_quartet_source_plus_harmony.*`
 - `*_quartet_source_plus_thirds.*`
 
+A more detailed human-readable description of the current reduction rules is
+kept in `docs/reduction_rules.md`.
+
 ## Conductor Evaluation Page
 
 A static review page for quartet conductors lives in `docs/index.html`. It
@@ -163,6 +166,8 @@ data/gesualdo/kdf_reductions/gesualdo_vi_libro_madrigali_22_(c)icking-archive_qu
 
 Older fixed-transposition single-piece `Gia piansi` renders are kept under
 `data/gesualdo/archive/legacy_gia_pensi_fixed_transposition/`.
+The previous GitHub Pages full-book MusicXML/MP3 generation is preserved under
+`data/gesualdo/archive/kdf_reductions_previous_web_generation_2026-06-07/`.
 
 ## Reduction AI
 
@@ -242,6 +247,8 @@ whose decisions can be traced back to the original madrigal.
 - `src/gesualdo_reduction/analysis.py`: MusES-based analysis helpers and CLI.
 - `src/gesualdo_reduction/reduction.py`: rhythm-first MusicXML reduction,
   ensemble profiles, and assignment policies.
+- `docs/reduction_rules.md`: human-readable description of the current
+  reduction and enrichment rules.
 - `data/gesualdo/kdf_madrigals/`: current Kunst der Fuge MIDI sources.
 - `data/gesualdo/kdf_reductions/`: current string quartet MusicXML reductions.
 - `data/gesualdo/kdf_reductions_mp3/`: MuseScore MP3 renders of the quartet

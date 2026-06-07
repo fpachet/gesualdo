@@ -1,4 +1,5 @@
 const RAW_BASE = "https://raw.githubusercontent.com/fpachet/gesualdo/main/";
+const ASSET_VERSION = "2026-06-07-full-book-regeneration";
 const STORAGE_KEY = "gesualdo-quartet-review-v1";
 const VEROVIO_SCRIPT_URL = "https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js";
 const SCORE_RENDER_OPTIONS = {
@@ -132,10 +133,11 @@ function reviewFor(id) {
 
 function assetUrl(path) {
   const cleanPath = path.replace(/^\.\//, "");
+  const suffix = `?v=${ASSET_VERSION}`;
   if (window.location.hostname.endsWith("github.io")) {
-    return RAW_BASE + cleanPath;
+    return RAW_BASE + cleanPath + suffix;
   }
-  return "../" + cleanPath;
+  return "../" + cleanPath + suffix;
 }
 
 function encodedAssetUrl(path) {
