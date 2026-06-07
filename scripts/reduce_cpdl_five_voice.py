@@ -94,7 +94,7 @@ def main() -> int:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("data/cpdl_reductions/five_voice_string_quartet_source_plus_thirds"),
+        default=Path("data/cpdl_reductions/five_voice_string_quartet"),
     )
     parser.add_argument("--limit", type=int, default=0, help="Limit works for quick test runs.")
     parser.add_argument("--force", action="store_true", help="Regenerate existing reductions.")
@@ -110,7 +110,7 @@ def main() -> int:
     for ordinal, (work_index, rows) in enumerate(work_groups, start=1):
         first = rows[0]
         work_title = first["work_title"]
-        output_path = args.output_dir / f"{int(work_index):03d}_{slugify(work_title)}__string_quartet_source_plus_thirds.musicxml"
+        output_path = args.output_dir / f"{int(work_index):03d}_{slugify(work_title)}__quartet_rhythm_first.musicxml"
         print(f"[{ordinal:03d}/{len(work_groups):03d}] {work_title}", flush=True)
 
         try:

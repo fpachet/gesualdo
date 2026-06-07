@@ -94,7 +94,7 @@ five-voice script:
 
 ```bash
 uv run --extra notation python scripts/reduce_cpdl_six_voice.py \
-  --output-dir data/cpdl_reductions/six_voice_string_quartet_source_plus_thirds
+  --output-dir data/cpdl_reductions/six_voice_string_quartet
 ```
 
 The report should include work index, section, title, selected source path,
