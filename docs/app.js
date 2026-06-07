@@ -1,5 +1,5 @@
 const RAW_BASE = "https://raw.githubusercontent.com/fpachet/gesualdo/main/";
-const ASSET_VERSION = "2026-06-07-source-selectors";
+const ASSET_VERSION = "2026-06-07-cpdl-audio";
 const STORAGE_KEY = "gesualdo-quartet-review-v1";
 const VEROVIO_SCRIPT_URL = "https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js";
 const SCORE_RENDER_OPTIONS = {
@@ -34,18 +34,21 @@ const DATASETS = [
     voiceCount: 5,
     target: "string_quartet",
     report: "data/cpdl/5-voices/reductions/string_quartet/report.tsv",
+    hasAudio: true,
   },
   {
     source: "cpdl",
     voiceCount: 5,
     target: "string_quartet_plus_viole",
     report: "data/cpdl/5-voices/reductions/string_quartet_plus_viole/report.tsv",
+    hasAudio: true,
   },
   {
     source: "cpdl",
     voiceCount: 6,
     target: "string_quartet",
     report: "data/cpdl/6-voices/reductions/string_quartet/report.tsv",
+    hasAudio: true,
   },
 ];
 
@@ -201,6 +204,12 @@ function kdfMp3Path(musicxmlPath) {
     .replace(/\.musicxml$/, ".mp3");
 }
 
+function cpdlMp3Path(musicxmlPath, target) {
+  return musicxmlPath
+    .replace(`/reductions/${target}/`, `/renders/${target}_mp3/`)
+    .replace(/\.musicxml$/, ".mp3");
+}
+
 function normalizeKdfRow(row, dataset, order) {
   const musicxml = row.output;
   const piece = {
@@ -245,7 +254,7 @@ function normalizeCpdlRow(row, dataset, order) {
     semitones: numericValue(row.global_transposition),
     score: null,
     musicxml: row.output_path,
-    mp3: "",
+    mp3: dataset.hasAudio ? cpdlMp3Path(row.output_path, dataset.target) : "",
     measures: "",
     reducedParts: dataset.target === "string_quartet_plus_viole" ? 5 : 4,
     order,

@@ -22,8 +22,11 @@ experiments over the sacred and secular vocal catalogue.
 | KdF quartet MP3 renders | `data/kdf/book*/renders/string_quartet_mp3/` | 37 | MP3 audio exported from the current enriched MusicXML book with MuseScore 4 string sounds. |
 | CPDL source files | `data/cpdl/{4,5,6,7}-voices/sources/` | 397 | MusicXML/MIDI files linked from CPDL's Carlo Gesualdo vocal work pages, indexed by `data/cpdl/manifest.tsv`. |
 | CPDL 5-voice string quartet reductions | `data/cpdl/5-voices/reductions/string_quartet/` | 123 | Supported five-voice-to-string-quartet batch, indexed by `report.tsv`. |
+| CPDL 5-voice string quartet MP3 renders | `data/cpdl/5-voices/renders/string_quartet_mp3/` | 123 | MP3 audio exported from the CPDL five-voice string quartet reductions with MuseScore 4. |
 | CPDL 5-voice quartet plus viole reductions | `data/cpdl/5-voices/reductions/string_quartet_plus_viole/` | 122 | Existing five-instrument reducer restored for CPDL five-voice sources, indexed by `report.tsv`. |
+| CPDL 5-voice quartet plus viole MP3 renders | `data/cpdl/5-voices/renders/string_quartet_plus_viole_mp3/` | 122 | MP3 audio exported from the CPDL five-instrument reductions with MuseScore 4. |
 | CPDL 6-voice string quartet reductions | `data/cpdl/6-voices/reductions/string_quartet/` | 34 | Dedicated six-voice-to-string-quartet batch using the separate six-voice compression policy, indexed by `report.tsv`. |
+| CPDL 6-voice string quartet MP3 renders | `data/cpdl/6-voices/renders/string_quartet_mp3/` | 34 | MP3 audio exported from the CPDL six-voice string quartet reductions with MuseScore 4. |
 | CPDL 7-voice sources | `data/cpdl/7-voices/sources/` | 2 | Sources only; seven-to-four reduction is out of scope for the current reducer. |
 | Editorial dynamics examples | `data/kdf/examples/dynamic/` | 3 | MusicXML and MuseScore MP3 examples with generated score dynamics and hairpins. |
 | Quartet enrichment examples | `data/kdf/examples/enrichment/` | 4 variants | Side-by-side MusicXML/MP3 renders for plain, source-enriched, source-plus-harmony, and source-plus-thirds quartet reductions. |
@@ -42,9 +45,9 @@ The retained MusicXML batch completed successfully according to its report TSV:
 
 - `data/kdf/reductions/string_quartet_report.tsv`
 
-The MP3 batch contains one audio file per string quartet reduction. The files
-are 44.1 kHz MP3s at 128 kbps; the largest file is about 5.3 MB. These files
-are intended to be usable directly by a static listening page.
+The MP3 batches contain one audio file per supported reduction. The files are
+44.1 kHz MP3s exported by MuseScore 4 and are intended to be usable directly by
+a static listening page.
 
 ## Editorial Dynamics
 
