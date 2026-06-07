@@ -225,6 +225,19 @@ def numbered_filename(
     return f"{work_index:03d}_{work_slug}__{download_index:02d}_{source_stem}.{extension}"
 
 
+def voice_count_folder(section: str) -> str:
+    match = re.search(r"for (four|five|six|seven) voices", section)
+    if not match:
+        return "other-voices"
+    voice_counts = {
+        "four": 4,
+        "five": 5,
+        "six": 6,
+        "seven": 7,
+    }
+    return f"{voice_counts[match.group(1)]}-voices"
+
+
 def write_manifest(path: Path, rows: list[dict[str, str]]) -> None:
     fields = [
         "work_index",
@@ -307,8 +320,9 @@ def process_work(
             download["source_filename"],
             download["extension"],
         )
-        local_path = output_dir / local_name
+        local_path = output_dir / voice_count_folder(work["section"]) / "sources" / local_name
         try:
+            local_path.parent.mkdir(parents=True, exist_ok=True)
             if not local_path.exists():
                 local_path.write_bytes(fetch(download["url"]))
         except Exception as exc:

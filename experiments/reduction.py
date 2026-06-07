@@ -14,16 +14,19 @@ if __name__ == "__main__":
     midi_path = (
         project_root
         / "data"
-        / "gesualdo"
-        / "kdf_madrigals"
-        / "gesualdo_vi_libro_madrigali_22_(c)icking-archive.mid"
+        / "kdf"
+        / "book6"
+        / "sources"
+        / "book6_22_gia_piansi_nel_dolore.mid"
     )
     out_path = (
         project_root
         / "data"
-        / "gesualdo"
-        / "kdf_reductions"
-        / "gesualdo_vi_libro_madrigali_22_(c)icking-archive_quartet_rhythm_first.musicxml"
+        / "kdf"
+        / "book6"
+        / "reductions"
+        / "string_quartet"
+        / "book6_22_gia_piansi_nel_dolore.musicxml"
     )
     reduce_to_quartet(
         midi_path,

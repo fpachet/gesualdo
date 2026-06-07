@@ -89,12 +89,12 @@ editions are separated from actual reduction failures.
 
 ## Batch Script
 
-Add `scripts/reduce_cpdl_six_voice.py` with the same operational shape as the
-five-voice script:
+When the six-voice translator exists, add `scripts/reduce_cpdl_six_voice.py`
+with the same operational shape as the five-voice script:
 
 ```bash
 uv run --extra notation python scripts/reduce_cpdl_six_voice.py \
-  --output-dir data/cpdl_reductions/six_voice_string_quartet
+  --output-dir data/cpdl/6-voices/reductions/string_quartet
 ```
 
 The report should include work index, section, title, selected source path,
