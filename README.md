@@ -17,8 +17,8 @@ collected in `data/gesualdo/kdf_madrigals/`.
 | Output | Path | Count | Notes |
 | --- | --- | ---: | --- |
 | Original madrigal MIDIs | `data/gesualdo/kdf_madrigals/` | 37 | Source material from books IV and VI, indexed by `kdf_madrigals_manifest.tsv`. |
-| String quartet reductions | `data/gesualdo/kdf_reductions/` | 37 | Rhythm-first MusicXML for Violin I, Violin II, Viola, and Violoncello. |
-| MuseScore quartet MP3 renders | `data/gesualdo/kdf_reductions_mp3/` | 37 | MP3 audio exported from the string quartet MusicXML reductions with MuseScore 4 string sounds. |
+| String quartet reductions | `data/gesualdo/kdf_reductions/` | 37 | Current GitHub Pages MusicXML book, generated with source-voice enrichment, editorial harmony, and editorial missing thirds. |
+| MuseScore quartet MP3 renders | `data/gesualdo/kdf_reductions_mp3/` | 37 | MP3 audio exported from the current enriched MusicXML book with MuseScore 4 string sounds. |
 | Editorial dynamics examples | `data/gesualdo/dynamic_examples/` | 3 | MusicXML and MuseScore MP3 examples with generated score dynamics and hairpins. |
 | Quartet enrichment examples | `data/gesualdo/enrichment_examples/` | 4 variants | Side-by-side MusicXML/MP3 renders for plain, source-enriched, source-plus-harmony, and source-plus-thirds quartet reductions. |
 
@@ -168,6 +168,9 @@ Older fixed-transposition single-piece `Gia piansi` renders are kept under
 `data/gesualdo/archive/legacy_gia_pensi_fixed_transposition/`.
 The previous GitHub Pages full-book MusicXML/MP3 generation is preserved under
 `data/gesualdo/archive/kdf_reductions_previous_web_generation_2026-06-07/`.
+The default, non-enriched full-book regeneration from the same date is
+preserved under
+`data/gesualdo/archive/kdf_reductions_default_regeneration_2026-06-07/`.
 
 ## Reduction AI
 
