@@ -9,6 +9,8 @@ from music21 import dynamics, meter, note, stream
 from gesualdo_reduction.reduction import (
     PIANO_REDUCTION,
     ReductionConfig,
+    SourceEvent,
+    _merge_adjacent_generated_harmony_events,
     build_ensemble_score,
     build_bar_map,
     build_piano_score,
@@ -125,6 +127,187 @@ def test_middle_reduction_only_outputs_real_source_note_events():
         source_id = output_note.editorial.sourceEventId
         assert source_id in source_events
         assert ql_to_fraction(output_note.quarterLength) == source_events[source_id]
+
+
+def test_source_voice_enrichment_preserves_duplicate_pitch_class_line():
+    score = make_score(
+        [
+            make_part("top", [(0, 4, "C6")]),
+            make_part("middle 1", [(0, 4, "E4")]),
+            make_part("middle 2", [(0, 4, "E5")]),
+            make_part("bottom", [(0, 4, "C2")]),
+        ]
+    )
+
+    plain = build_quartet_score(score, enforce_ranges=False)
+    enriched = build_quartet_score(score, enforce_ranges=False, preserve_active_voice_count=True)
+
+    plain_middle_notes = [
+        element
+        for part in plain.parts[1:3]
+        for element in list(part.getElementsByClass(stream.Measure))[0].notes
+    ]
+    enriched_middle_notes = [
+        element
+        for part in enriched.parts[1:3]
+        for element in list(part.getElementsByClass(stream.Measure))[0].notes
+    ]
+
+    assert len(plain_middle_notes) == 1
+    assert len(enriched_middle_notes) == 2
+    assert {element.editorial.sourcePartIndex for element in enriched_middle_notes} == {1, 2}
+
+
+def test_source_voice_enrichment_keeps_duplicate_pitch_class_source_line():
+    score = make_score(
+        [
+            make_part("top", [(0, 4, None)]),
+            make_part("upper", [(0, 4, "B-4")]),
+            make_part("duplicate", [(0, 4, "F#4")]),
+            make_part("middle", [(0, 4, "C#4")]),
+            make_part("bottom", [(0, 4, "F#3")]),
+        ]
+    )
+
+    plain = build_quartet_score(score, enforce_ranges=False)
+    enriched = build_quartet_score(score, enforce_ranges=False, preserve_active_voice_count=True)
+
+    plain_notes = [
+        element
+        for part in plain.parts
+        for element in list(part.getElementsByClass(stream.Measure))[0].notes
+    ]
+    enriched_notes = [
+        element
+        for part in enriched.parts
+        for element in list(part.getElementsByClass(stream.Measure))[0].notes
+    ]
+
+    assert len(plain_notes) == 3
+    assert len(enriched_notes) == 4
+    assert any(element.pitch.nameWithOctave == "F#4" for element in enriched_notes)
+
+
+def test_source_voice_enrichment_avoids_bare_octave_duplicate_pickup():
+    score = make_score(
+        [
+            make_part("top", [(0, 1, None), (1, 3, "E5")]),
+            make_part("inner 1", [(0, 1, "C#4"), (1, 3, "E4")]),
+            make_part("inner 2", [(0, 1, None), (1, 3, "A4")]),
+            make_part("bottom", [(0, 4, "C#3")]),
+        ]
+    )
+
+    enriched = build_quartet_score(score, enforce_ranges=False, preserve_active_voice_count=True)
+    first_beat_notes = [
+        element
+        for part in enriched.parts
+        for element in part.flatten().notes
+        if ql_to_fraction(element.offset) <= Fraction(0, 1)
+        < ql_to_fraction(element.offset) + ql_to_fraction(element.quarterLength)
+    ]
+
+    assert [element.pitch.name for element in first_beat_notes].count("C#") == 1
+
+
+def test_editorial_harmony_can_fill_fourth_string_with_marked_chord_tone():
+    score = make_score(
+        [
+            make_part("top", [(0, 4, "C6")]),
+            make_part("middle 1", [(0, 4, "E4")]),
+            make_part("middle 2", [(0, 4, None)]),
+            make_part("bottom", [(0, 4, "C2")]),
+        ]
+    )
+
+    reduced = build_quartet_score(score, enforce_ranges=False, add_editorial_harmony=True)
+    measure_notes = [
+        element
+        for part in reduced.parts
+        for element in list(part.getElementsByClass(stream.Measure))[0].notes
+    ]
+    generated_notes = [
+        element
+        for element in measure_notes
+        if element.editorial.sourceEventId.startswith("generated:harmony:")
+    ]
+
+    assert len(measure_notes) == 4
+    assert len(generated_notes) == 1
+    assert generated_notes[0].editorial.sourcePartIndex == -1
+    assert generated_notes[0].pitch.pitchClass in {0, 4}
+
+
+def test_editorial_thirds_can_complete_bare_fifth_shell():
+    score = make_score(
+        [
+            make_part("top", [(0, 4, "G5"), (4, 4, "B5")]),
+            make_part("fifth", [(0, 8, "D5")]),
+            make_part("root", [(0, 8, "G4")]),
+            make_part("empty", [(0, 8, None)]),
+        ]
+    )
+
+    reduced = build_quartet_score(
+        score,
+        enforce_ranges=False,
+        add_editorial_harmony=True,
+        add_editorial_thirds=True,
+    )
+    generated_thirds = [
+        element
+        for part in reduced.parts
+        for element in part.flatten().notes
+        if element.editorial.sourceEventId.startswith("generated:third:")
+    ]
+
+    assert generated_thirds
+    assert generated_thirds[0].editorial.sourcePartIndex == -1
+    assert generated_thirds[0].pitch.name == "B"
+
+
+def test_enrichment_does_not_hide_later_chromatic_source_note():
+    score = make_score(
+        [
+            make_part("top", [(0, 3, None), (3, 1, "A4")]),
+            make_part("chromatic", [(0, 1, None), (1, 1, "G#4"), (2, 2, "A4")]),
+            make_part("long duplicate", [(0, 4, "E4")]),
+            make_part("inner", [(0, 1, None), (1, 1, "B3"), (2, 2, "C4")]),
+            make_part("bottom", [(0, 4, "E3")]),
+        ]
+    )
+
+    reduced = build_quartet_score(
+        score,
+        enforce_ranges=False,
+        preserve_active_voice_count=True,
+        add_editorial_harmony=True,
+    )
+    notes_at_g_sharp = [
+        element
+        for part in reduced.parts
+        for element in part.flatten().notes
+        if ql_to_fraction(element.offset) <= Fraction(1, 1)
+        < ql_to_fraction(element.offset) + ql_to_fraction(element.quarterLength)
+    ]
+
+    assert any(element.pitch.name == "G#" for element in notes_at_g_sharp)
+
+
+def test_editorial_harmony_merges_adjacent_repeated_support_notes():
+    selected = {
+        "vln1": [
+            SourceEvent("generated:harmony:vln1:1", -1, 0, Fraction(1, 1), Fraction(1, 2), 72, False),
+            SourceEvent("generated:third:vln1:3/2", -1, 0, Fraction(3, 2), Fraction(1, 2), 72, False),
+            SourceEvent("generated:third:vln1:2", -1, 0, Fraction(2, 1), Fraction(1, 1), 72, False),
+        ]
+    }
+
+    _merge_adjacent_generated_harmony_events(selected)
+
+    assert selected["vln1"] == [
+        SourceEvent("generated:harmony:vln1:1", -1, 0, Fraction(1, 1), Fraction(2, 1), 72, False)
+    ]
 
 
 def test_idle_outer_part_can_borrow_continuous_line_for_coverage():

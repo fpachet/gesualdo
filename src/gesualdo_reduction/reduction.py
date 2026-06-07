@@ -167,6 +167,10 @@ class ReductionConfig:
 
     enforce_ranges: bool = ENFORCE_RANGES
     register_split: int = REGISTER_SPLIT
+    preserve_active_voice_count: bool = False
+    add_editorial_harmony: bool = False
+    add_editorial_thirds: bool = False
+    editorial_harmony_target_active_parts: int = 4
     add_editorial_dynamics: bool = True
     dynamic_phrase_bars: int = 4
     dynamic_hairpin_bars: int = 2
@@ -835,6 +839,8 @@ def _make_note_fragment_element(event: SourceEvent, offset: Fraction, duration: 
     out_note = note.Note(int(event.pitch_midi), quarterLength=fraction_to_ql(duration))
     out_note.editorial.sourceEventId = event.source_id
     out_note.editorial.sourcePartIndex = event.part_index
+    if event.part_index < 0 or event.source_id.startswith("generated:"):
+        out_note.editorial.generatedHarmony = True
 
     abs_start = bar.start + offset
     abs_end = abs_start + duration
@@ -1001,7 +1007,11 @@ def validate_measured_part(part: stream.Part, bars: Sequence[Bar]) -> None:
             cursor = offset + duration
             if cursor > bar.duration:
                 raise MeasureValidationError(f"{part.partName} measure {bar.number} is overfull.")
-            if element.isNote and not hasattr(element.editorial, "sourceEventId"):
+            if (
+                element.isNote
+                and not hasattr(element.editorial, "sourceEventId")
+                and not getattr(element.editorial, "generatedHarmony", False)
+            ):
                 raise MeasureValidationError(
                     f"{part.partName} measure {bar.number} contains an untraced output note."
                 )
@@ -1027,7 +1037,11 @@ def validate_measured_voice(voice: stream.Voice, bars: Sequence[Bar], bar: Bar, 
         cursor = offset + duration
         if cursor > bar.duration:
             raise MeasureValidationError(f"{part_name} measure {bar.number} voice {voice.id} is overfull.")
-        if element.isNote and not hasattr(element.editorial, "sourceEventId"):
+        if (
+            element.isNote
+            and not hasattr(element.editorial, "sourceEventId")
+            and not getattr(element.editorial, "generatedHarmony", False)
+        ):
             raise MeasureValidationError(
                 f"{part_name} measure {bar.number} voice {voice.id} contains an untraced output note."
             )
@@ -1113,6 +1127,18 @@ def _target_is_free_for_event(
     )
 
 
+def _target_is_free_for_interval(
+    target: TargetPart,
+    start: Fraction,
+    end: Fraction,
+    selected: dict[str, list[SourceEvent]],
+) -> bool:
+    return not any(
+        _event_overlaps_interval(existing, start, end)
+        for existing in selected[target.id]
+    )
+
+
 def _active_pitches_from_assignments(
     selected: dict[str, list[SourceEvent]],
     offset: Fraction,
@@ -1123,6 +1149,34 @@ def _active_pitches_from_assignments(
         for event in events
         if event.pitch_midi is not None and event.start <= offset < event.end
     ]
+
+
+def _active_events_at(events: Sequence[SourceEvent], offset: Fraction) -> list[SourceEvent]:
+    return [
+        event
+        for event in events
+        if not event.is_rest and event.pitch_midi is not None and event.start <= offset < event.end
+    ]
+
+
+def _active_source_part_count(
+    events: Sequence[SourceEvent],
+    top_events: Sequence[SourceEvent],
+    bottom_events: Sequence[SourceEvent],
+    offset: Fraction,
+) -> int:
+    part_indices = {event.part_index for event in _active_events_at(events, offset)}
+    part_indices.update(event.part_index for event in _active_events_at(top_events, offset))
+    part_indices.update(event.part_index for event in _active_events_at(bottom_events, offset))
+    return len(part_indices)
+
+
+def _active_target_count(selected: dict[str, list[SourceEvent]], offset: Fraction) -> int:
+    return sum(
+        1
+        for events in selected.values()
+        if any(event.pitch_midi is not None and event.start <= offset < event.end for event in events)
+    )
 
 
 def _latest_pitch_before(events: Sequence[SourceEvent], offset: Fraction) -> int | None:
@@ -1341,6 +1395,235 @@ def _match_events_to_targets(
     return best_pairs
 
 
+def _represented_source_parts(selected: dict[str, list[SourceEvent]], offset: Fraction) -> set[int]:
+    return {
+        event.part_index
+        for events in selected.values()
+        for event in events
+        if event.part_index >= 0 and event.pitch_midi is not None and event.start <= offset < event.end
+    }
+
+
+def _selected_source_ids(selected: dict[str, list[SourceEvent]]) -> set[str]:
+    return {
+        event.source_id
+        for events in selected.values()
+        for event in events
+    }
+
+
+def _choose_editorial_harmony_pitch(
+    source_events: Sequence[SourceEvent],
+    target: TargetPart,
+    last_pitch: dict[str, int | None],
+    active_output_pitches: Sequence[int],
+    config: ReductionConfig,
+) -> SourceEvent | None:
+    active_exact = set(active_output_pitches)
+    best_event: SourceEvent | None = None
+    best_cost = float("inf")
+    previous = last_pitch[target.id]
+    for source_event in source_events:
+        if source_event.pitch_midi is None:
+            continue
+        source_pitch = int(source_event.pitch_midi)
+        for candidate in octave_candidates(source_pitch, *target.midi_range):
+            remaining_duration = max(source_event.end - source_event.start, Fraction(0, 1))
+            register_cost = _register_fit_score(target, candidate, config)
+            continuity_cost = 0 if previous is None else abs(candidate - previous) / 12
+            exact_duplicate_cost = 1.5 if candidate in active_exact else 0
+            displacement_cost = abs(candidate - source_pitch) / 24
+            duration_reward = min(float(remaining_duration), 4.0)
+            cost = register_cost + continuity_cost + exact_duplicate_cost + displacement_cost - duration_reward
+            if cost < best_cost:
+                best_cost = cost
+                best_event = replace(source_event, pitch_midi=candidate)
+    return best_event
+
+
+def _third_pc_for_shell(
+    active_output_pitches: Sequence[int],
+    source_events: Sequence[SourceEvent],
+    all_events: Sequence[SourceEvent],
+    offset: Fraction,
+    *,
+    lookahead: Fraction = Fraction(12, 1),
+) -> int | None:
+    active_pcs = {pitch % 12 for pitch in active_output_pitches}
+    if len(active_pcs) < 2:
+        return None
+
+    candidates: list[tuple[int, int, int]] = []
+    source_pcs = {
+        int(event.pitch_midi) % 12
+        for event in source_events
+        if event.pitch_midi is not None
+    }
+    for root_pc in active_pcs:
+        fifth_pc = (root_pc + 7) % 12
+        minor_third_pc = (root_pc + 3) % 12
+        major_third_pc = (root_pc + 4) % 12
+        if fifth_pc not in active_pcs:
+            continue
+        if minor_third_pc in active_pcs or major_third_pc in active_pcs:
+            continue
+        source_support = (root_pc in source_pcs) + (fifth_pc in source_pcs)
+        dominant_support = 1 if (root_pc + 10) % 12 in active_pcs else 0
+        candidates.append((-source_support, -dominant_support, root_pc))
+    if not candidates:
+        return None
+
+    root_pc = min(candidates)[2]
+    minor_third_pc = (root_pc + 3) % 12
+    major_third_pc = (root_pc + 4) % 12
+    search_end = offset + lookahead
+    future_thirds = sorted(
+        (
+            (event.start, event.source_id, int(event.pitch_midi) % 12)
+            for event in all_events
+            if event.pitch_midi is not None
+            and offset < event.start <= search_end
+            and int(event.pitch_midi) % 12 in {minor_third_pc, major_third_pc}
+        ),
+        key=lambda item: (item[0], item[1]),
+    )
+    if future_thirds:
+        return future_thirds[0][2]
+
+    if (root_pc + 10) % 12 in active_pcs:
+        return major_third_pc
+    return major_third_pc
+
+
+def _choose_editorial_third_pitch(
+    active_output_pitches: Sequence[int],
+    source_events: Sequence[SourceEvent],
+    all_events: Sequence[SourceEvent],
+    target: TargetPart,
+    last_pitch: dict[str, int | None],
+    start: Fraction,
+    config: ReductionConfig,
+) -> int | None:
+    third_pc = _third_pc_for_shell(active_output_pitches, source_events, all_events, start)
+    if third_pc is None:
+        return None
+
+    previous = last_pitch[target.id]
+    active_pcs = {pitch % 12 for pitch in active_output_pitches}
+    anchor_pitches = [
+        int(event.pitch_midi)
+        for event in source_events
+        if event.pitch_midi is not None and int(event.pitch_midi) % 12 in active_pcs
+    ]
+    if not anchor_pitches:
+        anchor_pitches = list(active_output_pitches)
+    center = sum(anchor_pitches) / len(anchor_pitches)
+    base_pitch = int(round((center - third_pc) / 12)) * 12 + third_pc
+    candidates = octave_candidates(base_pitch, *target.midi_range)
+    if not candidates:
+        return None
+
+    return min(
+        candidates,
+        key=lambda candidate: (
+            _register_fit_score(target, candidate, config),
+            0 if previous is None else abs(candidate - previous) / 12,
+            abs(candidate - center) / 24,
+        ),
+    )
+
+
+def _has_same_pitch_continuation(
+    event: SourceEvent,
+    events_by_part: dict[int, Sequence[SourceEvent]],
+) -> bool:
+    if event.pitch_midi is None:
+        return False
+    event_pc = int(event.pitch_midi) % 12
+    return any(
+        other.source_id != event.source_id
+        and other.start == event.end
+        and other.pitch_midi is not None
+        and int(other.pitch_midi) % 12 == event_pc
+        for other in events_by_part.get(event.part_index, ())
+    )
+
+
+def _has_same_pitch_previous(
+    event: SourceEvent,
+    events_by_part: dict[int, Sequence[SourceEvent]],
+) -> bool:
+    if event.pitch_midi is None:
+        return False
+    event_pc = int(event.pitch_midi) % 12
+    return any(
+        other.source_id != event.source_id
+        and other.end == event.start
+        and other.pitch_midi is not None
+        and int(other.pitch_midi) % 12 == event_pc
+        for other in events_by_part.get(event.part_index, ())
+    )
+
+
+def _source_change_end(
+    start: Fraction,
+    events: Sequence[SourceEvent],
+    top_events: Sequence[SourceEvent],
+    bottom_events: Sequence[SourceEvent],
+) -> Fraction | None:
+    pitched_events = [
+        event
+        for event in (*events, *top_events, *bottom_events)
+        if not event.is_rest and event.pitch_midi is not None
+    ]
+    events_by_part: dict[int, list[SourceEvent]] = {}
+    for event in pitched_events:
+        events_by_part.setdefault(event.part_index, []).append(event)
+    change_points = [
+        event.end
+        for event in pitched_events
+        if event.start <= start < event.end
+        and event.end > start
+        and not _has_same_pitch_continuation(event, events_by_part)
+    ]
+    change_points.extend(
+        event.start
+        for event in pitched_events
+        if event.start > start and not _has_same_pitch_previous(event, events_by_part)
+    )
+    return min(change_points) if change_points else None
+
+
+def _trim_event_end(event: SourceEvent, end: Fraction) -> SourceEvent | None:
+    if end <= event.start:
+        return None
+    if end >= event.end:
+        return event
+    return replace(event, duration=end - event.start)
+
+
+def _is_generated_harmony_event(event: SourceEvent) -> bool:
+    return event.part_index < 0 and event.source_id.startswith(("generated:harmony:", "generated:third:"))
+
+
+def _merge_adjacent_generated_harmony_events(selected: dict[str, list[SourceEvent]]) -> None:
+    for target_id, events in selected.items():
+        merged: list[SourceEvent] = []
+        for event in sorted(events, key=lambda ev: (ev.start, ev.end, ev.source_id)):
+            if (
+                merged
+                and _is_generated_harmony_event(merged[-1])
+                and _is_generated_harmony_event(event)
+                and merged[-1].pitch_midi == event.pitch_midi
+                and merged[-1].end == event.start
+            ):
+                previous = merged[-1]
+                merged[-1] = replace(previous, duration=previous.duration + event.duration)
+            else:
+                merged.append(event)
+        selected[target_id] = merged
+
+
 def _select_inner_events(
     middle_events: Sequence[SourceEvent],
     top_events: Sequence[SourceEvent],
@@ -1500,7 +1783,154 @@ def _select_inner_events(
                 selected[target.id].append(event)
                 last_pitch[target.id] = event.pitch_midi
 
-    if initial_events_by_target:
+        if config.preserve_active_voice_count:
+            desired_active = min(
+                _active_source_part_count(note_events, top_events, bottom_events, start),
+                len(targets),
+            )
+            needed = desired_active - _active_target_count(selected, start)
+            if needed > 0:
+                represented_parts = _represented_source_parts(selected, start)
+                existing_source_ids = _selected_source_ids(selected)
+                covered_at_start = {
+                    pitch % 12
+                    for pitch in _active_pitches_from_assignments(selected, start)
+                }
+                active_source_pitch_classes = {
+                    event.pitch_midi % 12
+                    for event in (
+                        *_active_events_at(note_events, start),
+                        *_active_events_at(top_events, start),
+                        *_active_events_at(bottom_events, start),
+                    )
+                    if event.pitch_midi is not None
+                }
+                next_source_change = _source_change_end(start, note_events, top_events, bottom_events)
+                preserving_candidates = [
+                    event
+                    for event in group
+                    if event.pitch_midi is not None
+                    and event.source_id not in existing_source_ids
+                    and (
+                        len(active_source_pitch_classes) >= 2
+                        or event.pitch_midi % 12 not in covered_at_start
+                    )
+                    and any(_target_is_free_for_event(target, event, selected) for target in targets)
+                ]
+                prepared_candidates: list[SourceEvent] = []
+                for event in preserving_candidates:
+                    prepared = event
+                    if (
+                        event.pitch_midi is not None
+                        and event.pitch_midi % 12 in covered_at_start
+                        and next_source_change is not None
+                    ):
+                        prepared = _trim_event_end(event, next_source_change)
+                    if prepared is not None:
+                        prepared_candidates.append(prepared)
+                preserving_candidates = prepared_candidates
+                preserving_candidates.sort(
+                    key=lambda ev: (
+                        ev.part_index in represented_parts,
+                        not _is_new_onset(ev),
+                        -ev.duration,
+                        ev.source_id,
+                    )
+                )
+                preserving_chosen = preserving_candidates[:needed]
+                preserve_pairs: list[tuple[TargetPart, SourceEvent]] = []
+                while preserving_chosen:
+                    preserve_pairs = _match_events_to_targets(
+                        preserving_chosen,
+                        targets,
+                        last_pitch,
+                        config,
+                        can_assign=lambda target, event: _target_is_free_for_event(target, event, selected),
+                    )
+                    if preserve_pairs:
+                        break
+                    preserving_chosen.pop()
+                for target, event in preserve_pairs:
+                    if config.enforce_ranges:
+                        event = fit_event_to_range(event, *target.midi_range)
+                    selected[target.id].append(event)
+                    last_pitch[target.id] = event.pitch_midi
+
+        if config.add_editorial_harmony:
+            desired_active = min(config.editorial_harmony_target_active_parts, len(targets))
+            needed = desired_active - _active_target_count(selected, start)
+            support_end = _source_change_end(start, note_events, top_events, bottom_events)
+            if needed > 0 and support_end is not None and support_end - start >= Fraction(1, 2):
+                active_source_events = [
+                    event
+                    for event in (
+                        *_active_events_at(note_events, start),
+                        *_active_events_at(top_events, start),
+                        *_active_events_at(bottom_events, start),
+                    )
+                    if event.pitch_midi is not None and event.end - start >= Fraction(1, 2)
+                ]
+                if len({event.pitch_midi % 12 for event in active_source_events if event.pitch_midi is not None}) < 2:
+                    continue
+                all_pitched_events = [
+                    event
+                    for event in (*note_events, *top_events, *bottom_events)
+                    if event.pitch_midi is not None
+                ]
+                active_output_pitches = _active_pitches_from_assignments(selected, start)
+                free_targets = [
+                    target
+                    for target in targets
+                    if _target_is_free_for_interval(target, start, support_end, selected)
+                ]
+                for target in free_targets:
+                    if needed <= 0:
+                        break
+                    generated_pitch = None
+                    generated_kind = "harmony"
+                    if config.add_editorial_thirds:
+                        generated_pitch = _choose_editorial_third_pitch(
+                            active_output_pitches,
+                            active_source_events,
+                            all_pitched_events,
+                            target,
+                            last_pitch,
+                            start,
+                            config,
+                        )
+                        if generated_pitch is not None:
+                            generated_kind = "third"
+                    if generated_pitch is None:
+                        harmony_event = _choose_editorial_harmony_pitch(
+                            active_source_events,
+                            target,
+                            last_pitch,
+                            active_output_pitches,
+                            config,
+                        )
+                        if harmony_event is None:
+                            continue
+                        generated_pitch = harmony_event.pitch_midi
+                    event = SourceEvent(
+                        source_id=f"generated:{generated_kind}:{target.id}:{start}",
+                        part_index=-1,
+                        event_index=0,
+                        start=start,
+                        duration=support_end - start,
+                        pitch_midi=generated_pitch,
+                        is_rest=False,
+                        source_element=None,
+                        source_tie_type=None,
+                    )
+                    selected[target.id].append(event)
+                    last_pitch[target.id] = event.pitch_midi
+                    active_output_pitches.append(int(event.pitch_midi))
+                    needed -= 1
+
+    if config.add_editorial_harmony:
+        _merge_adjacent_generated_harmony_events(selected)
+
+    if initial_events_by_target and not config.preserve_active_voice_count:
         _prune_isolated_borrowed_events(selected, initial_events_by_target)
 
     return selected
@@ -2164,11 +2594,22 @@ def build_quartet_score(
     *,
     enforce_ranges: bool = ENFORCE_RANGES,
     register_split: int = REGISTER_SPLIT,
+    preserve_active_voice_count: bool = False,
+    add_editorial_harmony: bool = False,
+    add_editorial_thirds: bool = False,
+    editorial_harmony_target_active_parts: int = 4,
 ) -> stream.Score:
     return build_ensemble_score(
         src_score,
         STRING_QUARTET,
-        config=ReductionConfig(enforce_ranges=enforce_ranges, register_split=register_split),
+        config=ReductionConfig(
+            enforce_ranges=enforce_ranges,
+            register_split=register_split,
+            preserve_active_voice_count=preserve_active_voice_count,
+            add_editorial_harmony=add_editorial_harmony,
+            add_editorial_thirds=add_editorial_thirds,
+            editorial_harmony_target_active_parts=editorial_harmony_target_active_parts,
+        ),
         policy=RegisterAssignmentPolicy(),
     )
 
@@ -2245,6 +2686,10 @@ def reduce_to_quartet(
     *,
     enforce_ranges: bool = ENFORCE_RANGES,
     register_split: int = REGISTER_SPLIT,
+    preserve_active_voice_count: bool = False,
+    add_editorial_harmony: bool = False,
+    add_editorial_thirds: bool = False,
+    editorial_harmony_target_active_parts: int = 4,
     candidate_semitones: Sequence[int] = DEFAULT_TRANSPOSITION_CANDIDATES,
 ) -> stream.Score:
     return reduce_to_ensemble(
@@ -2252,7 +2697,14 @@ def reduce_to_quartet(
         STRING_QUARTET,
         semitones=semitones,
         out_path=out_path,
-        config=ReductionConfig(enforce_ranges=enforce_ranges, register_split=register_split),
+        config=ReductionConfig(
+            enforce_ranges=enforce_ranges,
+            register_split=register_split,
+            preserve_active_voice_count=preserve_active_voice_count,
+            add_editorial_harmony=add_editorial_harmony,
+            add_editorial_thirds=add_editorial_thirds,
+            editorial_harmony_target_active_parts=editorial_harmony_target_active_parts,
+        ),
         policy=RegisterAssignmentPolicy(),
         candidate_semitones=candidate_semitones,
     )

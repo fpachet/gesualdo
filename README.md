@@ -20,6 +20,7 @@ collected in `data/gesualdo/kdf_madrigals/`.
 | String quartet reductions | `data/gesualdo/kdf_reductions/` | 37 | Rhythm-first MusicXML for Violin I, Violin II, Viola, and Violoncello. |
 | MuseScore quartet MP3 renders | `data/gesualdo/kdf_reductions_mp3/` | 37 | MP3 audio exported from the string quartet MusicXML reductions with MuseScore 4 string sounds. |
 | Editorial dynamics examples | `data/gesualdo/dynamic_examples/` | 3 | MusicXML and MuseScore MP3 examples with generated score dynamics and hairpins. |
+| Quartet enrichment examples | `data/gesualdo/enrichment_examples/` | 4 variants | Side-by-side MusicXML/MP3 renders for plain, source-enriched, source-plus-harmony, and source-plus-thirds quartet reductions. |
 
 The retained MusicXML batch completed successfully according to its report TSV:
 
@@ -58,6 +59,49 @@ ReductionConfig(
 
 Three generated MusicXML/MP3 examples are kept under
 `data/gesualdo/dynamic_examples/` for quick listening and notation review.
+
+## Quartet Enrichment
+
+The basic quartet reduction stays conservative: it chooses real source notes,
+avoids duplicate pitch classes where possible, and emits only the material
+needed for a playable four-part score. Sparse madrigal textures can therefore
+produce quartet bars with only two or three active strings.
+
+Optional enrichment modes can be enabled independently for comparison:
+
+```python
+build_quartet_score(
+    score,
+    preserve_active_voice_count=True,
+    add_editorial_harmony=True,
+    add_editorial_thirds=True,
+)
+```
+
+`preserve_active_voice_count` tries to keep distinct active source voices when
+the original madrigal has more voices sounding than the plain quartet reduction
+selected. It remains source-traceable: added notes are copied from real source
+events. To avoid thin octave/unison pickups, it does not add an extra duplicate
+pitch class when the whole active source sonority contains only one pitch
+class.
+
+`add_editorial_harmony` can fill idle strings with marked editorial support
+tones drawn from active source pitches. These generated events are explicitly
+tagged in the internal note provenance.
+
+`add_editorial_thirds` is a narrower editorial layer on top of harmony filling.
+When a sounding sonority implies a root-fifth shell but contains no third, it
+can invent the missing major or minor third, preferring the nearest third that
+appears later in the source when possible. This is useful for cases where
+doubling a fifth or octave makes a four-string texture sound skinny.
+
+The comparison set for `Gia piansi nel dolore` is kept in
+`data/gesualdo/enrichment_examples/` as MusicXML and MuseScore MP3:
+
+- `*_quartet_plain_current.*`
+- `*_quartet_source_enriched.*`
+- `*_quartet_source_plus_harmony.*`
+- `*_quartet_source_plus_thirds.*`
 
 ## Conductor Evaluation Page
 
@@ -204,6 +248,8 @@ whose decisions can be traced back to the original madrigal.
   reductions.
 - `data/gesualdo/dynamic_examples/`: MusicXML and MP3 examples with generated
   editorial dynamics.
+- `data/gesualdo/enrichment_examples/`: MusicXML and MP3 comparison renders for
+  optional quartet enrichment modes.
 - `data/gesualdo/`: local Gesualdo MIDI, generated reductions, audio, and
   archived legacy artifacts.
 - `tests/`: project-level tests.
