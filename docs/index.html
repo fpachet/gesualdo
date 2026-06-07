@@ -8,8 +8,8 @@
       name="description"
       content="Listening and score review page for evaluating Gesualdo madrigal reductions for string quartet."
     >
-    <link rel="stylesheet" href="styles.css?v=20260607-source-plus-thirds-book">
-    <script src="app.js?v=20260607-source-plus-thirds-book" defer></script>
+    <link rel="stylesheet" href="styles.css?v=20260607-source-selectors">
+    <script src="app.js?v=20260607-source-selectors" defer></script>
   </head>
   <body>
     <header class="site-header">
@@ -29,15 +29,28 @@
           <label class="search-label" for="search">Search</label>
           <input id="search" type="search" autocomplete="off" placeholder="Title, book, or file">
 
-          <div class="segmented" role="group" aria-label="Book filter">
-            <button class="is-active" type="button" data-book="all">All</button>
-            <button type="button" data-book="IV">Book IV</button>
-            <button type="button" data-book="VI">Book VI</button>
+          <div class="filter-grid">
+            <div>
+              <label class="search-label" for="sourceSelect">Source</label>
+              <select id="sourceSelect"></select>
+            </div>
+            <div>
+              <label class="search-label" for="voiceSelect">Voices</label>
+              <select id="voiceSelect"></select>
+            </div>
+            <div>
+              <label class="search-label" for="targetSelect">Target</label>
+              <select id="targetSelect"></select>
+            </div>
+            <div>
+              <label class="search-label" for="groupSelect">Group</label>
+              <select id="groupSelect"></select>
+            </div>
           </div>
 
           <label class="search-label" for="sort">Sort</label>
           <select id="sort">
-            <option value="order">Book order</option>
+            <option value="order">Catalog order</option>
             <option value="duration-desc">Longest first</option>
             <option value="duration-asc">Shortest first</option>
             <option value="transposition">Transposition</option>
@@ -47,8 +60,8 @@
 
         <div class="stat-strip" aria-label="Corpus summary">
           <div><strong id="visibleCount">37</strong><span>shown</span></div>
-          <div><strong>37</strong><span>MP3</span></div>
-          <div><strong>4</strong><span>parts</span></div>
+          <div><strong id="audioCount">37</strong><span>audio</span></div>
+          <div><strong id="partCount">4</strong><span>parts</span></div>
         </div>
 
         <div id="pieceList" class="piece-list" aria-label="Madrigals"></div>
@@ -87,7 +100,7 @@
             <div class="asset-links">
               <a id="scoreLink" href="#">MusicXML</a>
               <a id="mp3Link" href="#">MP3</a>
-              <a id="midiLink" href="#">Source MIDI</a>
+              <a id="midiLink" href="#">Source</a>
             </div>
           </section>
 

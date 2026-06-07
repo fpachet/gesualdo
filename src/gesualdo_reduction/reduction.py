@@ -1112,6 +1112,44 @@ def _pitched_events(events: Sequence[SourceEvent]) -> list[SourceEvent]:
     return [event for event in events if not event.is_rest and event.pitch_midi is not None]
 
 
+def _monophonic_events_for_target(events: Sequence[SourceEvent], target: TargetPart) -> list[SourceEvent]:
+    """Return non-overlapping pitched events for one target line."""
+
+    result: list[SourceEvent] = []
+    for event in sorted(_pitched_events(events), key=lambda ev: (ev.start, ev.end, ev.source_id)):
+        if not result:
+            result.append(event)
+            continue
+
+        previous = result[-1]
+        if event.start >= previous.end:
+            result.append(event)
+            continue
+
+        if event.start <= previous.start:
+            if target.role == "bottom":
+                keep_new = int(event.pitch_midi) < int(previous.pitch_midi)
+            elif target.role == "top":
+                keep_new = int(event.pitch_midi) > int(previous.pitch_midi)
+            else:
+                keep_new = _register_fit_score(target, int(event.pitch_midi), ReductionConfig()) < _register_fit_score(
+                    target,
+                    int(previous.pitch_midi),
+                    ReductionConfig(),
+                )
+            if keep_new:
+                result[-1] = event
+            continue
+
+        trimmed_duration = event.start - previous.start
+        if trimmed_duration > 0:
+            result[-1] = replace(previous, duration=trimmed_duration, source_tie_type=None)
+            result.append(event)
+        else:
+            result[-1] = event
+    return result
+
+
 def _event_overlaps_interval(event: SourceEvent, start: Fraction, end: Fraction) -> bool:
     return not event.is_rest and event.start < end and start < event.end
 
@@ -1979,6 +2017,73 @@ class RegisterAssignmentPolicy(AssignmentPolicy):
         return assignments
 
 
+class SixVoiceQuartetCompressionPolicy(AssignmentPolicy):
+    """Compress exactly six source voices into the quartet profile.
+
+    This keeps the current register-first quartet reducer available for four-
+    and five-voice material, while making six-to-four compression an explicit
+    policy choice. The highest and lowest source voices are pinned to Violin I
+    and Cello; the four middle voices are selected into the two inner strings
+    plus safely idle outer strings using the existing provenance-preserving
+    inner-event selector.
+    """
+
+    def assign(
+        self,
+        context: ReductionContext,
+        profile: EnsembleProfile,
+        config: ReductionConfig,
+    ) -> dict[str, list[SourceEvent]]:
+        if profile.name != STRING_QUARTET.name:
+            raise ValueError("SixVoiceQuartetCompressionPolicy only supports the string quartet profile.")
+        if len(context.source_parts) != 6:
+            raise ValueError(f"Expected exactly 6 source parts for six-voice quartet reduction; found {len(context.source_parts)}.")
+
+        ordered_indices = _ordered_source_indices_by_median(context.source_parts)
+        if len(ordered_indices) != 6:
+            raise ValueError("Could not rank exactly 6 source voices by median pitch.")
+
+        top_target = profile.top_part
+        bottom_target = profile.bottom_part
+        top_index = ordered_indices[0]
+        bottom_index = ordered_indices[-1]
+
+        top_events = _fit_events_to_target(
+            _extract_voice_events_for_target(context.source_parts[top_index], top_index, top_target),
+            top_target,
+            config,
+        )
+        bottom_events = _fit_events_to_target(
+            _extract_voice_events_for_target(context.source_parts[bottom_index], bottom_index, bottom_target),
+            bottom_target,
+            config,
+        )
+        middle_events = tuple(
+            event
+            for source_index in ordered_indices[1:-1]
+            for event in extract_events(
+                context.source_parts[source_index],
+                source_index,
+                include_rests=False,
+                chord_policy="all",
+            )
+        )
+
+        fixed_outer_events = {
+            top_target.id: _monophonic_events_for_target(top_events, top_target),
+            bottom_target.id: _monophonic_events_for_target(bottom_events, bottom_target),
+        }
+        return _select_inner_events(
+            middle_events,
+            [event for event in top_events if not event.is_rest],
+            [event for event in bottom_events if not event.is_rest],
+            profile.parts,
+            config,
+            initial_events_by_target=fixed_outer_events,
+            allow_supporting_doublings=True,
+        )
+
+
 class VoiceOrderAssignmentPolicy(AssignmentPolicy):
     """Map voices one-to-one by register when source and target counts match."""
 
@@ -2614,6 +2719,31 @@ def build_quartet_score(
     )
 
 
+def build_six_voice_quartet_score(
+    src_score: stream.Score,
+    *,
+    enforce_ranges: bool = ENFORCE_RANGES,
+    register_split: int = REGISTER_SPLIT,
+    preserve_active_voice_count: bool = True,
+    add_editorial_harmony: bool = True,
+    add_editorial_thirds: bool = True,
+    editorial_harmony_target_active_parts: int = 4,
+) -> stream.Score:
+    return build_ensemble_score(
+        src_score,
+        STRING_QUARTET,
+        config=ReductionConfig(
+            enforce_ranges=enforce_ranges,
+            register_split=register_split,
+            preserve_active_voice_count=preserve_active_voice_count,
+            add_editorial_harmony=add_editorial_harmony,
+            add_editorial_thirds=add_editorial_thirds,
+            editorial_harmony_target_active_parts=editorial_harmony_target_active_parts,
+        ),
+        policy=SixVoiceQuartetCompressionPolicy(),
+    )
+
+
 def build_quartet_plus_viole_score(
     src_score: stream.Score,
     *,
@@ -2706,6 +2836,37 @@ def reduce_to_quartet(
             editorial_harmony_target_active_parts=editorial_harmony_target_active_parts,
         ),
         policy=RegisterAssignmentPolicy(),
+        candidate_semitones=candidate_semitones,
+    )
+
+
+def reduce_six_to_quartet(
+    midi_path: str | Path,
+    semitones: int | None = None,
+    out_path: str | Path = "gesualdo_six_voice_quartet.musicxml",
+    *,
+    enforce_ranges: bool = ENFORCE_RANGES,
+    register_split: int = REGISTER_SPLIT,
+    preserve_active_voice_count: bool = True,
+    add_editorial_harmony: bool = True,
+    add_editorial_thirds: bool = True,
+    editorial_harmony_target_active_parts: int = 4,
+    candidate_semitones: Sequence[int] = DEFAULT_TRANSPOSITION_CANDIDATES,
+) -> stream.Score:
+    return reduce_to_ensemble(
+        midi_path,
+        STRING_QUARTET,
+        semitones=semitones,
+        out_path=out_path,
+        config=ReductionConfig(
+            enforce_ranges=enforce_ranges,
+            register_split=register_split,
+            preserve_active_voice_count=preserve_active_voice_count,
+            add_editorial_harmony=add_editorial_harmony,
+            add_editorial_thirds=add_editorial_thirds,
+            editorial_harmony_target_active_parts=editorial_harmony_target_active_parts,
+        ),
+        policy=SixVoiceQuartetCompressionPolicy(),
         candidate_semitones=candidate_semitones,
     )
 

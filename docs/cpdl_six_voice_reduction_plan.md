@@ -8,6 +8,20 @@ voices need a separate quartet-compression engine because the reducer must make
 an explicit, traceable decision about which inner strands to preserve, merge,
 or omit.
 
+## Current Status
+
+Implemented:
+
+- `SixVoiceQuartetCompressionPolicy` in `src/gesualdo_reduction/reduction.py`.
+- `build_six_voice_quartet_score(...)` and `reduce_six_to_quartet(...)`.
+- `scripts/reduce_cpdl_6_voice.py`.
+- CPDL six-voice batch output at
+  `data/cpdl/6-voices/reductions/string_quartet/`.
+
+The current batch reduces all 34 six-voice CPDL work pages successfully. The
+report mode is `six_voice_quartet`, which keeps it distinct from the existing
+five-voice `string_quartet` batch.
+
 ## Goal
 
 Add a dedicated CPDL six-voice-to-string-quartet reduction path without
@@ -22,13 +36,14 @@ The extension should support two analysis views:
 
 ## Recommended Engine Shape
 
-Add a new public entry point beside the current five-part helpers:
+The implemented public entry points sit beside the current five-part helpers:
 
 ```python
+build_six_voice_quartet_score(...)
 reduce_six_to_quartet(...)
 ```
 
-Internally, keep the same architecture already used by
+Internally, they keep the same architecture already used by
 `reduce_to_quartet`:
 
 - `EnsembleProfile` defines the target instruments and register preferences.
@@ -51,21 +66,19 @@ into idle outer strings when the current quartet enrichment rules permit it.
 
 ## Assignment Policy
 
-Create `SixVoiceQuartetCompressionPolicy`.
+The current implementation adds `SixVoiceQuartetCompressionPolicy`.
 
 - rank source voices by median sounding pitch;
 - pin the highest source voice to Violin I and the lowest to Violoncello when
   the outer voices are active;
 - evaluate the four middle source voices against Violin II, Viola, and any
   safely borrowable idle outer target;
-- allow middle source voices to be temporarily omitted or merged per local
-  window;
-- prefer omitting material that duplicates pitch classes already present,
-  sustains through the window, has low rhythmic salience, or is registrally
-  awkward for the available targets;
-- penalize omissions that remove the only third/fifth of a sonority, remove a
-  new attack, break a melodic line at a leap, or erase a dissonance-resolution
-  pair.
+- allow middle source voices to be temporarily omitted per local event window;
+- prefer newly exposed pitch classes and new attacks, using the existing
+  register/continuity scorer for target assignment;
+- fill remaining texture with the same source-voice preservation, editorial
+  harmony, and missing-third options used by the current five-voice quartet
+  batch.
 
 The local window can start at the existing event-slice level, but the engine
 should also keep a bar-level or phrase-level continuity memory so the omitted
@@ -89,12 +102,11 @@ editions are separated from actual reduction failures.
 
 ## Batch Script
 
-When the six-voice translator exists, add `scripts/reduce_cpdl_six_voice.py`
-with the same operational shape as the five-voice script:
+The implemented batch script has the same operational shape as the five-voice
+script:
 
 ```bash
-uv run --extra notation python scripts/reduce_cpdl_six_voice.py \
-  --output-dir data/cpdl/6-voices/reductions/string_quartet
+uv run --extra notation python scripts/reduce_cpdl_6_voice.py --force
 ```
 
 The report should include work index, section, title, selected source path,
@@ -103,23 +115,25 @@ status, and error.
 
 ## Tests
 
-Add focused tests before running the full CPDL batch:
+Added focused tests:
 
 - six-to-four mode preserves active outer voices where possible;
 - six-to-four mode chooses the duplicated or least salient middle voice for
   omission;
 - six-to-four mode does not omit the only active third of a sonority when a
   duplicate fifth or octave is available instead;
+- six-to-four mode trims overlapping outer source voices before constructing
+  the measured monophonic quartet part;
 - all generated scores pass the existing exact-measure, no-gap, no-overlap,
   and source-provenance validators.
 
-## Milestones
+## Remaining Plan
 
-1. Add CPDL six-voice source diagnostics and report counts.
-2. Add six-to-four compression policy tests.
-3. Implement and batch-run six-to-four reductions.
-4. Compare coverage metrics with the five-voice quartet batch.
-5. Add optional six-to-six diagnostic output only if coverage auditing needs a
+1. Compare coverage metrics with the five-voice quartet batch.
+2. Add omission diagnostics to the report: omitted source part count, omitted
+   new attacks, and omitted unique pitch classes.
+3. Add bar- or phrase-level continuity memory for the omitted middle line.
+4. Add optional six-to-six diagnostic output only if coverage auditing needs a
    full-preservation reference.
-6. Decide whether the single seven-voice sacred work should use a later
+5. Decide whether the single seven-voice sacred work should use a later
    seven-to-four extension or stay out of scope for this pass.

@@ -23,7 +23,8 @@ experiments over the sacred and secular vocal catalogue.
 | CPDL source files | `data/cpdl/{4,5,6,7}-voices/sources/` | 397 | MusicXML/MIDI files linked from CPDL's Carlo Gesualdo vocal work pages, indexed by `data/cpdl/manifest.tsv`. |
 | CPDL 5-voice string quartet reductions | `data/cpdl/5-voices/reductions/string_quartet/` | 123 | Supported five-voice-to-string-quartet batch, indexed by `report.tsv`. |
 | CPDL 5-voice quartet plus viole reductions | `data/cpdl/5-voices/reductions/string_quartet_plus_viole/` | 122 | Existing five-instrument reducer restored for CPDL five-voice sources, indexed by `report.tsv`. |
-| CPDL 6/7-voice sources | `data/cpdl/{6,7}-voices/sources/` | 90 | Sources only; no checked-in reductions until a dedicated translator exists. |
+| CPDL 6-voice string quartet reductions | `data/cpdl/6-voices/reductions/string_quartet/` | 34 | Dedicated six-voice-to-string-quartet batch using the separate six-voice compression policy, indexed by `report.tsv`. |
+| CPDL 7-voice sources | `data/cpdl/7-voices/sources/` | 2 | Sources only; seven-to-four reduction is out of scope for the current reducer. |
 | Editorial dynamics examples | `data/kdf/examples/dynamic/` | 3 | MusicXML and MuseScore MP3 examples with generated score dynamics and hairpins. |
 | Quartet enrichment examples | `data/kdf/examples/enrichment/` | 4 variants | Side-by-side MusicXML/MP3 renders for plain, source-enriched, source-plus-harmony, and source-plus-thirds quartet reductions. |
 
@@ -33,7 +34,9 @@ filenames recorded in `data/cpdl/manifest.tsv`. Pages with no direct
 MusicXML/MIDI links at collection time are listed in `data/cpdl/errors.tsv`.
 The first CPDL reduction batch covers the five-voice sacred and secular pages:
 123 works reduced successfully, and 7 source-overlap failures are recorded in
-`data/cpdl/5-voices/reductions/string_quartet/report.tsv`.
+`data/cpdl/5-voices/reductions/string_quartet/report.tsv`. The six-voice CPDL
+batch uses a separate `six_voice_quartet` reducer mode and currently reduces
+all 34 six-voice work pages successfully.
 
 The retained MusicXML batch completed successfully according to its report TSV:
 
@@ -202,9 +205,16 @@ Generate the restored five-voice string quartet plus viole d'amour reductions:
 uv run --extra notation python scripts/reduce_cpdl_5_voice.py --target string_quartet_plus_viole --force
 ```
 
-Six- and seven-voice CPDL works are split into source folders, but this project
-does not yet have a checked-in translator for reducing those sources to string
-quartet.
+Generate supported CPDL six-voice string quartet reductions:
+
+```bash
+uv run --extra notation python scripts/reduce_cpdl_6_voice.py --force
+```
+
+This uses the dedicated six-voice compression policy rather than the five-voice
+batch path. It requires exactly six source parts, pins the outer source voices
+to Violin I and Cello, and compresses the four middle voices into the remaining
+quartet texture with source-traceable enrichment.
 
 Older fixed-transposition single-piece `Gia piansi` renders are kept under
 `data/kdf/archive/legacy_gia_pensi_fixed_transposition/`.
@@ -299,8 +309,10 @@ whose decisions can be traced back to the original madrigal.
 - `scripts/download_cpdl_gesualdo.py`: CPDL Gesualdo MusicXML/MIDI collector.
 - `scripts/reduce_cpdl_5_voice.py`: supported CPDL five-voice batch reduction
   script.
+- `scripts/reduce_cpdl_6_voice.py`: supported CPDL six-voice batch reduction
+  script using the separate six-voice quartet compression policy.
 - `data/cpdl/`: downloaded CPDL source files split by voice count, plus the
-  manifest, errors, and supported five-voice reductions.
+  manifest, errors, and supported five- and six-voice reductions.
 - `data/kdf/`: Kunst der Fuge book 4 and book 6 sources, quartet reductions,
   MP3 renders, examples, reports, and archived legacy artifacts.
 - `tests/`: project-level tests.

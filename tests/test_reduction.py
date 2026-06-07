@@ -17,6 +17,7 @@ from gesualdo_reduction.reduction import (
     build_quartet_plus_viole_sweetspot_score,
     build_quartet_plus_viole_score,
     build_quartet_score,
+    build_six_voice_quartet_score,
     choose_global_transposition,
     extract_events,
     ql_to_fraction,
@@ -406,6 +407,107 @@ def test_quartet_plus_viole_reduces_six_voices_to_five_instruments():
 
     assert len(inner_notes) == 3
     assert all(hasattr(output_note.editorial, "sourceEventId") for output_note in inner_notes)
+
+
+def test_six_voice_quartet_reduction_is_explicit_about_source_count():
+    score = make_score(
+        [
+            make_part("top", [(0, 4, "C6")]),
+            make_part("inner 1", [(0, 4, "G5")]),
+            make_part("inner 2", [(0, 4, "E5")]),
+            make_part("inner 3", [(0, 4, "C4")]),
+            make_part("bottom", [(0, 4, "C2")]),
+        ]
+    )
+
+    with pytest.raises(ValueError, match="Expected exactly 6 source parts"):
+        build_six_voice_quartet_score(score, enforce_ranges=False)
+
+
+def test_six_voice_quartet_reduction_preserves_outer_voices():
+    score = make_score(
+        [
+            make_part("top", [(0, 4, "C6")]),
+            make_part("inner 1", [(0, 4, "G5")]),
+            make_part("inner 2", [(0, 4, "E5")]),
+            make_part("inner 3", [(0, 4, "C4")]),
+            make_part("inner 4", [(0, 4, "G3")]),
+            make_part("bottom", [(0, 4, "C2")]),
+        ]
+    )
+
+    bars = build_bar_map(score)
+    reduced = build_six_voice_quartet_score(
+        score,
+        enforce_ranges=False,
+        add_editorial_harmony=False,
+        add_editorial_thirds=False,
+    )
+
+    assert_measures_are_exact(reduced, bars)
+    assert len(reduced.parts) == 4
+
+    violin_1_note = list(reduced.parts[0].getElementsByClass(stream.Measure))[0].notes[0]
+    cello_note = list(reduced.parts[3].getElementsByClass(stream.Measure))[0].notes[0]
+    assert violin_1_note.editorial.sourcePartIndex == 0
+    assert cello_note.editorial.sourcePartIndex == 5
+
+
+def test_six_voice_quartet_reduction_keeps_third_before_duplicate():
+    score = make_score(
+        [
+            make_part("top", [(0, 4, "C6")]),
+            make_part("duplicate top pc", [(0, 4, "C5")]),
+            make_part("fifth", [(0, 4, "G4")]),
+            make_part("third", [(0, 4, "E4")]),
+            make_part("duplicate fifth", [(0, 4, "G3")]),
+            make_part("bottom", [(0, 4, "C2")]),
+        ]
+    )
+
+    reduced = build_six_voice_quartet_score(
+        score,
+        enforce_ranges=False,
+        add_editorial_harmony=False,
+        add_editorial_thirds=False,
+    )
+    notes = [
+        element
+        for part in reduced.parts
+        for element in list(part.getElementsByClass(stream.Measure))[0].notes
+    ]
+
+    assert len(notes) == 4
+    assert {element.pitch.pitchClass for element in notes} == {0, 4, 7}
+    assert any(element.pitch.name == "E" for element in notes)
+
+
+def test_six_voice_quartet_reduction_trims_overlapping_outer_source_voice():
+    score = make_score(
+        [
+            make_part("top", [(0, 4, "C6")]),
+            make_part("inner 1", [(0, 4, "G5")]),
+            make_part("inner 2", [(0, 4, "E5")]),
+            make_part("inner 3", [(0, 4, "C4")]),
+            make_part("inner 4", [(0, 4, "G3")]),
+            make_part("bottom with overlap", [(0, 4, "C2"), (2, 2, "D2")]),
+        ]
+    )
+
+    bars = build_bar_map(score)
+    reduced = build_six_voice_quartet_score(
+        score,
+        enforce_ranges=False,
+        add_editorial_harmony=False,
+        add_editorial_thirds=False,
+    )
+
+    assert_measures_are_exact(reduced, bars)
+    cello_measure = list(reduced.parts[3].getElementsByClass(stream.Measure))[0]
+    cello_notes = list(cello_measure.notes)
+    assert [ql_to_fraction(element.offset) for element in cello_notes] == [Fraction(0, 1), Fraction(2, 1)]
+    assert [ql_to_fraction(element.quarterLength) for element in cello_notes] == [Fraction(2, 1), Fraction(2, 1)]
+    assert [element.pitch.nameWithOctave for element in cello_notes] == ["C2", "D2"]
 
 
 def test_quartet_plus_viole_sweetspot_can_remap_inner_voices():

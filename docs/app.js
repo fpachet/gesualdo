@@ -1,5 +1,5 @@
 const RAW_BASE = "https://raw.githubusercontent.com/fpachet/gesualdo/main/";
-const ASSET_VERSION = "2026-06-07-kdf-book-layout";
+const ASSET_VERSION = "2026-06-07-source-selectors";
 const STORAGE_KEY = "gesualdo-quartet-review-v1";
 const VEROVIO_SCRIPT_URL = "https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js";
 const SCORE_RENDER_OPTIONS = {
@@ -13,56 +13,56 @@ const SCORE_RENDER_OPTIONS = {
   svgViewBox: true,
 };
 
-const CATALOG = [
-  { book: "IV", title: "1. Luci serena e chiare", filename: "book4_01_luci_serena_e_chiare.mid", source: "data/kdf/book4/sources/book4_01_luci_serena_e_chiare.mid", durationQuarters: 344.0, semitones: -1, score: 0.362301, musicxml: "data/kdf/book4/reductions/string_quartet/book4_01_luci_serena_e_chiare.musicxml", mp3: "data/kdf/book4/renders/string_quartet_mp3/book4_01_luci_serena_e_chiare.mp3", measures: "86,86,86,86" },
-  { book: "IV", title: "2. Tallor sano desio", filename: "book4_02_tallor_sano_desio.mid", source: "data/kdf/book4/sources/book4_02_tallor_sano_desio.mid", durationQuarters: 292.0, semitones: -1, score: 0.362074, musicxml: "data/kdf/book4/reductions/string_quartet/book4_02_tallor_sano_desio.musicxml", mp3: "data/kdf/book4/renders/string_quartet_mp3/book4_02_tallor_sano_desio.mp3", measures: "73,73,73,73" },
-  { book: "IV", title: "3-4. Io Tacerò", filename: "book4_03-04_io_tacero.mid", source: "data/kdf/book4/sources/book4_03-04_io_tacero.mid", durationQuarters: 552.0, semitones: 1, score: 0.492314, musicxml: "data/kdf/book4/reductions/string_quartet/book4_03-04_io_tacero.musicxml", mp3: "data/kdf/book4/renders/string_quartet_mp3/book4_03-04_io_tacero.mp3", measures: "138,138,138,138" },
-  { book: "IV", title: "5. Che fai meco", filename: "book4_05_che_fai_meco.mid", source: "data/kdf/book4/sources/book4_05_che_fai_meco.mid", durationQuarters: 220.0, semitones: 1, score: 0.418197, musicxml: "data/kdf/book4/reductions/string_quartet/book4_05_che_fai_meco.musicxml", mp3: "data/kdf/book4/renders/string_quartet_mp3/book4_05_che_fai_meco.mp3", measures: "55,55,55,55" },
-  { book: "IV", title: "6. Questa crudele et pia", filename: "book4_06_questa_crudele_et_pia.mid", source: "data/kdf/book4/sources/book4_06_questa_crudele_et_pia.mid", durationQuarters: 308.0, semitones: 1, score: 0.321606, musicxml: "data/kdf/book4/reductions/string_quartet/book4_06_questa_crudele_et_pia.musicxml", mp3: "data/kdf/book4/renders/string_quartet_mp3/book4_06_questa_crudele_et_pia.mp3", measures: "77,77,77,77" },
-  { book: "IV", title: "7-8. Or che in gioia", filename: "book4_07-08_or_che_in_gioia.mid", source: "data/kdf/book4/sources/book4_07-08_or_che_in_gioia.mid", durationQuarters: 334.0, semitones: -1, score: 0.357012, musicxml: "data/kdf/book4/reductions/string_quartet/book4_07-08_or_che_in_gioia.musicxml", mp3: "data/kdf/book4/renders/string_quartet_mp3/book4_07-08_or_che_in_gioia.mp3", measures: "85,85,85,85" },
-  { book: "IV", title: "9-10. Cor mio, deh, non piangete", filename: "book4_09-10_cor_mio_deh_non_piangete.mid", source: "data/kdf/book4/sources/book4_09-10_cor_mio_deh_non_piangete.mid", durationQuarters: 404.0, semitones: 1, score: 0.442808, musicxml: "data/kdf/book4/reductions/string_quartet/book4_09-10_cor_mio_deh_non_piangete.musicxml", mp3: "data/kdf/book4/renders/string_quartet_mp3/book4_09-10_cor_mio_deh_non_piangete.mp3", measures: "101,101,101,101" },
-  { book: "IV", title: "11. Sparge la morte", filename: "book4_11_sparge_la_morte.mid", source: "data/kdf/book4/sources/book4_11_sparge_la_morte.mid", durationQuarters: 460.0, semitones: 3, score: 0.348933, musicxml: "data/kdf/book4/reductions/string_quartet/book4_11_sparge_la_morte.musicxml", mp3: "data/kdf/book4/renders/string_quartet_mp3/book4_11_sparge_la_morte.mp3", measures: "115,115,115,115" },
-  { book: "IV", title: "12-13. Moro, e mentre sospiro", filename: "book4_12-13_moro_e_mentre_sospiro.mid", source: "data/kdf/book4/sources/book4_12-13_moro_e_mentre_sospiro.mid", durationQuarters: 308.0, semitones: 2, score: 0.493598, musicxml: "data/kdf/book4/reductions/string_quartet/book4_12-13_moro_e_mentre_sospiro.musicxml", mp3: "data/kdf/book4/renders/string_quartet_mp3/book4_12-13_moro_e_mentre_sospiro.mp3", measures: "77,77,77,77" },
-  { book: "IV", title: "14. Mentre gira costei", filename: "book4_14_mentre_gira_costei.mid", source: "data/kdf/book4/sources/book4_14_mentre_gira_costei.mid", durationQuarters: 228.0, semitones: 0, score: 0.354195, musicxml: "data/kdf/book4/reductions/string_quartet/book4_14_mentre_gira_costei.musicxml", mp3: "data/kdf/book4/renders/string_quartet_mp3/book4_14_mentre_gira_costei.mp3", measures: "57,57,57,57" },
-  { book: "IV", title: "15. A voi, mentre il mio core", filename: "book4_15_a_voi_mentre_il_mio_core.mid", source: "data/kdf/book4/sources/book4_15_a_voi_mentre_il_mio_core.mid", durationQuarters: 236.0, semitones: -1, score: 0.338248, musicxml: "data/kdf/book4/reductions/string_quartet/book4_15_a_voi_mentre_il_mio_core.musicxml", mp3: "data/kdf/book4/renders/string_quartet_mp3/book4_15_a_voi_mentre_il_mio_core.mp3", measures: "59,59,59,59" },
-  { book: "IV", title: "16-17. Ecco, morirò dunque", filename: "book4_16-17_ecco_moriro_dunque.mid", source: "data/kdf/book4/sources/book4_16-17_ecco_moriro_dunque.mid", durationQuarters: 320.0, semitones: 0, score: 0.341776, musicxml: "data/kdf/book4/reductions/string_quartet/book4_16-17_ecco_moriro_dunque.musicxml", mp3: "data/kdf/book4/renders/string_quartet_mp3/book4_16-17_ecco_moriro_dunque.mp3", measures: "80,80,80,80" },
-  { book: "IV", title: "18. Arde il mio cor", filename: "book4_18_arde_il_mio_cor.mid", source: "data/kdf/book4/sources/book4_18_arde_il_mio_cor.mid", durationQuarters: 224.0, semitones: 0, score: 0.270176, musicxml: "data/kdf/book4/reductions/string_quartet/book4_18_arde_il_mio_cor.musicxml", mp3: "data/kdf/book4/renders/string_quartet_mp3/book4_18_arde_il_mio_cor.mp3", measures: "56,56,56,56" },
-  { book: "IV", title: "19. Se chiudete nel core", filename: "book4_19_se_chiudete_nel_core.mid", source: "data/kdf/book4/sources/book4_19_se_chiudete_nel_core.mid", durationQuarters: 212.0, semitones: 0, score: 0.306730, musicxml: "data/kdf/book4/reductions/string_quartet/book4_19_se_chiudete_nel_core.musicxml", mp3: "data/kdf/book4/renders/string_quartet_mp3/book4_19_se_chiudete_nel_core.mp3", measures: "53,53,53,53" },
-  { book: "VI", title: "1. Se la mia morte brami", filename: "book6_01_se_la_mia_morte_brami.mid", source: "data/kdf/book6/sources/book6_01_se_la_mia_morte_brami.mid", durationQuarters: 392.0, semitones: 0, score: 0.326959, musicxml: "data/kdf/book6/reductions/string_quartet/book6_01_se_la_mia_morte_brami.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_01_se_la_mia_morte_brami.mp3", measures: "98,98,98,98" },
-  { book: "VI", title: "2. Beltà poi che tassenti", filename: "book6_02_belta_poi_che_tassenti.mid", source: "data/kdf/book6/sources/book6_02_belta_poi_che_tassenti.mid", durationQuarters: 328.0, semitones: 0, score: 0.411626, musicxml: "data/kdf/book6/reductions/string_quartet/book6_02_belta_poi_che_tassenti.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_02_belta_poi_che_tassenti.mp3", measures: "82,82,82,82" },
-  { book: "VI", title: "3. Tu piangi, o filli mia", filename: "book6_03_tu_piangi_o_filli_mia.mid", source: "data/kdf/book6/sources/book6_03_tu_piangi_o_filli_mia.mid", durationQuarters: 320.0, semitones: 1, score: 0.371635, musicxml: "data/kdf/book6/reductions/string_quartet/book6_03_tu_piangi_o_filli_mia.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_03_tu_piangi_o_filli_mia.mp3", measures: "80,80,80,80" },
-  { book: "VI", title: "4. Resta di darmi noia", filename: "book6_04_resta_di_darmi_noia.mid", source: "data/kdf/book6/sources/book6_04_resta_di_darmi_noia.mid", durationQuarters: 296.0, semitones: 1, score: 0.473277, musicxml: "data/kdf/book6/reductions/string_quartet/book6_04_resta_di_darmi_noia.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_04_resta_di_darmi_noia.mp3", measures: "74,74,74,74" },
-  { book: "VI", title: "5. Chiaro risplender suole", filename: "book6_05_chiaro_risplender_suole.mid", source: "data/kdf/book6/sources/book6_05_chiaro_risplender_suole.mid", durationQuarters: 384.0, semitones: 0, score: 0.329151, musicxml: "data/kdf/book6/reductions/string_quartet/book6_05_chiaro_risplender_suole.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_05_chiaro_risplender_suole.mp3", measures: "96,96,96,96" },
-  { book: "VI", title: "6. Io parto e non più dissi", filename: "book6_06_io_parto_e_non_piu_dissi.mid", source: "data/kdf/book6/sources/book6_06_io_parto_e_non_piu_dissi.mid", durationQuarters: 296.0, semitones: 0, score: 0.405896, musicxml: "data/kdf/book6/reductions/string_quartet/book6_06_io_parto_e_non_piu_dissi.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_06_io_parto_e_non_piu_dissi.mp3", measures: "74,74,74,74" },
-  { book: "VI", title: "7. Mille volte il di", filename: "book6_07_mille_volte_il_di.mid", source: "data/kdf/book6/sources/book6_07_mille_volte_il_di.mid", durationQuarters: 328.0, semitones: 2, score: 0.378196, musicxml: "data/kdf/book6/reductions/string_quartet/book6_07_mille_volte_il_di.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_07_mille_volte_il_di.mp3", measures: "82,82,82,82" },
-  { book: "VI", title: "8. O Dolce mio tesoro", filename: "book6_08_o_dolce_mio_tesoro.mid", source: "data/kdf/book6/sources/book6_08_o_dolce_mio_tesoro.mid", durationQuarters: 280.0, semitones: 0, score: 0.342774, musicxml: "data/kdf/book6/reductions/string_quartet/book6_08_o_dolce_mio_tesoro.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_08_o_dolce_mio_tesoro.mp3", measures: "70,70,70,70" },
-  { book: "VI", title: "9. Deh, come invan sospiro", filename: "book6_09_deh_come_invan_sospiro.mid", source: "data/kdf/book6/sources/book6_09_deh_come_invan_sospiro.mid", durationQuarters: 292.0, semitones: 0, score: 0.306834, musicxml: "data/kdf/book6/reductions/string_quartet/book6_09_deh_come_invan_sospiro.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_09_deh_come_invan_sospiro.mp3", measures: "73,73,73,73" },
-  { book: "VI", title: "10. Io pur respiro in così gran dolore", filename: "book6_10_io_pur_respiro_in_cosi_gran_dolore.mid", source: "data/kdf/book6/sources/book6_10_io_pur_respiro_in_cosi_gran_dolore.mid", durationQuarters: 264.0, semitones: 0, score: 0.280893, musicxml: "data/kdf/book6/reductions/string_quartet/book6_10_io_pur_respiro_in_cosi_gran_dolore.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_10_io_pur_respiro_in_cosi_gran_dolore.mp3", measures: "66,66,66,66" },
-  { book: "VI", title: "11. Alme dAmor rubelle", filename: "book6_11_alme_damor_rubelle.mid", source: "data/kdf/book6/sources/book6_11_alme_damor_rubelle.mid", durationQuarters: 196.0, semitones: -1, score: 0.382057, musicxml: "data/kdf/book6/reductions/string_quartet/book6_11_alme_damor_rubelle.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_11_alme_damor_rubelle.mp3", measures: "49,49,49,49" },
-  { book: "VI", title: "12. Càndido e verde fiore", filename: "book6_12_candido_e_verde_fiore.mid", source: "data/kdf/book6/sources/book6_12_candido_e_verde_fiore.mid", durationQuarters: 200.0, semitones: -1, score: 0.391196, musicxml: "data/kdf/book6/reductions/string_quartet/book6_12_candido_e_verde_fiore.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_12_candido_e_verde_fiore.mp3", measures: "50,50,50,50" },
-  { book: "VI", title: "13. Ardita Zanzaretta", filename: "book6_13_ardita_zanzaretta.mid", source: "data/kdf/book6/sources/book6_13_ardita_zanzaretta.mid", durationQuarters: 300.0, semitones: 1, score: 0.326902, musicxml: "data/kdf/book6/reductions/string_quartet/book6_13_ardita_zanzaretta.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_13_ardita_zanzaretta.mp3", measures: "75,75,75,75" },
-  { book: "VI", title: "14. Ardo per te, mio bene", filename: "book6_14_ardo_per_te_mio_bene.mid", source: "data/kdf/book6/sources/book6_14_ardo_per_te_mio_bene.mid", durationQuarters: 328.0, semitones: 2, score: 0.406867, musicxml: "data/kdf/book6/reductions/string_quartet/book6_14_ardo_per_te_mio_bene.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_14_ardo_per_te_mio_bene.mp3", measures: "82,82,82,82" },
-  { book: "VI", title: "15. Ancide sol la morte", filename: "book6_15_ancide_sol_la_morte.mid", source: "data/kdf/book6/sources/book6_15_ancide_sol_la_morte.mid", durationQuarters: 240.0, semitones: 0, score: 0.377753, musicxml: "data/kdf/book6/reductions/string_quartet/book6_15_ancide_sol_la_morte.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_15_ancide_sol_la_morte.mp3", measures: "60,60,60,60" },
-  { book: "VI", title: "16. Quel no crudel que la mia speme ancise", filename: "book6_16_quel_no_crudel_que_la_mia_speme_ancise.mid", source: "data/kdf/book6/sources/book6_16_quel_no_crudel_que_la_mia_speme_ancise.mid", durationQuarters: 244.0, semitones: 0, score: 0.394022, musicxml: "data/kdf/book6/reductions/string_quartet/book6_16_quel_no_crudel_que_la_mia_speme_ancise.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_16_quel_no_crudel_que_la_mia_speme_ancise.mp3", measures: "61,61,61,61" },
-  { book: "VI", title: "17. Moro, lasso, al mio duolo", filename: "book6_17_moro_lasso_al_mio_duolo.mid", source: "data/kdf/book6/sources/book6_17_moro_lasso_al_mio_duolo.mid", durationQuarters: 344.0, semitones: 0, score: 0.295460, musicxml: "data/kdf/book6/reductions/string_quartet/book6_17_moro_lasso_al_mio_duolo.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_17_moro_lasso_al_mio_duolo.mp3", measures: "86,86,86,86" },
-  { book: "VI", title: "18. Volan quasi farfalle", filename: "book6_18_volan_quasi_farfalle.mid", source: "data/kdf/book6/sources/book6_18_volan_quasi_farfalle.mid", durationQuarters: 288.0, semitones: -1, score: 0.384345, musicxml: "data/kdf/book6/reductions/string_quartet/book6_18_volan_quasi_farfalle.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_18_volan_quasi_farfalle.mp3", measures: "72,72,72,72" },
-  { book: "VI", title: "19. Al mio gioir il ciel si fa sereno", filename: "book6_19_al_mio_gioir_il_ciel_si_fa_sereno.mid", source: "data/kdf/book6/sources/book6_19_al_mio_gioir_il_ciel_si_fa_sereno.mid", durationQuarters: 249.0, semitones: -1, score: 0.367686, musicxml: "data/kdf/book6/reductions/string_quartet/book6_19_al_mio_gioir_il_ciel_si_fa_sereno.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_19_al_mio_gioir_il_ciel_si_fa_sereno.mp3", measures: "63,63,63,63" },
-  { book: "VI", title: "20. Tu segui, o bella Clori", filename: "book6_20_tu_segui_o_bella_clori.mid", source: "data/kdf/book6/sources/book6_20_tu_segui_o_bella_clori.mid", durationQuarters: 236.0, semitones: 0, score: 0.431175, musicxml: "data/kdf/book6/reductions/string_quartet/book6_20_tu_segui_o_bella_clori.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_20_tu_segui_o_bella_clori.mp3", measures: "59,59,59,59" },
-  { book: "VI", title: "21. Ancor che per amarti", filename: "book6_21_ancor_che_per_amarti.mid", source: "data/kdf/book6/sources/book6_21_ancor_che_per_amarti.mid", durationQuarters: 336.0, semitones: 0, score: 0.297434, musicxml: "data/kdf/book6/reductions/string_quartet/book6_21_ancor_che_per_amarti.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_21_ancor_che_per_amarti.mp3", measures: "84,84,84,84" },
-  { book: "VI", title: "22. Già piansi nel dolore", filename: "book6_22_gia_piansi_nel_dolore.mid", source: "data/kdf/book6/sources/book6_22_gia_piansi_nel_dolore.mid", durationQuarters: 230.0, semitones: 0, score: 0.331850, musicxml: "data/kdf/book6/reductions/string_quartet/book6_22_gia_piansi_nel_dolore.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_22_gia_piansi_nel_dolore.mp3", measures: "58,58,58,58" },
-  { book: "VI", title: "23. Quando ridente e bella", filename: "book6_23_quando_ridente_e_bella.mid", source: "data/kdf/book6/sources/book6_23_quando_ridente_e_bella.mid", durationQuarters: 253.0, semitones: -1, score: 0.359785, musicxml: "data/kdf/book6/reductions/string_quartet/book6_23_quando_ridente_e_bella.musicxml", mp3: "data/kdf/book6/renders/string_quartet_mp3/book6_23_quando_ridente_e_bella.mp3", measures: "64,64,64,64" },
-].map((piece, index) => ({
-  ...piece,
-  index,
-  id: piece.filename.replace(/\.mid$/, ""),
-}));
+const SOURCE_LABELS = {
+  kdf: "Kunst der Fuge",
+  cpdl: "CPDL",
+};
+const TARGET_LABELS = {
+  string_quartet: "String quartet",
+  string_quartet_plus_viole: "Quartet + viole",
+};
+const DATASETS = [
+  {
+    source: "kdf",
+    voiceCount: 5,
+    target: "string_quartet",
+    report: "data/kdf/reductions/string_quartet_report.tsv",
+    hasAudio: true,
+  },
+  {
+    source: "cpdl",
+    voiceCount: 5,
+    target: "string_quartet",
+    report: "data/cpdl/5-voices/reductions/string_quartet/report.tsv",
+  },
+  {
+    source: "cpdl",
+    voiceCount: 5,
+    target: "string_quartet_plus_viole",
+    report: "data/cpdl/5-voices/reductions/string_quartet_plus_viole/report.tsv",
+  },
+  {
+    source: "cpdl",
+    voiceCount: 6,
+    target: "string_quartet",
+    report: "data/cpdl/6-voices/reductions/string_quartet/report.tsv",
+  },
+];
+
+let CATALOG = [];
 
 const elements = {
   audio: document.getElementById("player"),
   search: document.getElementById("search"),
+  sourceSelect: document.getElementById("sourceSelect"),
+  voiceSelect: document.getElementById("voiceSelect"),
+  targetSelect: document.getElementById("targetSelect"),
+  groupSelect: document.getElementById("groupSelect"),
   sort: document.getElementById("sort"),
   pieceList: document.getElementById("pieceList"),
   visibleCount: document.getElementById("visibleCount"),
+  audioCount: document.getElementById("audioCount"),
+  partCount: document.getElementById("partCount"),
   selectedBook: document.getElementById("selectedBook"),
   selectedTitle: document.getElementById("selectedTitle"),
   selectedMeasures: document.getElementById("selectedMeasures"),
@@ -86,8 +86,11 @@ const elements = {
 };
 
 const state = {
-  book: "all",
-  currentId: decodeURIComponent(window.location.hash.slice(1)) || "gesualdo_vi_libro_madrigali_22_(c)icking-archive",
+  source: "kdf",
+  voiceCount: "5",
+  target: "string_quartet",
+  group: "all",
+  currentId: decodeURIComponent(window.location.hash.slice(1)) || "",
   scorePage: 1,
   reviews: loadReviews(),
 };
@@ -144,15 +147,149 @@ function encodedAssetUrl(path) {
   return encodeURI(assetUrl(path));
 }
 
+function parseTsv(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (!lines.length) {
+    return [];
+  }
+  const headers = lines[0].split("\t");
+  return lines.slice(1).filter(Boolean).map((line) => {
+    const values = line.split("\t");
+    return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
+  });
+}
+
+function basename(path) {
+  return String(path || "").split("/").pop() || "";
+}
+
+function numericValue(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function sourceLabel(source) {
+  return SOURCE_LABELS[source] || source.toUpperCase();
+}
+
+function targetLabel(target) {
+  return TARGET_LABELS[target] || target.replace(/_/g, " ");
+}
+
+function cpdlGroupLabel(section) {
+  if (section.startsWith("Sacred")) {
+    return "Sacred";
+  }
+  if (section.startsWith("Secular")) {
+    return "Secular";
+  }
+  return section || "CPDL";
+}
+
+function pieceId(piece) {
+  return [
+    piece.sourceKey,
+    piece.voiceCount,
+    piece.target,
+    piece.musicxml.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, ""),
+  ].join(":");
+}
+
+function kdfMp3Path(musicxmlPath) {
+  return musicxmlPath
+    .replace("/reductions/string_quartet/", "/renders/string_quartet_mp3/")
+    .replace(/\.musicxml$/, ".mp3");
+}
+
+function normalizeKdfRow(row, dataset, order) {
+  const musicxml = row.output;
+  const piece = {
+    sourceKey: dataset.source,
+    sourceLabel: sourceLabel(dataset.source),
+    voiceCount: dataset.voiceCount,
+    target: dataset.target,
+    targetLabel: targetLabel(dataset.target),
+    group: row.book,
+    groupLabel: `Book ${row.book}`,
+    title: row.title,
+    filename: basename(row.filename),
+    source: row.filename,
+    sourceFormat: "mid",
+    durationQuarters: numericValue(row.duration_quarters),
+    semitones: numericValue(row.chosen_semitones),
+    score: numericValue(row.transposition_score),
+    musicxml,
+    mp3: dataset.hasAudio ? kdfMp3Path(musicxml) : "",
+    measures: row.measures_per_part || "",
+    reducedParts: numericValue(row.reduced_parts) || 4,
+    order,
+  };
+  piece.id = pieceId(piece);
+  return piece;
+}
+
+function normalizeCpdlRow(row, dataset, order) {
+  const piece = {
+    sourceKey: dataset.source,
+    sourceLabel: sourceLabel(dataset.source),
+    voiceCount: dataset.voiceCount,
+    target: dataset.target,
+    targetLabel: targetLabel(dataset.target),
+    group: cpdlGroupLabel(row.section),
+    groupLabel: cpdlGroupLabel(row.section),
+    title: `${row.work_index}. ${row.work_title}`,
+    filename: basename(row.source_path),
+    source: row.source_path,
+    sourceFormat: row.source_format,
+    durationQuarters: null,
+    semitones: numericValue(row.global_transposition),
+    score: null,
+    musicxml: row.output_path,
+    mp3: "",
+    measures: "",
+    reducedParts: dataset.target === "string_quartet_plus_viole" ? 5 : 4,
+    order,
+  };
+  piece.id = pieceId(piece);
+  return piece;
+}
+
+async function loadDataset(dataset, startOrder) {
+  const response = await fetch(encodedAssetUrl(dataset.report));
+  if (!response.ok) {
+    throw new Error(`Could not load ${dataset.report} (${response.status}).`);
+  }
+  const rows = parseTsv(await response.text()).filter((row) => row.status === "ok");
+  return rows.map((row, index) => (
+    dataset.source === "kdf"
+      ? normalizeKdfRow(row, dataset, startOrder + index)
+      : normalizeCpdlRow(row, dataset, startOrder + index)
+  ));
+}
+
+async function loadCatalog() {
+  const pieces = [];
+  for (const dataset of DATASETS) {
+    pieces.push(...await loadDataset(dataset, pieces.length));
+  }
+  CATALOG = pieces;
+}
+
 function sourceMidiPath(piece) {
   return piece.source;
 }
 
 function displayMeasures(piece) {
+  if (!piece.measures) {
+    return "--";
+  }
   return piece.measures.split(",")[0];
 }
 
 function formatSemitones(value) {
+  if (!Number.isFinite(value)) {
+    return "--";
+  }
   if (value === 0) {
     return "0";
   }
@@ -260,7 +397,7 @@ function initializeScoreRenderer() {
 
 function setScoreLoading(piece, label) {
   elements.scoreStatus.textContent = label;
-  elements.scoreCaption.textContent = `${piece.title} | Book ${piece.book}`;
+  elements.scoreCaption.textContent = `${piece.title} | ${piece.groupLabel}`;
   elements.scoreViewer.replaceChildren();
   const message = document.createElement("p");
   message.className = "score-message";
@@ -305,14 +442,14 @@ function renderScorePage(piece = currentPiece()) {
 
   elements.scoreViewer.innerHTML = fitScoreSvg(svg);
   elements.scoreStatus.textContent = piece.title;
-  elements.scoreCaption.textContent = `${piece.title} | Book ${piece.book}`;
+  elements.scoreCaption.textContent = `${piece.title} | ${piece.groupLabel}`;
   updateScoreControls();
 }
 
 function showScoreError(piece, error) {
   scoreRenderer.pageCount = 0;
   elements.scoreStatus.textContent = "Score preview unavailable";
-  elements.scoreCaption.textContent = `${piece.title} | Book ${piece.book}`;
+  elements.scoreCaption.textContent = `${piece.title} | ${piece.groupLabel}`;
   elements.scoreViewer.replaceChildren();
 
   const message = document.createElement("p");
@@ -408,32 +545,179 @@ function handleScoreKeydown(event) {
 }
 
 function currentPiece() {
-  return CATALOG.find((piece) => piece.id === state.currentId) || CATALOG[0];
+  return CATALOG.find((piece) => piece.id === state.currentId) || filteredPieces()[0] || CATALOG[0] || null;
+}
+
+function currentFilterPieces({ includeQuery = false } = {}) {
+  const query = includeQuery ? elements.search.value.trim().toLowerCase() : "";
+  return CATALOG.filter((piece) => {
+    const matchesSource = piece.sourceKey === state.source;
+    const matchesVoice = String(piece.voiceCount) === String(state.voiceCount);
+    const matchesTarget = piece.target === state.target;
+    const matchesGroup = state.group === "all" || piece.group === state.group;
+    const haystack = [
+      piece.sourceLabel,
+      piece.voiceCount,
+      piece.targetLabel,
+      piece.groupLabel,
+      piece.title,
+      piece.filename,
+    ].join(" ").toLowerCase();
+    return matchesSource && matchesVoice && matchesTarget && matchesGroup && (!query || haystack.includes(query));
+  });
+}
+
+function uniqueSorted(values, numeric = false) {
+  const unique = [...new Set(values)];
+  return unique.sort((left, right) => {
+    if (numeric) {
+      return Number(left) - Number(right);
+    }
+    return String(left).localeCompare(String(right));
+  });
+}
+
+function setSelectOptions(select, options, value) {
+  select.replaceChildren(
+    ...options.map((optionData) => {
+      const option = document.createElement("option");
+      option.value = optionData.value;
+      option.textContent = optionData.label;
+      return option;
+    }),
+  );
+  select.value = value;
+}
+
+function availableVoices(source) {
+  return uniqueSorted(
+    CATALOG.filter((piece) => piece.sourceKey === source).map((piece) => String(piece.voiceCount)),
+    true,
+  );
+}
+
+function availableTargets(source, voiceCount) {
+  return uniqueSorted(
+    CATALOG
+      .filter((piece) => piece.sourceKey === source && String(piece.voiceCount) === String(voiceCount))
+      .map((piece) => piece.target),
+  );
+}
+
+function availableGroups(source, voiceCount, target) {
+  const groups = CATALOG
+    .filter((piece) => (
+      piece.sourceKey === source
+      && String(piece.voiceCount) === String(voiceCount)
+      && piece.target === target
+    ))
+    .map((piece) => piece.group);
+  return uniqueSorted(groups).map((group) => {
+    const piece = CATALOG.find((candidate) => (
+      candidate.sourceKey === source
+      && String(candidate.voiceCount) === String(voiceCount)
+      && candidate.target === target
+      && candidate.group === group
+    ));
+    return { value: group, label: piece?.groupLabel || group };
+  });
+}
+
+function normalizeFilters() {
+  const sources = uniqueSorted(CATALOG.map((piece) => piece.sourceKey));
+  if (!sources.includes(state.source)) {
+    state.source = sources[0] || "";
+  }
+
+  const voices = availableVoices(state.source);
+  if (!voices.includes(String(state.voiceCount))) {
+    state.voiceCount = voices[0] || "";
+  }
+
+  const targets = availableTargets(state.source, state.voiceCount);
+  if (!targets.includes(state.target)) {
+    state.target = targets.includes("string_quartet") ? "string_quartet" : targets[0] || "";
+  }
+
+  const groups = availableGroups(state.source, state.voiceCount, state.target).map((option) => option.value);
+  if (state.group !== "all" && !groups.includes(state.group)) {
+    state.group = "all";
+  }
+}
+
+function renderFilterControls() {
+  normalizeFilters();
+  const sourceOptions = uniqueSorted(CATALOG.map((piece) => piece.sourceKey)).map((source) => ({
+    value: source,
+    label: sourceLabel(source),
+  }));
+  const voiceOptions = availableVoices(state.source).map((voiceCount) => ({
+    value: voiceCount,
+    label: `${voiceCount} voices`,
+  }));
+  const targetOptions = availableTargets(state.source, state.voiceCount).map((target) => ({
+    value: target,
+    label: targetLabel(target),
+  }));
+  const groupOptions = [
+    { value: "all", label: "All groups" },
+    ...availableGroups(state.source, state.voiceCount, state.target),
+  ];
+
+  setSelectOptions(elements.sourceSelect, sourceOptions, state.source);
+  setSelectOptions(elements.voiceSelect, voiceOptions, String(state.voiceCount));
+  setSelectOptions(elements.targetSelect, targetOptions, state.target);
+  setSelectOptions(elements.groupSelect, groupOptions, state.group);
+}
+
+function selectFirstForCurrentFilters() {
+  const first = currentFilterPieces()[0];
+  if (first) {
+    state.currentId = first.id;
+  }
+}
+
+function handleFilterChange(changed) {
+  if (changed === "source") {
+    state.source = elements.sourceSelect.value;
+    state.voiceCount = "";
+    state.target = "string_quartet";
+    state.group = "all";
+  } else if (changed === "voice") {
+    state.voiceCount = elements.voiceSelect.value;
+    state.target = "string_quartet";
+    state.group = "all";
+  } else if (changed === "target") {
+    state.target = elements.targetSelect.value;
+    state.group = "all";
+  } else if (changed === "group") {
+    state.group = elements.groupSelect.value;
+  }
+  renderFilterControls();
+  selectFirstForCurrentFilters();
+  renderSelected();
+  renderList();
 }
 
 function filteredPieces() {
-  const query = elements.search.value.trim().toLowerCase();
-  const pieces = CATALOG.filter((piece) => {
-    const matchesBook = state.book === "all" || piece.book === state.book;
-    const haystack = `${piece.book} ${piece.title} ${piece.filename}`.toLowerCase();
-    return matchesBook && (!query || haystack.includes(query));
-  });
+  const pieces = currentFilterPieces({ includeQuery: true });
 
   const sortValue = elements.sort.value;
   pieces.sort((left, right) => {
     if (sortValue === "duration-desc") {
-      return right.durationQuarters - left.durationQuarters || left.index - right.index;
+      return (right.durationQuarters ?? -1) - (left.durationQuarters ?? -1) || left.order - right.order;
     }
     if (sortValue === "duration-asc") {
-      return left.durationQuarters - right.durationQuarters || left.index - right.index;
+      return (left.durationQuarters ?? Number.MAX_SAFE_INTEGER) - (right.durationQuarters ?? Number.MAX_SAFE_INTEGER)
+        || left.order - right.order;
     }
     if (sortValue === "transposition") {
-      return left.semitones - right.semitones || left.index - right.index;
+      return (left.semitones ?? 0) - (right.semitones ?? 0) || left.order - right.order;
     }
     if (sortValue === "readiness") {
-      return reviewFor(right.id).readiness - reviewFor(left.id).readiness || left.index - right.index;
+      return reviewFor(right.id).readiness - reviewFor(left.id).readiness || left.order - right.order;
     }
-    return left.index - right.index;
+    return left.order - right.order;
   });
   return pieces;
 }
@@ -441,7 +725,17 @@ function filteredPieces() {
 function renderList() {
   const pieces = filteredPieces();
   elements.visibleCount.textContent = String(pieces.length);
+  elements.audioCount.textContent = String(pieces.filter((piece) => piece.mp3).length);
+  elements.partCount.textContent = pieces.length ? String(Math.max(...pieces.map((piece) => piece.reducedParts || 4))) : "4";
   elements.pieceList.replaceChildren();
+
+  if (!pieces.length) {
+    const message = document.createElement("p");
+    message.className = "empty-list-message";
+    message.textContent = "No works match the current filters.";
+    elements.pieceList.append(message);
+    return;
+  }
 
   for (const piece of pieces) {
     const review = reviewFor(piece.id);
@@ -457,7 +751,12 @@ function renderList() {
 
     const meta = document.createElement("span");
     meta.className = "piece-meta";
-    meta.textContent = `Book ${piece.book} | ${displayMeasures(piece)} measures | ${formatSemitones(piece.semitones)} semitones`;
+    meta.textContent = [
+      piece.sourceLabel,
+      `${piece.voiceCount} voices`,
+      piece.groupLabel,
+      `${formatSemitones(piece.semitones)} semitones`,
+    ].join(" | ");
 
     const rating = document.createElement("span");
     rating.className = `piece-review${review.readiness ? " is-rated" : ""}`;
@@ -480,23 +779,30 @@ function selectPiece(id) {
 
 function renderSelected() {
   const piece = currentPiece();
+  if (!piece) {
+    return;
+  }
   const review = reviewFor(piece.id);
-  const mp3Url = encodedAssetUrl(piece.mp3);
+  const mp3Url = piece.mp3 ? encodedAssetUrl(piece.mp3) : "";
 
-  elements.selectedBook.textContent = `Book ${piece.book}`;
+  elements.selectedBook.textContent = `${piece.sourceLabel} | ${piece.voiceCount} voices | ${piece.targetLabel} | ${piece.groupLabel}`;
   elements.selectedTitle.textContent = piece.title;
   elements.selectedMeasures.textContent = displayMeasures(piece);
   elements.selectedSemitones.textContent = formatSemitones(piece.semitones);
-  elements.selectedScore.textContent = piece.score.toFixed(6);
-  elements.selectedDuration.textContent = "--:--";
+  elements.selectedScore.textContent = Number.isFinite(piece.score) ? piece.score.toFixed(6) : "--";
+  elements.selectedDuration.textContent = piece.mp3 ? "--:--" : "No audio";
 
-  if (elements.audio.getAttribute("src") !== mp3Url) {
+  if (piece.mp3 && elements.audio.getAttribute("src") !== mp3Url) {
     elements.audio.setAttribute("src", mp3Url);
   }
+  if (!piece.mp3) {
+    elements.audio.removeAttribute("src");
+    elements.audio.load();
+  }
 
-  setAssetLink(elements.scoreLink, piece.musicxml, piece.musicxml.split("/").pop());
-  setAssetLink(elements.mp3Link, piece.mp3, piece.mp3.split("/").pop());
-  setAssetLink(elements.midiLink, sourceMidiPath(piece), piece.filename);
+  setAssetLink(elements.scoreLink, piece.musicxml, piece.musicxml.split("/").pop(), "MusicXML");
+  setOptionalAssetLink(elements.mp3Link, piece.mp3, piece.mp3 ? piece.mp3.split("/").pop() : "No MP3", "MP3");
+  setAssetLink(elements.midiLink, sourceMidiPath(piece), piece.filename, "Source");
 
   elements.shortlist.classList.toggle("is-active", review.shortlisted);
   elements.shortlist.textContent = review.shortlisted ? "Shortlisted" : "Shortlist";
@@ -505,11 +811,28 @@ function renderSelected() {
   loadScorePreview(piece);
 }
 
-function setAssetLink(link, path, fileName) {
+function setAssetLink(link, path, fileName, label) {
   link.href = encodedAssetUrl(path);
   link.download = fileName;
   link.target = "_blank";
   link.rel = "noopener";
+  if (label) {
+    link.textContent = label;
+  }
+  link.removeAttribute("aria-disabled");
+  link.classList.remove("is-disabled");
+}
+
+function setOptionalAssetLink(link, path, fileName, label) {
+  if (!path) {
+    link.removeAttribute("href");
+    link.removeAttribute("download");
+    link.textContent = fileName;
+    link.setAttribute("aria-disabled", "true");
+    link.classList.add("is-disabled");
+    return;
+  }
+  setAssetLink(link, path, fileName, label);
 }
 
 function initRatingControls() {
@@ -560,7 +883,10 @@ function toggleShortlist() {
 
 function exportCsv() {
   const header = [
-    "book",
+    "source",
+    "voices",
+    "target",
+    "group",
     "title",
     "readiness",
     "playability",
@@ -574,7 +900,10 @@ function exportCsv() {
   const rows = CATALOG.map((piece) => {
     const review = reviewFor(piece.id);
     return [
-      piece.book,
+      piece.sourceLabel,
+      piece.voiceCount,
+      piece.targetLabel,
+      piece.groupLabel,
       piece.title,
       review.readiness,
       review.playability,
@@ -610,16 +939,10 @@ function csvCell(value) {
 }
 
 function attachEvents() {
-  document.querySelectorAll("[data-book]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.book = button.dataset.book;
-      document.querySelectorAll("[data-book]").forEach((other) => {
-        other.classList.toggle("is-active", other === button);
-      });
-      renderList();
-    });
-  });
-
+  elements.sourceSelect.addEventListener("change", () => handleFilterChange("source"));
+  elements.voiceSelect.addEventListener("change", () => handleFilterChange("voice"));
+  elements.targetSelect.addEventListener("change", () => handleFilterChange("target"));
+  elements.groupSelect.addEventListener("change", () => handleFilterChange("group"));
   elements.search.addEventListener("input", renderList);
   elements.sort.addEventListener("change", renderList);
   elements.shortlist.addEventListener("click", toggleShortlist);
@@ -634,6 +957,43 @@ function attachEvents() {
   });
 }
 
-initRatingControls();
-attachEvents();
-selectPiece(currentPiece().id);
+function defaultPieceId() {
+  const preferred = CATALOG.find((piece) => piece.musicxml.includes("book6_22_gia_piansi_nel_dolore"));
+  return preferred?.id || CATALOG[0]?.id || "";
+}
+
+function applyCurrentPieceFilters(piece) {
+  if (!piece) {
+    return;
+  }
+  state.source = piece.sourceKey;
+  state.voiceCount = String(piece.voiceCount);
+  state.target = piece.target;
+  state.group = "all";
+}
+
+function showCatalogLoadError(error) {
+  elements.pieceList.replaceChildren();
+  const message = document.createElement("p");
+  message.className = "empty-list-message";
+  message.textContent = error.message || "The catalog could not be loaded.";
+  elements.pieceList.append(message);
+  elements.visibleCount.textContent = "0";
+  elements.audioCount.textContent = "0";
+}
+
+async function init() {
+  initRatingControls();
+  attachEvents();
+  try {
+    await loadCatalog();
+    state.currentId = state.currentId || defaultPieceId();
+    applyCurrentPieceFilters(currentPiece());
+    renderFilterControls();
+    selectPiece(currentPiece().id);
+  } catch (error) {
+    showCatalogLoadError(error);
+  }
+}
+
+init();
