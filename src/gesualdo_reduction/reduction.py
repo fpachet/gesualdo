@@ -40,6 +40,9 @@ ENFORCE_RANGES = True
 REGISTER_SPLIT = 60
 MAX_DENOMINATOR = 4096
 DEFAULT_TRANSPOSITION_CANDIDATES = tuple(range(-18, 7))
+KEY_SIGNATURE_TESSITURA_TOLERANCE = 0.02
+KEY_SIGNATURE_MIN_ABS_IMPROVEMENT = 2.0
+KEY_SIGNATURE_MIN_REL_IMPROVEMENT = 0.40
 
 RANGES = {
     "vln1": (55, 100),  # G3..E7
@@ -2220,6 +2223,57 @@ def _voice_transposition_cost(
     return weighted_cost / total_weight
 
 
+def _key_signature_changes(src_score: stream.Score) -> list[tuple[float, tuple[int, ...]]]:
+    by_offset: dict[float, set[int]] = {}
+    for key_sig in src_score.recurse().getElementsByClass(key.KeySignature):
+        try:
+            offset = float(key_sig.getOffsetInHierarchy(src_score))
+        except Exception:
+            offset = float(key_sig.offset)
+        by_offset.setdefault(offset, set()).add(int(key_sig.sharps or 0))
+
+    if not by_offset:
+        return []
+    if 0.0 not in by_offset:
+        by_offset[0.0] = {0}
+    return [(offset, tuple(sorted(sharps))) for offset, sharps in sorted(by_offset.items())]
+
+
+def _transposed_key_signature_sharps(sharps: int, semitones: int) -> int:
+    return int(key.KeySignature(sharps).transpose(semitones).sharps)
+
+
+def key_signature_transposition_burden(src_score: stream.Score, semitones: int) -> float | None:
+    """Return duration-weighted average printed key-signature complexity.
+
+    The burden is measured as ``abs(sharps)`` after transposition.  Lower means
+    fewer printed sharps/flats.  ``None`` means the source carries no key
+    signature information, so this objective should not influence selection.
+    """
+
+    changes = _key_signature_changes(src_score)
+    if not changes:
+        return None
+
+    highest_time = max(float(src_score.highestTime or 0.0), changes[-1][0])
+    weighted = 0.0
+    total = 0.0
+    for index, (offset, sharps_values) in enumerate(changes):
+        next_offset = changes[index + 1][0] if index + 1 < len(changes) else highest_time
+        duration = max(0.0, next_offset - offset)
+        if duration == 0.0 and index == len(changes) - 1:
+            duration = 1.0
+
+        transposed_abs = [
+            abs(_transposed_key_signature_sharps(sharps, semitones))
+            for sharps in sharps_values
+        ]
+        weighted += (sum(transposed_abs) / max(len(transposed_abs), 1)) * duration
+        total += duration
+
+    return weighted / total if total > 0 else 0.0
+
+
 def _source_voice_groups_for_transposition(
     src_score: stream.Score,
     profile: EnsembleProfile,
@@ -2305,6 +2359,9 @@ def choose_global_transposition(
     *,
     candidate_semitones: Sequence[int] = DEFAULT_TRANSPOSITION_CANDIDATES,
     right_hand_voice_count: int | None = None,
+    key_signature_tessitura_tolerance: float = KEY_SIGNATURE_TESSITURA_TOLERANCE,
+    key_signature_min_abs_improvement: float = KEY_SIGNATURE_MIN_ABS_IMPROVEMENT,
+    key_signature_min_rel_improvement: float = KEY_SIGNATURE_MIN_REL_IMPROVEMENT,
 ) -> TranspositionChoice:
     if not candidate_semitones:
         raise ValueError("candidate_semitones must not be empty.")
@@ -2318,6 +2375,31 @@ def choose_global_transposition(
         for semitones in candidate_semitones
     )
     best_semitones, best_score = min(candidate_scores, key=lambda item: (item[1], abs(item[0]), item[0]))
+    best_burden = key_signature_transposition_burden(src_score, best_semitones)
+    if best_burden is not None:
+        allowed_score = best_score + max(0.0, key_signature_tessitura_tolerance)
+        key_candidates = []
+        for semitones, score in candidate_scores:
+            if score > allowed_score:
+                continue
+            burden = key_signature_transposition_burden(src_score, semitones)
+            if burden is None:
+                continue
+            key_candidates.append((semitones, score, burden))
+
+        if key_candidates:
+            key_semitones, key_score, key_burden = min(
+                key_candidates,
+                key=lambda item: (item[2], item[1], abs(item[0] - best_semitones), abs(item[0]), item[0]),
+            )
+            improvement = best_burden - key_burden
+            relative_improvement = improvement / best_burden if best_burden > 0 else 0.0
+            if (
+                improvement >= key_signature_min_abs_improvement
+                and relative_improvement >= key_signature_min_rel_improvement
+            ):
+                best_semitones = key_semitones
+                best_score = key_score
     return TranspositionChoice(
         semitones=best_semitones,
         score=best_score,

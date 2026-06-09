@@ -40,3 +40,13 @@ Collection summary, 2026-06-07:
 - 122 five-voice quartet plus viole d'amour MP3 renders.
 - 34 six-voice works reduced to string quartet.
 - 34 six-voice string quartet MP3 renders.
+
+Transposition update, 2026-06-09:
+
+- The active CPDL reductions now use the key-signature-aware global
+  transposition rule.
+- 81 CPDL MusicXML reductions and their MP3 renders were refreshed where a
+  nearby transposition substantially reduced printed sharps/flats while keeping
+  the tessitura-score delta at or below `0.02`.
+- The update scripts can generate before/after snapshots in
+  `outputs/transposition_comparison/obvious_key_signature/`.

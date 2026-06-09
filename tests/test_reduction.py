@@ -4,7 +4,7 @@ import pytest
 
 pytest.importorskip("music21")
 
-from music21 import dynamics, meter, note, stream
+from music21 import dynamics, key, meter, note, stream
 
 from gesualdo_reduction.reduction import (
     PIANO_REDUCTION,
@@ -20,6 +20,7 @@ from gesualdo_reduction.reduction import (
     build_six_voice_quartet_score,
     choose_global_transposition,
     extract_events,
+    key_signature_transposition_burden,
     ql_to_fraction,
     reduce_to_piano,
     validate_score_measures,
@@ -49,6 +50,29 @@ def assert_measures_are_exact(score, bars):
         for measure, bar in zip(part.getElementsByClass(stream.Measure), bars, strict=True):
             total = sum((ql_to_fraction(el.quarterLength) for el in measure.notesAndRests), Fraction(0, 1))
             assert total == bar.duration
+
+
+def test_global_transposition_can_prefer_cleaner_key_within_guard():
+    score = stream.Score()
+    for _ in range(4):
+        part = stream.Part()
+        part.insert(0, meter.TimeSignature("4/4"))
+        part.insert(0, key.KeySignature(0))
+        part.insert(0, note.Note("C2", quarterLength=4))
+        score.insert(0, part)
+
+    choice = choose_global_transposition(
+        score,
+        profile=PIANO_REDUCTION,
+        candidate_semitones=(0, 1),
+        key_signature_tessitura_tolerance=999,
+        key_signature_min_abs_improvement=1,
+        key_signature_min_rel_improvement=0.1,
+    )
+
+    assert key_signature_transposition_burden(score, 0) == 0
+    assert key_signature_transposition_burden(score, 1) == 5
+    assert choice.semitones == 0
 
 
 def test_outer_repeated_notes_are_not_merged():

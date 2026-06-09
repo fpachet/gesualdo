@@ -49,6 +49,14 @@ The MP3 batches contain one audio file per supported reduction. The files are
 44.1 kHz MP3s exported by MuseScore 4 and are intended to be usable directly by
 a static listening page.
 
+Global transposition is now key-signature aware.  The reducer first finds the
+best range/register transposition, then allows only near-equivalent candidates
+to win when they substantially reduce the printed number of sharps/flats.  The
+current checked-in corpus includes 90 obvious cleaner-key updates, with
+before/after comparison snapshots generated locally by
+`scripts/apply_key_signature_transposition_updates.py` and
+`scripts/render_updated_mp3_from_manifest.py`.
+
 ## Editorial Dynamics
 
 The Kunst der Fuge MIDI sources do not contain printed dynamics, and their note
@@ -168,8 +176,9 @@ uv run gesualdo-analyze data/kdf/book6/sources/book6_22_gia_piansi_nel_dolore.mi
 The current analysis reports voice ranges, a rough global transposition plan,
 and dense sonorities found through MusES chordification.
 Reduction entry points choose a target-aware global transposition by default;
-pass an explicit `semitones` value to force a fixed transposition such as the
-older hand-tuned `-9`.
+among near-equivalent range/register candidates, they prefer simpler printed
+key signatures.  Pass an explicit `semitones` value to force a fixed
+transposition such as the older hand-tuned `-9`.
 
 Generate the current rhythm-first quartet reduction:
 
@@ -219,6 +228,21 @@ batch path. It requires exactly six source parts, pins the outer source voices
 to Violin I and Cello, and compresses the four middle voices into the remaining
 quartet texture with source-traceable enrichment.
 
+Audit and apply cleaner-key transposition updates:
+
+```bash
+uv run --extra notation python scripts/audit_transposition_key_signatures.py
+uv run --extra notation python scripts/apply_key_signature_transposition_updates.py
+uv run --extra notation python scripts/render_updated_mp3_from_manifest.py
+```
+
+The apply step updates only obvious wins by default: audit rows whose cleaner
+candidate improves printed key-signature burden substantially while keeping
+the tessitura-score delta at or below `0.02`.  It snapshots the previous and
+updated MusicXML files under `outputs/transposition_comparison/obvious_key_signature/`.
+The render step refreshes only the MP3 files listed in that generated manifest
+and keeps old/new MP3 snapshots beside the MusicXML comparison.
+
 Older fixed-transposition single-piece `Gia piansi` renders are kept under
 `data/kdf/archive/legacy_gia_pensi_fixed_transposition/`.
 The previous GitHub Pages full-book MusicXML/MP3 generation is preserved under
@@ -266,7 +290,10 @@ searches candidate transpositions from `-18` to `+6` semitones and scores each
 candidate against the target ensemble. The score favors playable ranges,
 instrumental preferred registers, small octave displacement, and shorter global
 movement from the source pitch level. Note durations weight the scoring, so
-long structural tones matter more than brief passing tones.
+long structural tones matter more than brief passing tones.  If another
+candidate is within `0.02` of the best range/register score, the reducer may
+choose it instead when it substantially lowers the duration-weighted printed
+key-signature burden, measured as the average absolute number of sharps/flats.
 
 For the main string quartet reduction, the reducer identifies the highest and
 lowest source voices by median pitch and preserves them as Violin I and Cello.

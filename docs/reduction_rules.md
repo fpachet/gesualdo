@@ -49,7 +49,15 @@ harmony.
    sustained structural tones expose range problems more strongly than passing
    tones.
 
-3. Minimize unnecessary displacement from the source.
+3. Prefer simpler printed key signatures among near-equivalent choices.
+
+   Once the best range/register candidate is known, a neighboring candidate can
+   replace it only when the tessitura score remains essentially tied and the
+   printed key signature becomes substantially lighter.  The current rule uses
+   duration-weighted average `abs(sharps)` as the key burden, so a move from six
+   sharps/flats to one matters much more than a cosmetic one-step change.
+
+4. Minimize unnecessary displacement from the source.
 
    A transposition that keeps the music close to the original pitch level is
    preferred when it remains playable.
