@@ -41,7 +41,7 @@ harmony.
 1. Choose a global transposition automatically unless the caller forces one.
 
    The reducer tests candidate transpositions and scores them against the
-   target ensemble.
+   target ensemble.  The default search covers `-18` to `+6` semitones.
 
 2. Favor playable ranges and preferred registers.
 
@@ -51,11 +51,17 @@ harmony.
 
 3. Prefer simpler printed key signatures among near-equivalent choices.
 
-   Once the best range/register candidate is known, a neighboring candidate can
+   Once the best range/register candidate is known, another candidate can
    replace it only when the tessitura score remains essentially tied and the
    printed key signature becomes substantially lighter.  The current rule uses
    duration-weighted average `abs(sharps)` as the key burden, so a move from six
    sharps/flats to one matters much more than a cosmetic one-step change.
+
+   The production guardrail is deliberately conservative: the cleaner-key
+   candidate must be within `0.02` of the best range/register score, must reduce
+   the weighted key-signature burden by at least `2.0`, and must improve it by
+   at least `40%`.  Ties are broken toward the lower key burden, then the better
+   tessitura score, then the smaller move away from the range/register winner.
 
 4. Minimize unnecessary displacement from the source.
 
