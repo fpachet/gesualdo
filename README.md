@@ -122,6 +122,35 @@ can invent the missing major or minor third, preferring the nearest third that
 appears later in the source when possible. This is useful for cases where
 doubling a fifth or octave makes a four-string texture sound skinny.
 
+## Take 6 Close-Harmony Reduction
+
+Take 6-style sources are handled by a separate six-voice quartet entry point:
+
+```python
+build_take6_quartet_score(score)
+reduce_take6_to_quartet("source.mxl", out_path="take6_quartet.musicxml")
+```
+
+It still writes a four-part string quartet, so dense sonorities with five or
+six pitch classes must be compressed. The Take 6 variant keeps the outer source
+voices as soprano/bass anchors, then changes the inner-choice priority: when
+the source sonority is dense, it favors thirds, sevenths, altered tones, and
+ninth/thirteenth colors relative to the bass over redundant roots or fifths.
+It does not enable editorial missing-thirds by default, because jazz and close
+harmony voicings should not be completed with a Renaissance triadic rule.
+With `add_source_double_stops=True`, the reducer can add conservative playable
+double-stops from real source notes. It normally uses them for missing pitch
+classes; on long homorhythmic attacks it may also preserve source octave
+doublings so a sustained six-voice chord does not collapse unnecessarily.
+The detailed editorial rules are documented in
+`docs/take6_reduction_rules.md`.
+
+Batch reduction for local source files:
+
+```bash
+uv run --extra notation python scripts/reduce_take6.py --input-dir data/take6/sources --force
+```
+
 The comparison set for `Gia piansi nel dolore` is kept in
 `data/kdf/examples/enrichment/` as MusicXML and MuseScore MP3:
 
@@ -227,6 +256,16 @@ This uses the dedicated six-voice compression policy rather than the five-voice
 batch path. It requires exactly six source parts, pins the outer source voices
 to Violin I and Cello, and compresses the four middle voices into the remaining
 quartet texture with source-traceable enrichment.
+
+Generate Take 6-tuned six-voice reductions from local sources:
+
+```bash
+uv run --extra notation python scripts/reduce_take6.py --input-dir data/take6/sources --force
+```
+
+This expects exactly six source parts. It uses the same four-part quartet target
+as the CPDL six-voice reducer, but changes the dense-sonority choice rule to
+prefer jazz guide tones and color tones over redundant roots/fifths.
 
 Audit and apply cleaner-key transposition updates:
 

@@ -218,6 +218,52 @@ is used together with `add_editorial_harmony=True`.
    and preferred register, with a small preference for melodic continuity from
    the previous note in that part.
 
+## Take 6 Close-Harmony Variant
+
+This optional variant is enabled by `build_take6_quartet_score(...)` or
+`reduce_take6_to_quartet(...)`.
+
+The detailed Take 6 rule set is kept separately in
+[`take6_reduction_rules.md`](take6_reduction_rules.md). The summary below is
+only the short version.
+
+1. Keep the output target explicit.
+
+   The target is still a four-part string quartet. If the source contains five
+   or six simultaneous pitch classes, the reducer must choose which colors to
+   keep rather than trying to represent the complete chord.
+
+2. Preserve soprano and bass as anchors.
+
+   The highest source voice remains Violin I and the lowest source voice
+   remains Cello. The special rule is applied to the four middle voices.
+
+3. Prefer jazz guide tones and color tones in dense sonorities.
+
+   When the active source sonority has more than four pitch classes, candidate
+   middle notes are ranked by their interval above the bass. Thirds, sevenths,
+   altered tones, ninths, and thirteenths are favored over redundant roots and
+   fifths.
+
+4. Keep the decision source-traceable.
+
+   Selected notes still come from real source events. The variant changes the
+   local priority order; it does not invent replacement jazz harmony.
+
+5. Use source double-stops conservatively when requested.
+
+   With `add_source_double_stops=True`, added notes still have to be real source
+   notes and pass the string double-stop playability check. The normal priority
+   is to recover missing pitch classes. On long homorhythmic attacks, the rule
+   can also keep playable source octave doublings so a sustained six-voice
+   sonority retains its weight even when it contains only four pitch classes.
+
+6. Disable Renaissance missing-third completion by default.
+
+   `add_editorial_thirds` defaults to `False` for this entry point, because
+   Take 6-style voicings can be suspended, quartal, altered, or rootless, and a
+   generated triadic third would often be the wrong editorial assumption.
+
 ## Rhythm, Durations, and Ties
 
 1. Preserve source offsets and durations whenever possible.

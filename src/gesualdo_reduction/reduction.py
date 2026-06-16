@@ -174,6 +174,9 @@ class ReductionConfig:
     add_editorial_harmony: bool = False
     add_editorial_thirds: bool = False
     editorial_harmony_target_active_parts: int = 4
+    prefer_jazz_color_tones: bool = False
+    add_source_double_stops: bool = False
+    normalize_short_note_rest_artifacts: bool = False
     add_editorial_dynamics: bool = True
     dynamic_phrase_bars: int = 4
     dynamic_hairpin_bars: int = 2
@@ -564,6 +567,88 @@ def extract_events(
     return sorted(events, key=lambda ev: (ev.start, ev.end, ev.source_id))
 
 
+_ARTIFACT_NOTE_REST_TOTAL = Fraction(1, 1)
+_ARTIFACT_ALLOWED_DENOMINATORS = {1, 2, 3, 4, 6, 8}
+_ARTIFACT_SNAP_DURATIONS = (
+    Fraction(1, 4),
+    Fraction(1, 3),
+    Fraction(1, 2),
+    Fraction(2, 3),
+    Fraction(3, 4),
+)
+_ARTIFACT_MAX_SNAP_DELTA = Fraction(1, 12)
+
+
+def _nearest_artifact_snap_duration(duration: Fraction) -> Fraction | None:
+    candidate = min(
+        _ARTIFACT_SNAP_DURATIONS,
+        key=lambda value: (abs(value - duration), value.denominator, value),
+    )
+    if abs(candidate - duration) > _ARTIFACT_MAX_SNAP_DELTA:
+        return None
+    return candidate
+
+
+def normalize_short_note_rest_artifacts(events: Sequence[SourceEvent]) -> list[SourceEvent]:
+    """Snap isolated MIDI-ish note+rest fragments such as 5/12+7/12 to simpler values."""
+
+    ordered = sorted(events, key=lambda event: (event.start, event.event_index, event.source_id))
+    normalized: list[SourceEvent] = []
+    index = 0
+    while index < len(ordered):
+        event = ordered[index]
+        next_event = ordered[index + 1] if index + 1 < len(ordered) else None
+        if (
+            next_event is not None
+            and event.part_index == next_event.part_index
+            and not event.is_rest
+            and event.pitch_midi is not None
+            and next_event.is_rest
+            and event.end == next_event.start
+            and event.duration + next_event.duration == _ARTIFACT_NOTE_REST_TOTAL
+            and (
+                event.duration.denominator not in _ARTIFACT_ALLOWED_DENOMINATORS
+                or next_event.duration.denominator not in _ARTIFACT_ALLOWED_DENOMINATORS
+            )
+        ):
+            snapped_duration = _nearest_artifact_snap_duration(event.duration)
+            if snapped_duration is not None and Fraction(0, 1) < snapped_duration < _ARTIFACT_NOTE_REST_TOTAL:
+                normalized.append(replace(event, duration=snapped_duration))
+                normalized.append(
+                    replace(
+                        next_event,
+                        start=event.start + snapped_duration,
+                        duration=_ARTIFACT_NOTE_REST_TOTAL - snapped_duration,
+                    )
+                )
+                index += 2
+                continue
+        normalized.append(event)
+        index += 1
+    return sorted(normalized, key=lambda event: (event.start, event.end, event.source_id))
+
+
+def _extract_context_events(
+    part: stream.Part,
+    part_index: int,
+    *,
+    include_rests: bool,
+    chord_policy: str,
+    config: ReductionConfig,
+) -> list[SourceEvent]:
+    events = extract_events(
+        part,
+        part_index,
+        include_rests=include_rests or config.normalize_short_note_rest_artifacts,
+        chord_policy=chord_policy,
+    )
+    if config.normalize_short_note_rest_artifacts:
+        events = normalize_short_note_rest_artifacts(events)
+    if not include_rests:
+        events = [event for event in events if not event.is_rest]
+    return events
+
+
 def fit_event_to_range(event: SourceEvent, low: int, high: int) -> SourceEvent:
     if event.is_rest:
         return event
@@ -860,6 +945,44 @@ def _make_note_fragment_element(event: SourceEvent, offset: Fraction, duration: 
     return out_note
 
 
+def _make_chord_fragment_element(fragments: Sequence[Fragment], bar: Bar) -> chord.Chord:
+    fragments = sorted(
+        fragments,
+        key=lambda fragment: int(fragment.event.pitch_midi) if fragment.event and fragment.event.pitch_midi is not None else -1,
+    )
+    events = [fragment.event for fragment in fragments]
+    if any(event is None or event.pitch_midi is None or event.is_rest for event in events):
+        raise ValueError("Chord fragments must be pitched source events.")
+
+    duration = fragments[0].duration
+    out_chord = chord.Chord(
+        [int(event.pitch_midi) for event in events if event is not None],
+        quarterLength=fraction_to_ql(duration),
+    )
+    out_chord.editorial.sourceEventIds = tuple(event.source_id for event in events if event is not None)
+    out_chord.editorial.sourcePartIndices = tuple(event.part_index for event in events if event is not None)
+    if any(event.part_index < 0 or event.source_id.startswith("generated:") for event in events if event is not None):
+        out_chord.editorial.generatedHarmony = True
+
+    for chord_note, fragment in zip(out_chord.notes, fragments, strict=True):
+        event = fragment.event
+        if event is None:
+            continue
+        abs_start = bar.start + fragment.offset
+        abs_end = abs_start + fragment.duration
+        continues_from_before = abs_start > event.start
+        continues_after = abs_end < event.end
+        if continues_from_before and continues_after:
+            chord_note.tie = tie.Tie("continue")
+        elif continues_from_before:
+            chord_note.tie = tie.Tie("stop")
+        elif continues_after:
+            chord_note.tie = tie.Tie("start")
+        elif event.source_tie_type is not None:
+            chord_note.tie = tie.Tie(event.source_tie_type)
+    return out_chord
+
+
 def _make_rest_fragment_element(event: SourceEvent | None, duration: Fraction) -> note.Rest:
     rest = note.Rest(quarterLength=fraction_to_ql(duration))
     if event is not None:
@@ -877,6 +1000,11 @@ def _insert_fragment(measure: stream.Stream, fragment: Fragment, bar: Bar) -> No
     measure.insert(fraction_to_ql(fragment.offset), element)
 
 
+def _insert_chord_fragments(measure: stream.Stream, fragments: Sequence[Fragment], bar: Bar) -> None:
+    element = _make_chord_fragment_element(fragments, bar)
+    measure.insert(fraction_to_ql(fragments[0].offset), element)
+
+
 def _insert_complete_fragments(
     container: stream.Stream,
     sorted_events: Sequence[SourceEvent],
@@ -892,7 +1020,15 @@ def _insert_complete_fragments(
     fragments.sort(key=lambda frag: (frag.offset, frag.end, frag.event.source_id if frag.event else ""))
 
     cursor = Fraction(0, 1)
-    for fragment in fragments:
+    index = 0
+    while index < len(fragments):
+        fragment = fragments[index]
+        group = [fragment]
+        index += 1
+        while index < len(fragments) and fragments[index].offset == fragment.offset:
+            group.append(fragments[index])
+            index += 1
+
         if fragment.offset < cursor:
             source_id = fragment.event.source_id if fragment.event else "<generated>"
             raise MeasureValidationError(
@@ -904,7 +1040,31 @@ def _insert_complete_fragments(
                 Fragment(event=None, offset=cursor, duration=fragment.offset - cursor, is_generated_rest=True),
                 bar,
             )
-        _insert_fragment(container, fragment, bar)
+        if len(group) == 1:
+            _insert_fragment(container, fragment, bar)
+        else:
+            if len(group) > 2:
+                source_ids = ", ".join(group_fragment.event.source_id for group_fragment in group if group_fragment.event)
+                raise MeasureValidationError(
+                    f"{part_name} has more than two simultaneous notes near measure {bar.number}: {source_ids}"
+                )
+            if any(group_fragment.end != fragment.end for group_fragment in group):
+                source_ids = ", ".join(group_fragment.event.source_id for group_fragment in group if group_fragment.event)
+                raise MeasureValidationError(
+                    f"{part_name} has partially overlapping double-stop events near measure {bar.number}: {source_ids}"
+                )
+            if any(group_fragment.event is None or group_fragment.event.is_rest for group_fragment in group):
+                source_ids = ", ".join(group_fragment.event.source_id for group_fragment in group if group_fragment.event)
+                raise MeasureValidationError(
+                    f"{part_name} has non-pitched double-stop fragments near measure {bar.number}: {source_ids}"
+                )
+            pitch_classes = {group_fragment.event.pitch_midi % 12 for group_fragment in group if group_fragment.event}
+            if len(pitch_classes) != len(group):
+                source_ids = ", ".join(group_fragment.event.source_id for group_fragment in group if group_fragment.event)
+                raise MeasureValidationError(
+                    f"{part_name} has duplicate pitch classes in a double stop near measure {bar.number}: {source_ids}"
+                )
+            _insert_chord_fragments(container, group, bar)
         cursor = fragment.end
 
     if cursor < bar.duration:
@@ -1011,8 +1171,9 @@ def validate_measured_part(part: stream.Part, bars: Sequence[Bar]) -> None:
             if cursor > bar.duration:
                 raise MeasureValidationError(f"{part.partName} measure {bar.number} is overfull.")
             if (
-                element.isNote
+                (element.isNote or element.isChord)
                 and not hasattr(element.editorial, "sourceEventId")
+                and not hasattr(element.editorial, "sourceEventIds")
                 and not getattr(element.editorial, "generatedHarmony", False)
             ):
                 raise MeasureValidationError(
@@ -1041,8 +1202,9 @@ def validate_measured_voice(voice: stream.Voice, bars: Sequence[Bar], bar: Bar, 
         if cursor > bar.duration:
             raise MeasureValidationError(f"{part_name} measure {bar.number} voice {voice.id} is overfull.")
         if (
-            element.isNote
+            (element.isNote or element.isChord)
             and not hasattr(element.editorial, "sourceEventId")
+            and not hasattr(element.editorial, "sourceEventIds")
             and not getattr(element.editorial, "generatedHarmony", False)
         ):
             raise MeasureValidationError(
@@ -1091,6 +1253,47 @@ def spread_score(midi_pitch: int, anchors: Iterable[int | None]) -> int:
     if not real_anchors:
         return 0
     return min(abs(midi_pitch - anchor) for anchor in real_anchors)
+
+
+_JAZZ_INTERVAL_PRIORITY = {
+    3: 9.0,   # minor third
+    4: 9.0,   # major third
+    10: 8.0,  # minor seventh
+    11: 7.5,  # major seventh
+    6: 7.0,   # tritone / sharp eleven
+    1: 6.5,   # flat nine / sharp root color
+    2: 6.0,   # ninth
+    8: 5.5,   # sharp five / flat thirteen
+    9: 5.0,   # sixth / thirteenth
+    5: 4.0,   # eleventh / suspended fourth
+    7: 2.0,   # fifth
+    0: 1.0,   # root / octave
+}
+
+
+def _jazz_color_tone_score(
+    pitch_class_value: int,
+    *,
+    bass_pitch_class: int | None,
+    active_source_pitch_classes: set[int],
+    covered_pitch_classes: set[int],
+) -> float:
+    """Rank dense close-harmony tones when only a few can fit in the quartet."""
+
+    score = 0.0
+    if bass_pitch_class is not None:
+        interval = (pitch_class_value - bass_pitch_class) % 12
+        score += _JAZZ_INTERVAL_PRIORITY.get(interval, 3.0)
+        if len(active_source_pitch_classes) > 4 and interval in {0, 7}:
+            score -= 4.0
+
+    if len(active_source_pitch_classes) > 4:
+        score += 1.0
+
+    if any((pitch_class_value - covered) % 12 in {1, 11, 6} for covered in covered_pitch_classes):
+        score += 0.75
+
+    return score
 
 
 def _is_new_onset(event: SourceEvent) -> bool:
@@ -1445,6 +1648,334 @@ def _represented_source_parts(selected: dict[str, list[SourceEvent]], offset: Fr
     }
 
 
+def _continues_target_source_part(
+    event: SourceEvent,
+    selected: dict[str, list[SourceEvent]],
+    targets: Sequence[TargetPart],
+) -> bool:
+    return any(
+        _target_is_free_for_event(target, event, selected)
+        and any(
+            previous.part_index == event.part_index
+            and previous.pitch_midi is not None
+            and previous.end == event.start
+            for previous in selected[target.id]
+        )
+        for target in targets
+    )
+
+
+def _duplicate_color_tone_penalty(
+    event: SourceEvent,
+    *,
+    bass_pitch_class: int | None,
+    covered_pitch_classes: set[int],
+) -> float:
+    if event.pitch_midi is None or event.pitch_midi % 12 not in covered_pitch_classes:
+        return 0.0
+    if bass_pitch_class is None:
+        return 1.0
+    interval = (int(event.pitch_midi) - bass_pitch_class) % 12
+    if interval in {3, 4, 10, 11}:
+        return 3.0
+    if interval in {1, 2, 6, 8, 9}:
+        return 2.0
+    return 0.5
+
+
+_STRING_TUNINGS = {
+    "vln1": (55, 62, 69, 76),
+    "vln2": (55, 62, 69, 76),
+    "vla": (48, 55, 62, 69),
+    "vc": (36, 43, 50, 57),
+}
+_CONSERVATIVE_DOUBLE_STOP_INTERVALS = {3, 4, 5, 6, 7, 8, 9, 12, 15, 16}
+_SIMPLE_SPLIT_DENOMINATORS = {1, 2, 3, 4, 6, 8}
+_LONG_HELD_DOUBLE_STOP_MIN_DURATION = Fraction(2, 1)
+
+
+def _pitch_string_positions(midi_pitch: int, target: TargetPart) -> list[tuple[int, int]]:
+    positions: list[tuple[int, int]] = []
+    for string_index, open_pitch in enumerate(_STRING_TUNINGS.get(target.id, ())):
+        if midi_pitch < open_pitch:
+            continue
+        finger_distance = midi_pitch - open_pitch
+        if finger_distance <= 24:
+            positions.append((string_index, finger_distance))
+    return positions
+
+
+def _is_playable_double_stop(target: TargetPart, first_pitch: int, second_pitch: int) -> bool:
+    if first_pitch == second_pitch:
+        return False
+    lower, upper = sorted((int(first_pitch), int(second_pitch)))
+    if upper - lower not in _CONSERVATIVE_DOUBLE_STOP_INTERVALS:
+        return False
+
+    lower_positions = _pitch_string_positions(lower, target)
+    upper_positions = _pitch_string_positions(upper, target)
+    for lower_string, lower_distance in lower_positions:
+        for upper_string, upper_distance in upper_positions:
+            if upper_string != lower_string + 1:
+                continue
+            if lower_distance == 0 or upper_distance == 0 or abs(upper_distance - lower_distance) <= 5:
+                return True
+    return False
+
+
+def _simultaneous_event_count(
+    selected: dict[str, list[SourceEvent]],
+    target: TargetPart,
+    start: Fraction,
+    end: Fraction,
+) -> int:
+    return sum(
+        1
+        for event in selected[target.id]
+        if event.pitch_midi is not None and event.start == start and event.end == end
+    )
+
+
+def _is_simple_split_duration(duration: Fraction) -> bool:
+    return (
+        duration > 0
+        and duration.denominator in _SIMPLE_SPLIT_DENOMINATORS
+        and duration.numerator <= 4
+    )
+
+
+def _overlapping_target_events(
+    selected: dict[str, list[SourceEvent]],
+    target: TargetPart,
+    start: Fraction,
+    end: Fraction,
+) -> list[SourceEvent]:
+    return [
+        event
+        for event in selected[target.id]
+        if event.pitch_midi is not None and _event_overlaps_interval(event, start, end)
+    ]
+
+
+def _split_host_for_double_stop(
+    selected: dict[str, list[SourceEvent]],
+    target: TargetPart,
+    host: SourceEvent,
+    start: Fraction,
+    end: Fraction,
+) -> SourceEvent:
+    if host.start == start and host.end == end:
+        return host
+    if host.start != start or host.end < end:
+        raise MeasureValidationError(f"Cannot split host event {host.source_id} for double stop.")
+
+    split_events = [
+        replace(host, duration=end - start, source_tie_type=None),
+    ]
+    if end < host.end:
+        split_events.append(
+            replace(
+                host,
+                start=end,
+                duration=host.end - end,
+                source_tie_type=None,
+            )
+        )
+
+    target_events = selected[target.id]
+    host_index = target_events.index(host)
+    selected[target.id] = [*target_events[:host_index], *split_events, *target_events[host_index + 1:]]
+    return split_events[0]
+
+
+def _target_attacks_at(
+    selected: dict[str, list[SourceEvent]],
+    target: TargetPart,
+    offset: Fraction,
+) -> int:
+    return sum(
+        1
+        for event in selected[target.id]
+        if event.pitch_midi is not None and event.start == offset
+    )
+
+
+def _double_stop_hosts(
+    selected: dict[str, list[SourceEvent]],
+    targets: Sequence[TargetPart],
+    candidate: SourceEvent,
+    config: ReductionConfig,
+) -> list[tuple[TargetPart, SourceEvent, SourceEvent]]:
+    if candidate.pitch_midi is None:
+        return []
+    result: list[tuple[TargetPart, SourceEvent, SourceEvent]] = []
+    candidate_pitch = int(candidate.pitch_midi)
+    for target in targets:
+        overlapping_events = _overlapping_target_events(selected, target, candidate.start, candidate.end)
+        if len(overlapping_events) != 1:
+            continue
+        event = overlapping_events[0]
+        if event.start != candidate.start or event.end < candidate.end:
+            continue
+        if event.end != candidate.end and (
+            not _is_simple_split_duration(candidate.duration)
+            or not _is_simple_split_duration(event.end - candidate.end)
+        ):
+            continue
+        if _simultaneous_event_count(selected, target, candidate.start, candidate.end) >= 2:
+            continue
+        host_pitch = int(event.pitch_midi)
+        fitted_candidate = octave_fit(candidate_pitch, *target.midi_range) if config.enforce_ranges else candidate_pitch
+        if fitted_candidate is None:
+            continue
+        if host_pitch % 12 == fitted_candidate % 12:
+            continue
+        if _is_playable_double_stop(target, host_pitch, fitted_candidate):
+            result.append((target, event, replace(candidate, pitch_midi=fitted_candidate)))
+    return result
+
+
+def _is_long_homorhythmic_source_attack(
+    start: Fraction,
+    active_source_events: Sequence[SourceEvent],
+    *,
+    min_source_notes: int,
+    min_duration: Fraction = _LONG_HELD_DOUBLE_STOP_MIN_DURATION,
+) -> bool:
+    if len(active_source_events) < min_source_notes:
+        return False
+    if any(event.start != start for event in active_source_events):
+        return False
+    end_values = {event.end for event in active_source_events}
+    if len(end_values) != 1:
+        return False
+    return next(iter(end_values)) - start >= min_duration
+
+
+def _add_source_double_stops(
+    selected: dict[str, list[SourceEvent]],
+    source_events: Sequence[SourceEvent],
+    targets: Sequence[TargetPart],
+    config: ReductionConfig,
+) -> None:
+    selected_source_ids = _selected_source_ids(selected)
+    note_events = [
+        event
+        for event in source_events
+        if not event.is_rest and event.pitch_midi is not None
+    ]
+    starts = sorted({event.start for event in note_events})
+    for start in starts:
+        active_source_events = _active_events_at(note_events, start)
+        active_source_pitch_classes = {
+            int(event.pitch_midi) % 12
+            for event in active_source_events
+            if event.pitch_midi is not None
+        }
+        allow_source_doublings = _is_long_homorhythmic_source_attack(
+            start,
+            active_source_events,
+            min_source_notes=len(targets) + 1,
+        )
+        if len(active_source_pitch_classes) <= len(targets) and not allow_source_doublings:
+            continue
+        active_output_pitches = _active_pitches_from_assignments(selected, start)
+        covered_pitch_classes = {pitch % 12 for pitch in active_output_pitches}
+        bass_pitch = min(active_source_events, key=lambda event: int(event.pitch_midi)).pitch_midi
+        bass_pitch_class = None if bass_pitch is None else int(bass_pitch) % 12
+        candidates = [
+            event
+            for event in active_source_events
+            if event.source_id not in selected_source_ids
+            and event.pitch_midi is not None
+            and int(event.pitch_midi) % 12 not in covered_pitch_classes
+            and event.start == start
+        ]
+        candidates.sort(
+            key=lambda event: (
+                -_jazz_color_tone_score(
+                    int(event.pitch_midi) % 12,
+                    bass_pitch_class=bass_pitch_class,
+                    active_source_pitch_classes=active_source_pitch_classes,
+                    covered_pitch_classes=covered_pitch_classes,
+                ),
+                not _is_new_onset(event),
+                -event.duration,
+                event.source_id,
+            )
+        )
+        for candidate in candidates:
+            if candidate.source_id in selected_source_ids:
+                continue
+            hosts = _double_stop_hosts(selected, targets, candidate, config)
+            if not hosts:
+                continue
+            target, host, prepared = min(
+                hosts,
+                key=lambda item: (
+                    _target_attacks_at(selected, item[0], item[2].end),
+                    item[0].role == "bottom",
+                    _register_fit_score(item[0], int(item[2].pitch_midi), config),
+                    item[1].end - item[2].end,
+                    abs(int(item[2].pitch_midi) - int(candidate.pitch_midi)) / 12,
+                    targets.index(item[0]),
+                ),
+            )
+            _split_host_for_double_stop(selected, target, host, prepared.start, prepared.end)
+            selected[target.id].append(prepared)
+            selected_source_ids.add(prepared.source_id)
+            covered_pitch_classes.add(int(prepared.pitch_midi) % 12)
+
+        if not allow_source_doublings:
+            continue
+
+        added_duplicate_pitch_classes: set[int] = set()
+        duplicate_candidates = [
+            event
+            for event in active_source_events
+            if event.source_id not in selected_source_ids
+            and event.pitch_midi is not None
+            and event.start == start
+            and int(event.pitch_midi) % 12 in covered_pitch_classes
+        ]
+        duplicate_candidates.sort(
+            key=lambda event: (
+                -event.duration,
+                -_jazz_color_tone_score(
+                    int(event.pitch_midi) % 12,
+                    bass_pitch_class=bass_pitch_class,
+                    active_source_pitch_classes=active_source_pitch_classes,
+                    covered_pitch_classes=covered_pitch_classes,
+                ),
+                event.source_id,
+            )
+        )
+        for candidate in duplicate_candidates:
+            if candidate.source_id in selected_source_ids:
+                continue
+            candidate_pitch_class = int(candidate.pitch_midi) % 12
+            if candidate_pitch_class in added_duplicate_pitch_classes:
+                continue
+            hosts = _double_stop_hosts(selected, targets, candidate, config)
+            if not hosts:
+                continue
+            target, host, prepared = min(
+                hosts,
+                key=lambda item: (
+                    _target_attacks_at(selected, item[0], item[2].end),
+                    item[0].role == "bottom",
+                    _register_fit_score(item[0], int(item[2].pitch_midi), config),
+                    item[1].end - item[2].end,
+                    abs(int(item[2].pitch_midi) - int(candidate.pitch_midi)) / 12,
+                    targets.index(item[0]),
+                ),
+            )
+            _split_host_for_double_stop(selected, target, host, prepared.start, prepared.end)
+            selected[target.id].append(prepared)
+            selected_source_ids.add(prepared.source_id)
+            added_duplicate_pitch_classes.add(candidate_pitch_class)
+
+
 def _selected_source_ids(selected: dict[str, list[SourceEvent]]) -> set[str]:
     return {
         event.source_id
@@ -1711,14 +2242,41 @@ def _select_inner_events(
             if event.pitch_midi is not None and event.pitch_midi % 12 not in covered
         ]
         anchors = [pitch for pitch in outer_pitches if pitch is not None]
-        candidates.sort(
-            key=lambda ev: (
-                not _is_new_onset(ev),
-                -spread_score(int(ev.pitch_midi), anchors),
-                -ev.duration,
-                ev.source_id,
+        if config.prefer_jazz_color_tones:
+            bass_pitch = active_pitch_at(bottom_events, start)
+            bass_pitch_class = None if bass_pitch is None else int(bass_pitch) % 12
+            active_source_pitch_classes = {
+                int(event.pitch_midi) % 12
+                for event in (
+                    *_active_events_at(note_events, start),
+                    *_active_events_at(top_events, start),
+                    *_active_events_at(bottom_events, start),
+                )
+                if event.pitch_midi is not None
+            }
+            candidates.sort(
+                key=lambda ev: (
+                    not _is_new_onset(ev),
+                    -_jazz_color_tone_score(
+                        int(ev.pitch_midi) % 12,
+                        bass_pitch_class=bass_pitch_class,
+                        active_source_pitch_classes=active_source_pitch_classes,
+                        covered_pitch_classes=covered,
+                    ),
+                    -spread_score(int(ev.pitch_midi), anchors),
+                    -ev.duration,
+                    ev.source_id,
+                )
             )
-        )
+        else:
+            candidates.sort(
+                key=lambda ev: (
+                    not _is_new_onset(ev),
+                    -spread_score(int(ev.pitch_midi), anchors),
+                    -ev.duration,
+                    ev.source_id,
+                )
+            )
 
         primary_chosen: list[SourceEvent] = []
         seen_pitch_classes = set(covered)
@@ -1870,14 +2428,32 @@ def _select_inner_events(
                     if prepared is not None:
                         prepared_candidates.append(prepared)
                 preserving_candidates = prepared_candidates
-                preserving_candidates.sort(
-                    key=lambda ev: (
-                        ev.part_index in represented_parts,
-                        not _is_new_onset(ev),
-                        -ev.duration,
-                        ev.source_id,
+                if config.prefer_jazz_color_tones:
+                    bass_pitch = active_pitch_at(bottom_events, start)
+                    bass_pitch_class = None if bass_pitch is None else int(bass_pitch) % 12
+                    preserving_candidates.sort(
+                        key=lambda ev: (
+                            not _continues_target_source_part(ev, selected, targets),
+                            _duplicate_color_tone_penalty(
+                                ev,
+                                bass_pitch_class=bass_pitch_class,
+                                covered_pitch_classes=covered_at_start,
+                            ),
+                            ev.part_index in represented_parts,
+                            not _is_new_onset(ev),
+                            -ev.duration,
+                            ev.source_id,
+                        )
                     )
-                )
+                else:
+                    preserving_candidates.sort(
+                        key=lambda ev: (
+                            ev.part_index in represented_parts,
+                            not _is_new_onset(ev),
+                            -ev.duration,
+                            ev.source_id,
+                        )
+                    )
                 preserving_chosen = preserving_candidates[:needed]
                 preserve_pairs: list[tuple[TargetPart, SourceEvent]] = []
                 while preserving_chosen:
@@ -1967,6 +2543,14 @@ def _select_inner_events(
                     last_pitch[target.id] = event.pitch_midi
                     active_output_pitches.append(int(event.pitch_midi))
                     needed -= 1
+
+    if config.add_source_double_stops:
+        _add_source_double_stops(
+            selected,
+            (*note_events, *top_events, *bottom_events),
+            targets,
+            config,
+        )
 
     if config.add_editorial_harmony:
         _merge_adjacent_generated_harmony_events(selected)
@@ -2085,6 +2669,17 @@ class SixVoiceQuartetCompressionPolicy(AssignmentPolicy):
             initial_events_by_target=fixed_outer_events,
             allow_supporting_doublings=True,
         )
+
+
+class Take6QuartetCompressionPolicy(SixVoiceQuartetCompressionPolicy):
+    """Six-voice close-harmony compression tuned through ``ReductionConfig``.
+
+    The structural mapping is the same as the six-voice quartet policy: keep
+    the outer source voices as melodic/bass anchors, then compress the four
+    internal voices into the available quartet capacity. The Take 6 behavior is
+    enabled by ``prefer_jazz_color_tones`` on the config so the same policy can
+    stay transparent and testable.
+    """
 
 
 class VoiceOrderAssignmentPolicy(AssignmentPolicy):
@@ -2638,12 +3233,34 @@ class ReductionBuilder:
         middle_indices = tuple(index for index in range(len(parts)) if index not in (top_index, bottom_index))
         key_signatures = collect_key_signatures(src_score, bars)
 
-        top_events = tuple(extract_events(parts[top_index], top_index, include_rests=True, chord_policy="top"))
-        bottom_events = tuple(extract_events(parts[bottom_index], bottom_index, include_rests=True, chord_policy="bottom"))
+        top_events = tuple(
+            _extract_context_events(
+                parts[top_index],
+                top_index,
+                include_rests=True,
+                chord_policy="top",
+                config=self.config,
+            )
+        )
+        bottom_events = tuple(
+            _extract_context_events(
+                parts[bottom_index],
+                bottom_index,
+                include_rests=True,
+                chord_policy="bottom",
+                config=self.config,
+            )
+        )
         middle_events = tuple(
             event
             for index in middle_indices
-            for event in extract_events(parts[index], index, include_rests=False, chord_policy="all")
+            for event in _extract_context_events(
+                parts[index],
+                index,
+                include_rests=False,
+                chord_policy="all",
+                config=self.config,
+            )
         )
 
         return ReductionContext(
@@ -2826,6 +3443,36 @@ def build_six_voice_quartet_score(
     )
 
 
+def build_take6_quartet_score(
+    src_score: stream.Score,
+    *,
+    enforce_ranges: bool = ENFORCE_RANGES,
+    register_split: int = REGISTER_SPLIT,
+    preserve_active_voice_count: bool = True,
+    add_source_double_stops: bool = False,
+    normalize_short_note_rest_artifacts: bool = True,
+    add_editorial_harmony: bool = False,
+    add_editorial_thirds: bool = False,
+    editorial_harmony_target_active_parts: int = 4,
+) -> stream.Score:
+    return build_ensemble_score(
+        src_score,
+        STRING_QUARTET,
+        config=ReductionConfig(
+            enforce_ranges=enforce_ranges,
+            register_split=register_split,
+            preserve_active_voice_count=preserve_active_voice_count,
+            add_editorial_harmony=add_editorial_harmony,
+            add_editorial_thirds=add_editorial_thirds,
+            editorial_harmony_target_active_parts=editorial_harmony_target_active_parts,
+            prefer_jazz_color_tones=True,
+            add_source_double_stops=add_source_double_stops,
+            normalize_short_note_rest_artifacts=normalize_short_note_rest_artifacts,
+        ),
+        policy=Take6QuartetCompressionPolicy(),
+    )
+
+
 def build_quartet_plus_viole_score(
     src_score: stream.Score,
     *,
@@ -2949,6 +3596,42 @@ def reduce_six_to_quartet(
             editorial_harmony_target_active_parts=editorial_harmony_target_active_parts,
         ),
         policy=SixVoiceQuartetCompressionPolicy(),
+        candidate_semitones=candidate_semitones,
+    )
+
+
+def reduce_take6_to_quartet(
+    midi_path: str | Path,
+    semitones: int | None = None,
+    out_path: str | Path = "take6_quartet.musicxml",
+    *,
+    enforce_ranges: bool = ENFORCE_RANGES,
+    register_split: int = REGISTER_SPLIT,
+    preserve_active_voice_count: bool = True,
+    add_source_double_stops: bool = False,
+    normalize_short_note_rest_artifacts: bool = True,
+    add_editorial_harmony: bool = False,
+    add_editorial_thirds: bool = False,
+    editorial_harmony_target_active_parts: int = 4,
+    candidate_semitones: Sequence[int] = DEFAULT_TRANSPOSITION_CANDIDATES,
+) -> stream.Score:
+    return reduce_to_ensemble(
+        midi_path,
+        STRING_QUARTET,
+        semitones=semitones,
+        out_path=out_path,
+        config=ReductionConfig(
+            enforce_ranges=enforce_ranges,
+            register_split=register_split,
+            preserve_active_voice_count=preserve_active_voice_count,
+            add_editorial_harmony=add_editorial_harmony,
+            add_editorial_thirds=add_editorial_thirds,
+            editorial_harmony_target_active_parts=editorial_harmony_target_active_parts,
+            prefer_jazz_color_tones=True,
+            add_source_double_stops=add_source_double_stops,
+            normalize_short_note_rest_artifacts=normalize_short_note_rest_artifacts,
+        ),
+        policy=Take6QuartetCompressionPolicy(),
         candidate_semitones=candidate_semitones,
     )
 

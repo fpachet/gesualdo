@@ -18,9 +18,11 @@ from gesualdo_reduction.reduction import (
     build_quartet_plus_viole_score,
     build_quartet_score,
     build_six_voice_quartet_score,
+    build_take6_quartet_score,
     choose_global_transposition,
     extract_events,
     key_signature_transposition_burden,
+    normalize_short_note_rest_artifacts,
     ql_to_fraction,
     reduce_to_piano,
     validate_score_measures,
@@ -504,6 +506,192 @@ def test_six_voice_quartet_reduction_keeps_third_before_duplicate():
     assert len(notes) == 4
     assert {element.pitch.pitchClass for element in notes} == {0, 4, 7}
     assert any(element.pitch.name == "E" for element in notes)
+
+
+def test_take6_quartet_reduction_prefers_guide_tones_in_dense_sonority():
+    score = make_score(
+        [
+            make_part("lead", [(0, 4, "C6")]),
+            make_part("ninth", [(0, 4, "D5")]),
+            make_part("seventh", [(0, 4, "B-4")]),
+            make_part("third", [(0, 4, "E4")]),
+            make_part("fifth", [(0, 4, "G3")]),
+            make_part("bass", [(0, 4, "C2")]),
+        ]
+    )
+
+    bars = build_bar_map(score)
+    reduced = build_take6_quartet_score(score, enforce_ranges=False)
+
+    assert_measures_are_exact(reduced, bars)
+    notes = [
+        element
+        for part in reduced.parts
+        for element in list(part.getElementsByClass(stream.Measure))[0].notes
+    ]
+
+    assert len(notes) == 4
+    assert {element.pitch.pitchClass for element in notes} == {0, 4, 10}
+    assert any(element.pitch.name == "E" for element in notes)
+    assert any(element.pitch.name == "B-" for element in notes)
+    assert not any(element.pitch.name == "G" for element in notes)
+
+
+def test_take6_voice_preservation_continues_line_before_doubling_third():
+    score = make_score(
+        [
+            make_part("lead", [(0, 2, "A4"), (2, 1, "A4"), (3, 1, "A4")]),
+            make_part("duplicate third", [(0, 2, "A4"), (2, 1, "A4"), (3, 1, "A4")]),
+            make_part("inner line", [(0, 2, "G4"), (2, 1, "G4"), (3, 1, "F4")]),
+            make_part("fifth", [(0, 2, "C4"), (2, 1, "C4"), (3, 1, "C4")]),
+            make_part("duplicate fifth", [(0, 2, "C4"), (2, 1, "C4"), (3, 1, "C4")]),
+            make_part("bass", [(0, 2, "F3"), (2, 1, "F3"), (3, 1, "F3")]),
+        ]
+    )
+
+    reduced = build_take6_quartet_score(score, enforce_ranges=False)
+    violin_2_measure = list(reduced.parts[1].getElementsByClass(stream.Measure))[0]
+    violin_2_notes = list(violin_2_measure.notes)
+
+    assert [element.pitch.nameWithOctave for element in violin_2_notes] == ["G4", "G4", "F4"]
+
+
+def test_take6_double_stops_are_optional_and_source_based():
+    score = make_score(
+        [
+            make_part("lead", [(0, 4, "C6")]),
+            make_part("ninth", [(0, 4, "D5")]),
+            make_part("seventh", [(0, 4, "B-4")]),
+            make_part("third", [(0, 4, "E4")]),
+            make_part("fifth", [(0, 4, "G3")]),
+            make_part("bass", [(0, 4, "C2")]),
+        ]
+    )
+
+    plain = build_take6_quartet_score(score, enforce_ranges=False)
+    doubled = build_take6_quartet_score(score, enforce_ranges=False, add_source_double_stops=True)
+
+    assert not any(element.isChord for part in plain.parts for element in part.recurse().notesAndRests)
+    chords = [element for part in doubled.parts for element in part.recurse().notesAndRests if element.isChord]
+    assert chords
+
+    represented_pitch_classes = set()
+    for part in doubled.parts:
+        measure = list(part.getElementsByClass(stream.Measure))[0]
+        for element in measure.notes:
+            if element.isChord:
+                represented_pitch_classes.update(chord_note.pitch.pitchClass for chord_note in element.notes)
+                assert hasattr(element.editorial, "sourceEventIds")
+            else:
+                represented_pitch_classes.add(element.pitch.pitchClass)
+
+    assert represented_pitch_classes == {0, 2, 4, 7, 10}
+
+
+def test_take6_double_stop_can_split_longer_host_event():
+    score = make_score(
+        [
+            make_part("lead", [(0, 3, "D5")]),
+            make_part("alto", [(0, 3, "A4")]),
+            make_part("third", [(0, 2, "E4")]),
+            make_part("root color", [(0, 3, "C4")]),
+            make_part("sharp five", [(0, 2, "F#3")]),
+            make_part("bass", [(0, 3, "B-2")]),
+        ]
+    )
+
+    doubled = build_take6_quartet_score(score, enforce_ranges=False, add_source_double_stops=True)
+    active_pitch_classes = set()
+    for part in doubled.parts:
+        measure = list(part.getElementsByClass(stream.Measure))[0]
+        for element in measure.notes:
+            if element.offset > 0:
+                continue
+            if element.isChord:
+                active_pitch_classes.update(chord_note.pitch.pitchClass for chord_note in element.notes)
+            else:
+                active_pitch_classes.add(element.pitch.pitchClass)
+
+    assert active_pitch_classes == {0, 2, 4, 6, 9, 10}
+    cello_measure = list(doubled.parts[3].getElementsByClass(stream.Measure))[0]
+    assert cello_measure.notes[0].isChord
+    assert ql_to_fraction(cello_measure.notes[0].quarterLength) == Fraction(2, 1)
+    assert ql_to_fraction(cello_measure.notes[1].quarterLength) == Fraction(1, 1)
+
+
+def test_take6_double_stops_preserve_long_source_doublings():
+    score = make_score(
+        [
+            make_part("lead", [(0, 4, "D5"), (4, 4, "C5")]),
+            make_part("alto", [(0, 4, "A4"), (4, 4, "G4")]),
+            make_part("upper duplicate", [(0, 4, "G4"), (4, 4, "E4")]),
+            make_part("lower duplicate", [(0, 4, "D4"), (4, 4, "C4")]),
+            make_part("baritone", [(0, 4, "B3"), (4, 4, "G3")]),
+            make_part("bass", [(0, 4, "G2"), (4, 4, "C2")]),
+        ]
+    )
+
+    doubled = build_take6_quartet_score(score, enforce_ranges=False, add_source_double_stops=True)
+    output_pitches = []
+    chord_count = 0
+    for part in doubled.parts:
+        for element in part.flatten().notes:
+            start = ql_to_fraction(element.offset)
+            end = start + ql_to_fraction(element.quarterLength)
+            if not (start <= Fraction(0, 1) < end):
+                continue
+            if element.isChord:
+                chord_count += 1
+                output_pitches.extend(chord_note.pitch.nameWithOctave for chord_note in element.notes)
+            else:
+                output_pitches.append(element.pitch.nameWithOctave)
+
+    assert chord_count == 2
+    assert sorted(output_pitches) == sorted(["G2", "B3", "D4", "G4", "A4", "D5"])
+
+
+def test_take6_double_stops_do_not_preserve_short_source_doublings():
+    score = make_score(
+        [
+            make_part("lead", [(0, 1, "D5"), (1, 3, None)]),
+            make_part("alto", [(0, 1, "A4"), (1, 3, None)]),
+            make_part("upper duplicate", [(0, 1, "G4"), (1, 3, None)]),
+            make_part("lower duplicate", [(0, 1, "D4"), (1, 3, None)]),
+            make_part("baritone", [(0, 1, "B3"), (1, 3, None)]),
+            make_part("bass", [(0, 1, "G2"), (1, 3, None)]),
+        ]
+    )
+
+    doubled = build_take6_quartet_score(score, enforce_ranges=False, add_source_double_stops=True)
+    output_pitches = []
+    for part in doubled.parts:
+        for element in part.flatten().notes:
+            start = ql_to_fraction(element.offset)
+            end = start + ql_to_fraction(element.quarterLength)
+            if start <= Fraction(0, 1) < end:
+                if element.isChord:
+                    output_pitches.extend(chord_note.pitch.nameWithOctave for chord_note in element.notes)
+                else:
+                    output_pitches.append(element.pitch.nameWithOctave)
+
+    assert len(output_pitches) == 4
+    assert set(name[:-1] for name in output_pitches) == {"G", "B", "A", "D"}
+
+
+def test_short_note_rest_artifact_normalization_snaps_isolated_odd_pair():
+    events = [
+        SourceEvent("p0:e0", 0, 0, Fraction(0, 1), Fraction(5, 12), 64, False),
+        SourceEvent("p0:e1", 0, 1, Fraction(5, 12), Fraction(7, 12), None, True),
+        SourceEvent("p0:e2", 0, 2, Fraction(1, 1), Fraction(1, 1), 62, False),
+    ]
+
+    normalized = normalize_short_note_rest_artifacts(events)
+
+    assert [(event.start, event.duration, event.is_rest) for event in normalized] == [
+        (Fraction(0, 1), Fraction(1, 2), False),
+        (Fraction(1, 2), Fraction(1, 2), True),
+        (Fraction(1, 1), Fraction(1, 1), False),
+    ]
 
 
 def test_six_voice_quartet_reduction_trims_overlapping_outer_source_voice():

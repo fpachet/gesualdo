@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+"""Generate Take 6-tuned six-voice string-quartet reductions."""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import re
+import sys
+from pathlib import Path
+
+from music21 import converter
+
+from gesualdo_reduction.reduction import reduce_take6_to_quartet
+
+
+SUPPORTED_SUFFIXES = {".mxl", ".musicxml", ".xml", ".mid", ".midi"}
+
+
+def slugify(text: str) -> str:
+    slug = re.sub(r"[^A-Za-z0-9]+", "_", text).strip("_").lower()
+    return slug or "untitled"
+
+
+def discover_sources(input_dir: Path | None, explicit_sources: list[Path]) -> list[Path]:
+    sources = list(explicit_sources)
+    if input_dir is not None:
+        sources.extend(
+            path
+            for path in sorted(input_dir.rglob("*"))
+            if path.is_file() and path.suffix.lower() in SUPPORTED_SUFFIXES
+        )
+    unique: dict[Path, None] = {}
+    for source in sources:
+        unique[source] = None
+    return list(unique)
+
+
+def write_report(path: Path, rows: list[dict[str, str]]) -> None:
+    fields = [
+        "source_path",
+        "source_parts",
+        "output_path",
+        "global_transposition",
+        "status",
+        "error",
+    ]
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t")
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("sources", nargs="*", type=Path)
+    parser.add_argument("--input-dir", type=Path, default=Path("data/take6/sources"))
+    parser.add_argument("--output-dir", type=Path, default=Path("data/take6/reductions/string_quartet"))
+    parser.add_argument("--semitones", type=int, default=None)
+    parser.add_argument("--double-stops", action="store_true", help="Add conservative source double stops when playable.")
+    parser.add_argument(
+        "--no-normalize-artifacts",
+        action="store_true",
+        help="Disable conservative cleanup of isolated MIDI note+rest duration artifacts.",
+    )
+    parser.add_argument("--force", action="store_true", help="Regenerate existing reductions.")
+    args = parser.parse_args()
+
+    input_dir = args.input_dir if args.input_dir.exists() else None
+    sources = discover_sources(input_dir, args.sources)
+    if not sources:
+        print("No Take 6 source files found.", file=sys.stderr)
+        return 2
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    report_rows: list[dict[str, str]] = []
+    for ordinal, source_path in enumerate(sources, start=1):
+        output_path = args.output_dir / f"{slugify(source_path.stem)}.musicxml"
+        print(f"[{ordinal:03d}/{len(sources):03d}] {source_path}", flush=True)
+        try:
+            parsed = converter.parse(source_path)
+            source_parts = len(parsed.parts)
+            if source_parts != 6:
+                raise ValueError(f"expected 6 parts, found {source_parts}")
+
+            if output_path.exists() and not args.force:
+                reduced = converter.parse(output_path)
+            else:
+                reduced = reduce_take6_to_quartet(
+                    source_path,
+                    semitones=args.semitones,
+                    out_path=output_path,
+                    add_source_double_stops=args.double_stops,
+                    normalize_short_note_rest_artifacts=not args.no_normalize_artifacts,
+                )
+            report_rows.append(
+                {
+                    "source_path": str(source_path),
+                    "source_parts": str(source_parts),
+                    "output_path": str(output_path),
+                    "global_transposition": str(getattr(reduced.editorial, "globalTransposition", "")),
+                    "status": "ok",
+                    "error": "",
+                }
+            )
+        except Exception as exc:
+            report_rows.append(
+                {
+                    "source_path": str(source_path),
+                    "source_parts": "",
+                    "output_path": str(output_path),
+                    "global_transposition": "",
+                    "status": "error",
+                    "error": str(exc),
+                }
+            )
+
+    write_report(args.output_dir / "report.tsv", report_rows)
+    error_count = sum(row["status"] == "error" for row in report_rows)
+    print(f"Generated {len(report_rows) - error_count} reductions. Logged {error_count} errors.")
+    return 0 if error_count == 0 else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
