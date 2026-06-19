@@ -25,6 +25,8 @@ from gesualdo_reduction.reduction import (
     normalize_short_note_rest_artifacts,
     ql_to_fraction,
     reduce_to_piano,
+    reduce_to_quartet,
+    reduce_take6_to_quartet,
     validate_score_measures,
 )
 
@@ -898,4 +900,56 @@ def test_reduce_to_piano_uses_adaptive_transposition_by_default(tmp_path):
     reduced = reduce_to_piano(midi_path, out_path=out_path, candidate_semitones=range(-12, 1))
 
     assert reduced.editorial.globalTransposition == -12
+    assert out_path.exists()
+
+
+def test_reduction_metadata_uses_source_filename_and_default_composer(tmp_path):
+    score = make_score(
+        [
+            make_part("top", [(0, 4, "C5")]),
+            make_part("middle 1", [(0, 4, "E4")]),
+            make_part("middle 2", [(0, 4, "G4")]),
+            make_part("bottom", [(0, 4, "C3")]),
+        ]
+    )
+    midi_path = tmp_path / "47 A quiet place, originalrevu.mid"
+    out_path = tmp_path / "quartet.musicxml"
+    score.write("midi", fp=str(midi_path))
+
+    reduced = reduce_to_quartet(
+        midi_path,
+        out_path=out_path,
+        enforce_ranges=False,
+        candidate_semitones=(0,),
+    )
+
+    assert reduced.metadata.title == "A Quiet Place - Reduction for String Quartet"
+    assert reduced.metadata.composer == "F. Pachet and AI"
+    assert out_path.exists()
+
+
+def test_take6_reduction_metadata_uses_take6_composer_and_clean_title(tmp_path):
+    score = make_score(
+        [
+            make_part("lead", [(0, 4, "D5")]),
+            make_part("alto", [(0, 4, "A4")]),
+            make_part("inner 1", [(0, 4, "G4")]),
+            make_part("inner 2", [(0, 4, "D4")]),
+            make_part("baritone", [(0, 4, "B3")]),
+            make_part("bass", [(0, 4, "G2")]),
+        ]
+    )
+    midi_path = tmp_path / "47 A quiet place, originalrevu.mid"
+    out_path = tmp_path / "take6.musicxml"
+    score.write("midi", fp=str(midi_path))
+
+    reduced = reduce_take6_to_quartet(
+        midi_path,
+        out_path=out_path,
+        semitones=0,
+        add_source_double_stops=True,
+    )
+
+    assert reduced.metadata.title == "A Quiet Place - Reduction for String Quartet"
+    assert reduced.metadata.composer == "Take 6, arrangement F. Pachet and AI"
     assert out_path.exists()

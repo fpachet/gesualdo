@@ -8,6 +8,7 @@ require it.  It does not build rhythms from a global onset/offset grid.
 from __future__ import annotations
 
 import copy
+import re
 from dataclasses import dataclass, replace
 from fractions import Fraction
 from itertools import groupby, permutations
@@ -43,6 +44,9 @@ DEFAULT_TRANSPOSITION_CANDIDATES = tuple(range(-18, 7))
 KEY_SIGNATURE_TESSITURA_TOLERANCE = 0.02
 KEY_SIGNATURE_MIN_ABS_IMPROVEMENT = 2.0
 KEY_SIGNATURE_MIN_REL_IMPROVEMENT = 0.40
+DEFAULT_REDUCTION_COMPOSER = "F. Pachet and AI"
+TAKE6_REDUCTION_COMPOSER = "Take 6, arrangement F. Pachet and AI"
+TITLE_SMALL_WORDS = {"a", "an", "and", "as", "at", "but", "by", "de", "du", "et", "for", "in", "of", "on", "or", "the", "to"}
 
 RANGES = {
     "vln1": (55, 100),  # G3..E7
@@ -226,7 +230,7 @@ def viole_damour_instrument() -> instrument.Instrument:
 
 STRING_QUARTET = EnsembleProfile(
     name="string_quartet",
-    title_suffix="String Quartet Reduction",
+    title_suffix="Reduction for String Quartet",
     minimum_source_parts=4,
     parts=(
         TargetPart(
@@ -269,7 +273,7 @@ STRING_QUARTET = EnsembleProfile(
 
 QUARTET_PLUS_VIOLE = EnsembleProfile(
     name="quartet_plus_viole",
-    title_suffix="String Quartet + Viole d'amour Reduction",
+    title_suffix="Reduction for String Quartet + Viole d'amour",
     minimum_source_parts=5,
     parts=(
         TargetPart(
@@ -320,7 +324,7 @@ QUARTET_PLUS_VIOLE = EnsembleProfile(
 
 PIANO_REDUCTION = EnsembleProfile(
     name="piano",
-    title_suffix="Piano Reduction",
+    title_suffix="Reduction for Piano",
     minimum_source_parts=2,
     parts=(
         TargetPart(
@@ -354,6 +358,44 @@ def ql_to_fraction(value) -> Fraction:
     if isinstance(normalized, int):
         return Fraction(normalized, 1)
     return Fraction(normalized).limit_denominator(MAX_DENOMINATOR)
+
+
+def title_from_source_path(source_path: str | Path) -> str:
+    title = Path(source_path).stem.replace("_", " ").strip()
+    title = re.sub(r"^\d+\s+", "", title)
+    title = re.sub(r"\s*,?\s*originalrevu$", "", title, flags=re.IGNORECASE)
+    title = title.strip() or Path(source_path).stem
+    words = title.split()
+    cased_words = [
+        word.lower() if index > 0 and word.lower() in TITLE_SMALL_WORDS else word[:1].upper() + word[1:]
+        for index, word in enumerate(words)
+    ]
+    return " ".join(cased_words)
+
+
+def source_score_title(src_score: stream.Score) -> str:
+    if src_score.metadata and src_score.metadata.title:
+        return str(src_score.metadata.title).strip()
+    return ""
+
+
+def reduction_title(source_title: str, profile: EnsembleProfile) -> str:
+    source_title = source_title.strip()
+    return f"{source_title} - {profile.title_suffix}" if source_title else profile.title_suffix
+
+
+def set_reduction_metadata(
+    out_score: stream.Score,
+    src_score: stream.Score,
+    profile: EnsembleProfile,
+    *,
+    source_title: str | None = None,
+    composer: str = DEFAULT_REDUCTION_COMPOSER,
+) -> None:
+    out_score.insert(0, metadata.Metadata())
+    title = source_title or source_score_title(src_score)
+    out_score.metadata.title = reduction_title(title, profile)
+    out_score.metadata.composer = composer
 
 
 def fraction_to_ql(value: Fraction):
@@ -3212,10 +3254,14 @@ class ReductionBuilder:
         *,
         config: ReductionConfig | None = None,
         policy: AssignmentPolicy | None = None,
+        source_title: str | None = None,
+        reduction_composer: str = DEFAULT_REDUCTION_COMPOSER,
     ) -> None:
         self.profile = profile
         self.config = config or ReductionConfig()
         self.policy = policy or RegisterAssignmentPolicy()
+        self.source_title = source_title
+        self.reduction_composer = reduction_composer
 
     def build_context(self, src_score: stream.Score) -> ReductionContext:
         bars = tuple(build_bar_map(src_score))
@@ -3281,10 +3327,13 @@ class ReductionBuilder:
         assignments = self.policy.assign(context, self.profile, self.config)
 
         out = stream.Score()
-        out.insert(0, metadata.Metadata())
-        if src_score.metadata:
-            out.metadata.title = ((src_score.metadata.title or "") + f" - {self.profile.title_suffix}").strip(" -")
-            out.metadata.composer = src_score.metadata.composer
+        set_reduction_metadata(
+            out,
+            src_score,
+            self.profile,
+            source_title=self.source_title,
+            composer=self.reduction_composer,
+        )
 
         for target in self.profile.parts:
             measured_part = build_measured_part(
@@ -3315,8 +3364,16 @@ def build_ensemble_score(
     *,
     config: ReductionConfig | None = None,
     policy: AssignmentPolicy | None = None,
+    source_title: str | None = None,
+    reduction_composer: str = DEFAULT_REDUCTION_COMPOSER,
 ) -> stream.Score:
-    return ReductionBuilder(profile, config=config, policy=policy).build_score(src_score)
+    return ReductionBuilder(
+        profile,
+        config=config,
+        policy=policy,
+        source_title=source_title,
+        reduction_composer=reduction_composer,
+    ).build_score(src_score)
 
 
 def build_piano_score(
@@ -3371,10 +3428,7 @@ def build_piano_score(
     )
 
     out = stream.Score()
-    out.insert(0, metadata.Metadata())
-    if src_score.metadata:
-        out.metadata.title = ((src_score.metadata.title or "") + f" - {PIANO_REDUCTION.title_suffix}").strip(" -")
-        out.metadata.composer = src_score.metadata.composer
+    set_reduction_metadata(out, src_score, PIANO_REDUCTION)
 
     out.insert(0, right_staff)
     out.insert(0, left_staff)
@@ -3470,6 +3524,7 @@ def build_take6_quartet_score(
             normalize_short_note_rest_artifacts=normalize_short_note_rest_artifacts,
         ),
         policy=Take6QuartetCompressionPolicy(),
+        reduction_composer=TAKE6_REDUCTION_COMPOSER,
     )
 
 
@@ -3523,6 +3578,7 @@ def reduce_to_ensemble(
     config: ReductionConfig | None = None,
     policy: AssignmentPolicy | None = None,
     candidate_semitones: Sequence[int] = DEFAULT_TRANSPOSITION_CANDIDATES,
+    reduction_composer: str = DEFAULT_REDUCTION_COMPOSER,
 ) -> stream.Score:
     src_score = converter.parse(midi_path)
     src_score, chosen_semitones = _transpose_score_for_reduction(
@@ -3531,7 +3587,14 @@ def reduce_to_ensemble(
         semitones,
         candidate_semitones=candidate_semitones,
     )
-    out_score = build_ensemble_score(src_score, profile, config=config, policy=policy)
+    out_score = build_ensemble_score(
+        src_score,
+        profile,
+        config=config,
+        policy=policy,
+        source_title=title_from_source_path(midi_path),
+        reduction_composer=reduction_composer,
+    )
     out_score.editorial.globalTransposition = chosen_semitones
     out_score.write("musicxml", fp=str(out_path))
     print(f"Written: {out_path} (semitones={chosen_semitones})")
@@ -3633,6 +3696,7 @@ def reduce_take6_to_quartet(
         ),
         policy=Take6QuartetCompressionPolicy(),
         candidate_semitones=candidate_semitones,
+        reduction_composer=TAKE6_REDUCTION_COMPOSER,
     )
 
 

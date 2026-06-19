@@ -142,6 +142,8 @@ With `add_source_double_stops=True`, the reducer can add conservative playable
 double-stops from real source notes. It normally uses them for missing pitch
 classes; on long homorhythmic attacks it may also preserve source octave
 doublings so a sustained six-voice chord does not collapse unnecessarily.
+File-based Take 6 reductions also clean the displayed source title and stamp
+the score composer as `Take 6, arrangement F. Pachet and AI`.
 The detailed editorial rules are documented in
 `docs/take6_reduction_rules.md`.
 

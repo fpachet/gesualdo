@@ -34,6 +34,12 @@ The output target remains Violin I, Violin II, Viola, and Cello. The reducer is
 therefore allowed to compress six source voices, but every copied note remains
 traceable to a real source event.
 
+The generated MusicXML title is derived from the source filename when reducing
+from a file path. For example, `47 A quiet place, originalrevu.mid` becomes
+`A Quiet Place - Reduction for String Quartet`. Take 6 reductions write the
+score composer as `Take 6, arrangement F. Pachet and AI` so exported PDFs and
+audio renders no longer inherit the generic Music21 metadata.
+
 ## Source Preparation
 
 1. Parse all six source parts.
@@ -288,4 +294,3 @@ source-based, and playable under the current conservative model.
 
    The reducer reasons mostly in MIDI pitch and pitch class. Some enharmonic
    spelling choices may still need review in MuseScore.
-
