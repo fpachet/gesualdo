@@ -160,6 +160,13 @@ reducer now uses the part with real non-initial time-signature events as the
 authoritative measure map, eliminating the stutter/repeated phrase caused by
 merging incompatible part-local measures.
 
+The same `Hark Herald` pass exposed a cello continuity problem at measures 2-3.
+The cello borrowed the lower source line at the end of measure 2, then dropped
+out for two beats because the next lower notes duplicated pitch classes already
+covered above. The preservation matcher now reserves same-source continuations
+before assigning other missing voices, so the cello continues the line through
+measure 3 instead of making a short entrance, rest, and second entrance.
+
 Implemented:
 
 - Added pitch-class-preserving octave optimization in

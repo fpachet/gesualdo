@@ -814,6 +814,33 @@ def test_take6_voice_preservation_continues_line_before_doubling_third():
     assert [element.pitch.nameWithOctave for element in violin_2_notes] == ["G4", "G4", "F4"]
 
 
+def test_take6_voice_preservation_keeps_continuing_octave_duplicate_line():
+    score = make_score(
+        [
+            make_part("lead", [(0, 1, "G5"), (1, 1, "A5"), (4, 1, "G5")]),
+            make_part("high inner", [(4, 1, "E5")]),
+            make_part("inner 1", [(4, 1, "D4")]),
+            make_part("inner 2", [(4, 1, "B3")]),
+            make_part("borrowed lower line", [(0, 1, "E3"), (1, 1, "A3"), (4, 1, "C3")]),
+            make_part("bass", [(4, 1, "C2")]),
+        ]
+    )
+
+    reduced = build_take6_quartet_score(score, enforce_ranges=False)
+    carrying_parts = []
+    for part_index, part in enumerate(reduced.parts):
+        early_notes = [
+            element
+            for element in part.flatten().notes
+            if ql_to_fraction(element.offset) in {Fraction(0, 1), Fraction(1, 1)}
+            and getattr(element.editorial, "sourcePartIndex", None) == 4
+        ]
+        if early_notes:
+            carrying_parts.append((part_index, [element.pitch.nameWithOctave for element in early_notes]))
+
+    assert carrying_parts == [(2, ["E3", "A3"])]
+
+
 def test_take6_double_stops_are_optional_and_source_based():
     score = make_score(
         [

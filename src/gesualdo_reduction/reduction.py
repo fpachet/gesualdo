@@ -1897,16 +1897,25 @@ def _continues_target_source_part(
     selected: dict[str, list[SourceEvent]],
     targets: Sequence[TargetPart],
 ) -> bool:
-    return any(
-        _target_is_free_for_event(target, event, selected)
-        and any(
+    return _target_continuing_source_part(event, selected, targets) is not None
+
+
+def _target_continuing_source_part(
+    event: SourceEvent,
+    selected: dict[str, list[SourceEvent]],
+    targets: Sequence[TargetPart],
+) -> TargetPart | None:
+    for target in targets:
+        if not _target_is_free_for_event(target, event, selected):
+            continue
+        if any(
             previous.part_index == event.part_index
             and previous.pitch_midi is not None
             and previous.end == event.start
             for previous in selected[target.id]
-        )
-        for target in targets
-    )
+        ):
+            return target
+    return None
 
 
 def _duplicate_color_tone_penalty(
@@ -2762,6 +2771,7 @@ def _select_inner_events(
                     and (
                         len(active_source_pitch_classes) >= 2
                         or event.pitch_midi % 12 not in covered_at_start
+                        or _continues_target_source_part(event, selected, targets)
                     )
                     and any(_target_is_free_for_event(target, event, selected) for target in targets)
                 ]
@@ -2805,14 +2815,27 @@ def _select_inner_events(
                 preserving_chosen = preserving_candidates[:needed]
                 preserve_pairs: list[tuple[TargetPart, SourceEvent]] = []
                 while preserving_chosen:
-                    preserve_pairs = _match_events_to_targets(
-                        preserving_chosen,
-                        targets,
+                    continuation_pairs: list[tuple[TargetPart, SourceEvent]] = []
+                    reserved_target_ids: set[str] = set()
+                    remaining_chosen: list[SourceEvent] = []
+                    for event in preserving_chosen:
+                        continuation_target = _target_continuing_source_part(event, selected, targets)
+                        if continuation_target is not None and continuation_target.id not in reserved_target_ids:
+                            continuation_pairs.append((continuation_target, event))
+                            reserved_target_ids.add(continuation_target.id)
+                        else:
+                            remaining_chosen.append(event)
+
+                    remaining_targets = [target for target in targets if target.id not in reserved_target_ids]
+                    matched_pairs = _match_events_to_targets(
+                        remaining_chosen,
+                        remaining_targets,
                         last_pitch,
                         config,
                         can_assign=lambda target, event: _target_is_free_for_event(target, event, selected),
                     )
-                    if preserve_pairs:
+                    if len(matched_pairs) == len(remaining_chosen):
+                        preserve_pairs = continuation_pairs + matched_pairs
                         break
                     preserving_chosen.pop()
                 for target, event in preserve_pairs:

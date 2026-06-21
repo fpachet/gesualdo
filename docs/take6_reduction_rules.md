@@ -219,6 +219,17 @@ longer inherit the generic Music21 metadata.
    measure, removing the visual rhythmic scar while still using real source
    notes.
 
+6. Keep borrowed source lines continuous through duplicate pitch classes.
+
+   A duplicate pitch class is normally lower priority than missing harmonic
+   material, but it can still be the right choice when it continues the same
+   source part on the same quartet instrument. In that case the reducer
+   reserves the continuing target before matching other preservation
+   candidates. This was added for `Hark Herald`, measures 2-3, where the cello
+   had already borrowed a lower source line at the end of measure 2; the next
+   two lower notes duplicate upper pitch classes, but keeping them avoids an
+   awkward stop-and-reenter cello gesture.
+
 ## Optional Source Double-Stops
 
 This layer is enabled with `add_source_double_stops=True` or the CLI
