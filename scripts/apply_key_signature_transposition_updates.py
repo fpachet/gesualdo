@@ -215,7 +215,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--audit", type=Path, default=DEFAULT_AUDIT)
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_OUTPUT_ROOT / "manifest.tsv")
-    parser.add_argument("--max-tessitura-delta", type=float, default=0.02)
+    parser.add_argument("--max-tessitura-delta", type=float, default=0.05)
     parser.add_argument("--dry-run", action="store_true")
     return parser
 

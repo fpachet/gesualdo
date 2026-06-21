@@ -12,6 +12,17 @@ from music21 import converter
 
 
 DEFAULT_MUSESCORE = Path("/Applications/MuseScore 4 2.app/Contents/MacOS/mscore")
+MUSESCORE_CANDIDATES = (
+    DEFAULT_MUSESCORE,
+    Path("/Applications/MuseScore 4.app/Contents/MacOS/mscore"),
+)
+
+
+def default_musescore_path() -> Path:
+    for candidate in MUSESCORE_CANDIDATES:
+        if candidate.exists():
+            return candidate
+    return DEFAULT_MUSESCORE
 DEFAULT_JOBS = (
     ("5-voices", "string_quartet"),
     ("5-voices", "string_quartet_plus_viole"),
@@ -89,7 +100,7 @@ def parse_job(value: str) -> tuple[str, str]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
-    parser.add_argument("--musescore", type=Path, default=DEFAULT_MUSESCORE)
+    parser.add_argument("--musescore", type=Path, default=default_musescore_path())
     parser.add_argument("--force", action="store_true")
     parser.add_argument(
         "--job",

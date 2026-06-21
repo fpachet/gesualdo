@@ -55,9 +55,21 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("sources", nargs="*", type=Path)
     parser.add_argument("--input-dir", type=Path, default=Path("data/take6/sources"))
-    parser.add_argument("--output-dir", type=Path, default=Path("data/take6/reductions/string_quartet"))
+    parser.add_argument("--output-dir", type=Path, default=Path("data/take6/reductions/string_quartet_double_stops"))
     parser.add_argument("--semitones", type=int, default=None)
-    parser.add_argument("--double-stops", action="store_true", help="Add conservative source double stops when playable.")
+    parser.add_argument(
+        "--double-stops",
+        dest="double_stops",
+        action="store_true",
+        default=True,
+        help="Add conservative source double stops when playable. Enabled by default.",
+    )
+    parser.add_argument(
+        "--no-double-stops",
+        dest="double_stops",
+        action="store_false",
+        help="Generate the older plain quartet comparison without double stops.",
+    )
     parser.add_argument(
         "--no-normalize-artifacts",
         action="store_true",

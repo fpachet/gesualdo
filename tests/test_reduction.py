@@ -4,8 +4,9 @@ import pytest
 
 pytest.importorskip("music21")
 
-from music21 import dynamics, key, meter, note, stream
+from music21 import clef, dynamics, key, meter, note, pitch, stream
 
+from gesualdo_reduction.notation_cleanup import cleanup_score
 from gesualdo_reduction.reduction import (
     PIANO_REDUCTION,
     ReductionConfig,
@@ -54,6 +55,91 @@ def assert_measures_are_exact(score, bars):
         for measure, bar in zip(part.getElementsByClass(stream.Measure), bars, strict=True):
             total = sum((ql_to_fraction(el.quarterLength) for el in measure.notesAndRests), Fraction(0, 1))
             assert total == bar.duration
+
+
+def test_cleanup_score_hides_redundant_naturals_and_adds_final_barlines():
+    score = stream.Score()
+    part = stream.Part()
+    part.partName = "Violin I"
+    measure = stream.Measure(number=1)
+    measure.insert(0, key.KeySignature(0))
+    first = note.Note("C4", quarterLength=1)
+    first.pitch.accidental = pitch.Accidental("natural")
+    second = note.Note("D4", quarterLength=3)
+    measure.insert(0, first)
+    measure.insert(1, second)
+    part.insert(0, measure)
+    score.insert(0, part)
+
+    report = cleanup_score(score)
+
+    assert report.suppressed_naturals == 1
+    assert first.pitch.accidental.displayStatus is False
+    assert measure.rightBarline.type == "final"
+
+
+def test_cleanup_score_preserves_key_signature_natural():
+    score = stream.Score()
+    part = stream.Part()
+    measure = stream.Measure(number=1)
+    measure.insert(0, key.KeySignature(-1))
+    b_natural = note.Note("B4", quarterLength=4)
+    b_natural.pitch.accidental = pitch.Accidental("natural")
+    measure.insert(0, b_natural)
+    part.insert(0, measure)
+    score.insert(0, part)
+
+    report = cleanup_score(score)
+
+    assert report.suppressed_naturals == 0
+    assert b_natural.pitch.accidental.displayStatus is not False
+
+
+def test_cleanup_score_clean_mode_removes_dynamics_and_hairpins():
+    score = stream.Score()
+    part = stream.Part()
+    part.partName = "Violin I"
+    measure = stream.Measure(number=1)
+    first = note.Note("C4", quarterLength=2)
+    second = note.Note("D4", quarterLength=2)
+    measure.insert(0, first)
+    measure.insert(2, second)
+    measure.insert(0, dynamics.Dynamic("mf"))
+    part.insert(0, measure)
+    score.insert(0, part)
+    hairpin = dynamics.Crescendo()
+    hairpin.addSpannedElements([first, second])
+    score.insert(0, hairpin)
+
+    report = cleanup_score(score, clean_dynamics=True)
+
+    assert report.removed_dynamics == 1
+    assert report.removed_hairpins == 1
+    assert not list(score.recurse().getElementsByClass(dynamics.Dynamic))
+    assert not list(score.recurse().getElementsByClass(dynamics.DynamicWedge))
+
+
+def test_cleanup_score_adds_cello_high_clef_without_flicker():
+    score = stream.Score()
+    cello = stream.Part()
+    cello.partName = "Violoncello"
+    first_measure = stream.Measure(number=1)
+    first_measure.insert(0, clef.BassClef())
+    first_measure.insert(0, note.Note("C3", quarterLength=4))
+    second_measure = stream.Measure(number=2)
+    second_measure.insert(0, note.Note("G4", quarterLength=4))
+    third_measure = stream.Measure(number=3)
+    third_measure.insert(0, note.Note("C3", quarterLength=4))
+    cello.insert(0, first_measure)
+    cello.insert(4, second_measure)
+    cello.insert(8, third_measure)
+    score.insert(0, cello)
+
+    report = cleanup_score(score)
+
+    assert report.cello_clef_changes_added == 2
+    assert any(isinstance(item, clef.TrebleClef) for item in second_measure.getElementsByClass(clef.Clef))
+    assert any(isinstance(item, clef.BassClef) for item in third_measure.getElementsByClass(clef.Clef))
 
 
 def test_global_transposition_can_prefer_cleaner_key_within_guard():

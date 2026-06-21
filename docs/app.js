@@ -73,6 +73,7 @@ const elements = {
   selectedScore: document.getElementById("selectedScore"),
   selectedDuration: document.getElementById("selectedDuration"),
   scoreLink: document.getElementById("scoreLink"),
+  pdfLink: document.getElementById("pdfLink"),
   mp3Link: document.getElementById("mp3Link"),
   midiLink: document.getElementById("midiLink"),
   scoreStatus: document.getElementById("scoreStatus"),
@@ -204,10 +205,22 @@ function kdfMp3Path(musicxmlPath) {
     .replace(/\.musicxml$/, ".mp3");
 }
 
+function kdfPdfPath(musicxmlPath) {
+  return musicxmlPath
+    .replace("/reductions/string_quartet/", "/renders/string_quartet_pdf/")
+    .replace(/\.musicxml$/, ".pdf");
+}
+
 function cpdlMp3Path(musicxmlPath, target) {
   return musicxmlPath
     .replace(`/reductions/${target}/`, `/renders/${target}_mp3/`)
     .replace(/\.musicxml$/, ".mp3");
+}
+
+function cpdlPdfPath(musicxmlPath, target) {
+  return musicxmlPath
+    .replace(`/reductions/${target}/`, `/renders/${target}_pdf/`)
+    .replace(/\.musicxml$/, ".pdf");
 }
 
 function normalizeKdfRow(row, dataset, order) {
@@ -228,6 +241,7 @@ function normalizeKdfRow(row, dataset, order) {
     semitones: numericValue(row.chosen_semitones),
     score: numericValue(row.transposition_score),
     musicxml,
+    pdf: kdfPdfPath(musicxml),
     mp3: dataset.hasAudio ? kdfMp3Path(musicxml) : "",
     measures: row.measures_per_part || "",
     reducedParts: numericValue(row.reduced_parts) || 4,
@@ -254,6 +268,7 @@ function normalizeCpdlRow(row, dataset, order) {
     semitones: numericValue(row.global_transposition),
     score: null,
     musicxml: row.output_path,
+    pdf: cpdlPdfPath(row.output_path, dataset.target),
     mp3: dataset.hasAudio ? cpdlMp3Path(row.output_path, dataset.target) : "",
     measures: "",
     reducedParts: dataset.target === "string_quartet_plus_viole" ? 5 : 4,
@@ -810,6 +825,7 @@ function renderSelected() {
   }
 
   setAssetLink(elements.scoreLink, piece.musicxml, piece.musicxml.split("/").pop(), "MusicXML");
+  setAssetLink(elements.pdfLink, piece.pdf, piece.pdf.split("/").pop(), "PDF");
   setOptionalAssetLink(elements.mp3Link, piece.mp3, piece.mp3 ? piece.mp3.split("/").pop() : "No MP3", "MP3");
   setAssetLink(elements.midiLink, sourceMidiPath(piece), piece.filename, "Source");
 
@@ -904,6 +920,7 @@ function exportCsv() {
     "shortlisted",
     "notes",
     "musicxml",
+    "pdf",
     "mp3",
   ];
   const rows = CATALOG.map((piece) => {
@@ -921,6 +938,7 @@ function exportCsv() {
       review.shortlisted ? "yes" : "no",
       review.notes,
       piece.musicxml,
+      piece.pdf,
       piece.mp3,
     ];
   });

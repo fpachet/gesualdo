@@ -9,7 +9,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from render_cpdl_mp3 import DEFAULT_MUSESCORE, render_musicxml
+from render_cpdl_mp3 import default_musescore_path, render_musicxml
 
 
 DEFAULT_MANIFEST = Path("outputs/transposition_comparison/obvious_key_signature/manifest.tsv")
@@ -68,7 +68,7 @@ def run(args: argparse.Namespace) -> dict[str, int]:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
-    parser.add_argument("--musescore", type=Path, default=DEFAULT_MUSESCORE)
+    parser.add_argument("--musescore", type=Path, default=default_musescore_path())
     return parser
 
 

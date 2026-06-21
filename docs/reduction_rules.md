@@ -58,7 +58,7 @@ harmony.
    sharps/flats to one matters much more than a cosmetic one-step change.
 
    The production guardrail is deliberately conservative: the cleaner-key
-   candidate must be within `0.02` of the best range/register score, must reduce
+   candidate must be within `0.05` of the best range/register score, must reduce
    the weighted key-signature burden by at least `2.0`, and must improve it by
    at least `40%`.  Ties are broken toward the lower key burden, then the better
    tessitura score, then the smaller move away from the range/register winner.
