@@ -12,8 +12,8 @@ Checks:
 
 | Kind | Count |
 | --- | ---: |
-| accidental_on_tie_continuation | 1867 |
-| dangling_tie | 2429 |
+| accidental_on_tie_continuation | 1868 |
+| dangling_tie | 2428 |
 | register_jump | 8393 |
 | sparse_fragment | 120 |
 | sparse_window | 55 |
@@ -58,8 +58,8 @@ Checks:
 | kdf_string_quartet | accidental_on_tie_continuation | 297 |
 | kdf_string_quartet | dangling_tie | 402 |
 | kdf_string_quartet | register_jump | 1339 |
-| take6_string_quartet_double_stops | accidental_on_tie_continuation | 135 |
-| take6_string_quartet_double_stops | dangling_tie | 101 |
+| take6_string_quartet_double_stops | accidental_on_tie_continuation | 136 |
+| take6_string_quartet_double_stops | dangling_tie | 100 |
 | take6_string_quartet_double_stops | register_jump | 359 |
 | take6_string_quartet_double_stops | sparse_fragment | 2 |
 
@@ -67,7 +67,7 @@ Checks:
 
 | Part | Kind | Count |
 | --- | --- | ---: |
-| Viola | accidental_on_tie_continuation | 589 |
+| Viola | accidental_on_tie_continuation | 590 |
 | Viola | dangling_tie | 930 |
 | Viola | register_jump | 1665 |
 | Viola | sparse_fragment | 18 |
@@ -83,7 +83,7 @@ Checks:
 | Violin I | sparse_fragment | 25 |
 | Violin I | sparse_window | 6 |
 | Violin II | accidental_on_tie_continuation | 650 |
-| Violin II | dangling_tie | 980 |
+| Violin II | dangling_tie | 979 |
 | Violin II | register_jump | 1429 |
 | Violin II | sparse_fragment | 17 |
 | Violin II | sparse_window | 10 |

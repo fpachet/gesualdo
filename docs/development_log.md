@@ -96,6 +96,13 @@ In response:
 The Take 6 reduction of `A Quiet Place` was used as the first local prototype
 for director-driven octave repair.
 
+Before octave optimization, the Take 6 reducer was improved to avoid tiny
+trimmed preservation fragments. In `A Quiet Place`, measure 18, this removed a
+`1/6`-quarter Violin II splice caused by clipping a straight eighth-note source
+line into a triplet-tied context. The reducer now keeps the full source event
+when trimming a duplicate-pitch preservation candidate would create a fragment
+shorter than a triplet eighth.
+
 Implemented:
 
 - Added pitch-class-preserving octave optimization in
@@ -157,11 +164,13 @@ The batch script:
 - caps this first rollout at 20 octave changes per piece;
 - writes per-piece octave-change reports and before/after audit comparisons;
 - verifies sounding pitch-class coverage before accepting each candidate.
+- assumes the Take 6 no-tiny-splice preservation rule has already been applied
+  when generating the active Take 6 baseline reductions.
 
 The first broader rollout produced:
 
 - Take 6: 8 safe candidates out of 10, with 2 true invariant failures and 4
-  MusicXML-safe candidates whose PDF rendering failed.
+  MusicXML-safe candidates whose candidate-PDF rendering failed.
 - KDF Gesualdo: 37 safe candidates out of 37.
 - CPDL Gesualdo: 276 safe candidates out of 278.
 

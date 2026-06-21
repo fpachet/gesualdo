@@ -21,7 +21,7 @@ files under `data/`.
 
 | Corpus | Rows | Safe Candidates | True Failures | PDF Failures | Octave Changes | Issues Before | Issues After |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Take 6 double-stop quartet | 10 | 8 | 2 | 4 | 175 | 460 | 149 |
+| Take 6 double-stop quartet | 10 | 8 | 2 | 4 | 175 | 460 | 147 |
 | KDF Gesualdo quartet | 37 | 37 | 0 | 0 | 1307 | 2038 | 129 |
 | CPDL Gesualdo quartet | 278 | 276 | 2 | 0 | 6293 | 9564 | 844 |
 
@@ -35,9 +35,9 @@ not render a PDF in this run.
 
 | Issue | Before | After |
 | --- | ---: | ---: |
-| `register_jump` | 269 | 120 |
-| `dangling_tie` | 80 | 0 |
-| `accidental_on_tie_continuation` | 109 | 27 |
+| `register_jump` | 269 | 118 |
+| `dangling_tie` | 79 | 0 |
+| `accidental_on_tie_continuation` | 110 | 27 |
 | `sparse_fragment` | 2 | 2 |
 | `sparse_window` | 0 | 0 |
 
@@ -90,6 +90,11 @@ The cleanup side of the workflow generalized very well: dangling ties and
 accidental-on-tie-continuation artifacts were eliminated for all safe Gesualdo
 candidates and most safe Take 6 candidates.
 
+The Take 6 baseline now includes the short-trim guard from commit `4534994`
+(`Avoid tiny Take 6 rhythm splices`). This rule prevents duplicate-pitch
+preservation from clipping a source event into an unreadably short fragment
+when the trimmed duration would be less than a triplet eighth.
+
 The octave optimizer strongly reduced register-jump warnings, but it did not
 eliminate all of them. This is expected for a conservative first rollout with a
 20-change cap per piece and range/register guardrails.
@@ -107,4 +112,3 @@ Before replacing active corpus files, review a shortlist:
 - representative CPDL five- and six-voice candidates;
 - the four true failures, to decide whether the issue is MusicXML serialization
   complexity or an optimizer bug.
-
