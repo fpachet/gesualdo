@@ -103,6 +103,13 @@ line into a triplet-tied context. The reducer now keeps the full source event
 when trimming a duplicate-pitch preservation candidate would create a fragment
 shorter than a triplet eighth.
 
+The same Take 6 pass was extended after inspecting `He Never Sleeps`, measure
+9. A fourth-source-voice pickup had disappeared because its pitch classes were
+already covered by less melodic lower voices. The double-stop layer now allows a
+narrow exception for exposed omitted melodic pickups: a duplicate pitch class
+from an otherwise unrepresented moving source voice may be attached as a
+playable double-stop, then continue alone if the host note releases.
+
 Implemented:
 
 - Added pitch-class-preserving octave optimization in
@@ -169,7 +176,7 @@ The batch script:
 
 The first broader rollout produced:
 
-- Take 6: 8 safe candidates out of 10, with 2 true invariant failures and 4
+- Take 6: 8 safe candidates out of 10, with 2 true invariant failures and 5
   MusicXML-safe candidates whose candidate-PDF rendering failed.
 - KDF Gesualdo: 37 safe candidates out of 37.
 - CPDL Gesualdo: 276 safe candidates out of 278.

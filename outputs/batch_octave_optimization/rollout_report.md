@@ -21,7 +21,7 @@ files under `data/`.
 
 | Corpus | Rows | Safe Candidates | True Failures | PDF Failures | Octave Changes | Issues Before | Issues After |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Take 6 double-stop quartet | 10 | 8 | 2 | 4 | 175 | 460 | 147 |
+| Take 6 double-stop quartet | 10 | 8 | 2 | 5 | 177 | 564 | 182 |
 | KDF Gesualdo quartet | 37 | 37 | 0 | 0 | 1307 | 2038 | 129 |
 | CPDL Gesualdo quartet | 278 | 276 | 2 | 0 | 6293 | 9564 | 844 |
 
@@ -35,9 +35,9 @@ not render a PDF in this run.
 
 | Issue | Before | After |
 | --- | ---: | ---: |
-| `register_jump` | 269 | 118 |
-| `dangling_tie` | 79 | 0 |
-| `accidental_on_tie_continuation` | 110 | 27 |
+| `register_jump` | 271 | 122 |
+| `dangling_tie` | 101 | 0 |
+| `accidental_on_tie_continuation` | 190 | 58 |
 | `sparse_fragment` | 2 | 2 |
 | `sparse_window` | 0 | 0 |
 
@@ -53,6 +53,7 @@ MusicXML-safe candidates with PDF render failure:
 - `spread_love`
 - `gold_mine`
 - `if_we_ever`
+- `hark_herald`
 - `come_unto_me`
 
 ### KDF Gesualdo Quartet
@@ -94,6 +95,13 @@ The Take 6 baseline now includes the short-trim guard from commit `4534994`
 (`Avoid tiny Take 6 rhythm splices`). This rule prevents duplicate-pitch
 preservation from clipping a source event into an unreadably short fragment
 when the trimmed duration would be less than a triplet eighth.
+
+The Take 6 baseline also includes an exposed-melodic-pickup exception introduced
+from `He Never Sleeps`, measure 9. It preserves an otherwise omitted moving
+source voice as a playable double-stop even when the pitch class is duplicated
+elsewhere. This intentionally keeps more source material, so some raw
+pre-cleanup notation-artifact counts rise before the cleanup pass removes
+dangling ties and tied-continuation accidentals.
 
 The octave optimizer strongly reduced register-jump warnings, but it did not
 eliminate all of them. This is expected for a conservative first rollout with a

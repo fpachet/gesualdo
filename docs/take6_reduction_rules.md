@@ -199,12 +199,28 @@ This layer is enabled with `add_source_double_stops=True` or the CLI
    is to preserve sustained sonority, not to make every transient verticality
    heavier.
 
-5. Keep at most two simultaneous notes on one string part.
+5. Preserve exposed omitted melodic pickups.
+
+   There is one narrow exception to the previous rule. If a source voice is not
+   otherwise represented, enters with real melodic motion, and can be attached
+   as a playable double-stop, the reducer may preserve it even when its pitch
+   class is already present elsewhere. This protects short audible pickups from
+   disappearing merely because another voice covers the same pitch class in a
+   less melodic register.
+
+   This rule was introduced for `He Never Sleeps`, measure 9. The fourth source
+   voice has an `E` to tied `F-sharp` pickup, transposed in the quartet output
+   to `F` to `G`. Earlier reductions omitted this line because those pitch
+   classes were already covered by lower voices. The current reduction keeps it
+   as a playable double-stop and lets the `G` continue alone when the host note
+   releases.
+
+6. Keep at most two simultaneous notes on one string part.
 
    The MusicXML writer accepts only real double-stops here, not triple-stops or
    independent polyphonic voices inside one string part.
 
-6. Require conservative playability.
+7. Require conservative playability.
 
    A double-stop candidate must fit the target instrument range and pass a
    simple adjacent-string check. The current accepted intervals are:
@@ -216,10 +232,13 @@ This layer is enabled with `add_source_double_stops=True` or the CLI
    The check also uses approximate string positions and rejects stretches that
    are too wide for this conservative model.
 
-7. Split host notes only when notation remains simple.
+8. Split host notes only when notation remains simple.
 
    A longer already-selected note may be split so a shorter source note can be
-   attached as a double-stop. The split is allowed only when both resulting
+   attached as a double-stop. This can happen at the host onset or inside an
+   already-sounding host note. If the source note continues after the host
+   releases, the overlapping portion is written as a double-stop and the tail
+   continues as a single note. The split is allowed only when all resulting
    durations have simple denominators:
 
    ```text

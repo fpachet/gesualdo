@@ -881,6 +881,37 @@ def test_take6_preservation_avoids_tiny_trimmed_duple_triplet_splice():
     ]
 
 
+def test_take6_double_stops_preserve_omitted_inner_melodic_pickup():
+    score = make_score(
+        [
+            make_part("lead", [(0, Fraction(3, 2), "G#4"), (Fraction(3, 2), Fraction(3, 2), "F#4"), (3, Fraction(5, 2), "A4"), (Fraction(11, 2), Fraction(1, 2), None)]),
+            make_part("inner 1", [(0, Fraction(3, 2), "E4"), (Fraction(3, 2), Fraction(3, 2), "D4"), (3, Fraction(5, 2), "D4"), (Fraction(11, 2), Fraction(1, 2), None)]),
+            make_part("inner 2", [(0, Fraction(3, 2), "C#4"), (Fraction(3, 2), Fraction(3, 2), "B3"), (3, Fraction(5, 2), "C#4"), (Fraction(11, 2), Fraction(1, 2), None)]),
+            make_part("melody pickup", [(0, 3, "A3"), (3, 1, None), (4, Fraction(1, 2), "E4"), (Fraction(9, 2), Fraction(3, 2), "F#4")]),
+            make_part("baritone", [(0, Fraction(3, 2), "F#3"), (Fraction(3, 2), Fraction(3, 4), "D3"), (Fraction(9, 4), Fraction(3, 4), "E3"), (3, Fraction(5, 2), "F#3"), (Fraction(11, 2), Fraction(1, 2), None)]),
+            make_part("bass", [(0, Fraction(3, 2), "D2"), (Fraction(3, 2), Fraction(3, 2), "G2"), (3, Fraction(5, 2), "E2"), (Fraction(11, 2), Fraction(1, 2), None)]),
+        ]
+    )
+
+    reduced = build_take6_quartet_score(score, enforce_ranges=False, add_source_double_stops=True)
+    sounding_by_offset: dict[Fraction, list[str]] = {}
+    for part in reduced.parts:
+        for element in part.flatten().notes:
+            start = ql_to_fraction(element.offset)
+            end = start + ql_to_fraction(element.quarterLength)
+            for probe in (Fraction(4, 1), Fraction(9, 2), Fraction(11, 2)):
+                if start <= probe < end:
+                    sounding_by_offset.setdefault(probe, [])
+                    if element.isChord:
+                        sounding_by_offset[probe].extend(chord_note.pitch.nameWithOctave for chord_note in element.notes)
+                    else:
+                        sounding_by_offset[probe].append(element.pitch.nameWithOctave)
+
+    assert "E4" in sounding_by_offset[Fraction(4, 1)]
+    assert "F#4" in sounding_by_offset[Fraction(9, 2)]
+    assert "F#4" in sounding_by_offset[Fraction(11, 2)]
+
+
 def test_short_note_rest_artifact_normalization_snaps_isolated_odd_pair():
     events = [
         SourceEvent("p0:e0", 0, 0, Fraction(0, 1), Fraction(5, 12), 64, False),

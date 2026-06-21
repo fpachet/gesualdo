@@ -1810,12 +1810,20 @@ def _split_host_for_double_stop(
 ) -> SourceEvent:
     if host.start == start and host.end == end:
         return host
-    if host.start != start or host.end < end:
+    if host.start > start or host.end < end:
         raise MeasureValidationError(f"Cannot split host event {host.source_id} for double stop.")
 
-    split_events = [
-        replace(host, duration=end - start, source_tie_type=None),
-    ]
+    split_events: list[SourceEvent] = []
+    if host.start < start:
+        split_events.append(
+            replace(
+                host,
+                duration=start - host.start,
+                source_tie_type=None,
+            )
+        )
+    overlap_event = replace(host, start=start, duration=end - start, source_tie_type=None)
+    split_events.append(overlap_event)
     if end < host.end:
         split_events.append(
             replace(
@@ -1829,7 +1837,7 @@ def _split_host_for_double_stop(
     target_events = selected[target.id]
     host_index = target_events.index(host)
     selected[target.id] = [*target_events[:host_index], *split_events, *target_events[host_index + 1:]]
-    return split_events[0]
+    return overlap_event
 
 
 def _target_attacks_at(
@@ -1849,22 +1857,28 @@ def _double_stop_hosts(
     targets: Sequence[TargetPart],
     candidate: SourceEvent,
     config: ReductionConfig,
-) -> list[tuple[TargetPart, SourceEvent, SourceEvent]]:
+) -> list[tuple[TargetPart, SourceEvent, tuple[SourceEvent, ...]]]:
     if candidate.pitch_midi is None:
         return []
-    result: list[tuple[TargetPart, SourceEvent, SourceEvent]] = []
+    result: list[tuple[TargetPart, SourceEvent, tuple[SourceEvent, ...]]] = []
     candidate_pitch = int(candidate.pitch_midi)
     for target in targets:
         overlapping_events = _overlapping_target_events(selected, target, candidate.start, candidate.end)
         if len(overlapping_events) != 1:
             continue
         event = overlapping_events[0]
-        if event.start != candidate.start or event.end < candidate.end:
+        if event.start > candidate.start:
             continue
-        if event.end != candidate.end and (
-            not _is_simple_split_duration(candidate.duration)
-            or not _is_simple_split_duration(event.end - candidate.end)
-        ):
+        overlap_end = min(event.end, candidate.end)
+        if overlap_end <= candidate.start:
+            continue
+        split_durations = [
+            candidate.start - event.start,
+            overlap_end - candidate.start,
+            event.end - overlap_end,
+            candidate.end - overlap_end,
+        ]
+        if any(duration > 0 and not _is_simple_split_duration(duration) for duration in split_durations):
             continue
         if _simultaneous_event_count(selected, target, candidate.start, candidate.end) >= 2:
             continue
@@ -1875,8 +1889,74 @@ def _double_stop_hosts(
         if host_pitch % 12 == fitted_candidate % 12:
             continue
         if _is_playable_double_stop(target, host_pitch, fitted_candidate):
-            result.append((target, event, replace(candidate, pitch_midi=fitted_candidate)))
+            prepared = [
+                replace(
+                    candidate,
+                    pitch_midi=fitted_candidate,
+                    duration=overlap_end - candidate.start,
+                    source_tie_type=None,
+                )
+            ]
+            if candidate.end > overlap_end:
+                prepared.append(
+                    replace(
+                        candidate,
+                        start=overlap_end,
+                        duration=candidate.end - overlap_end,
+                        pitch_midi=fitted_candidate,
+                        source_tie_type=None,
+                    )
+                )
+            result.append((target, event, tuple(prepared)))
     return result
+
+
+def _has_adjacent_source_motion(
+    event: SourceEvent,
+    events_by_part: dict[int, Sequence[SourceEvent]],
+    *,
+    max_gap: Fraction = Fraction(1, 2),
+) -> bool:
+    if event.pitch_midi is None:
+        return False
+    for sibling in events_by_part.get(event.part_index, ()):
+        if sibling.source_id == event.source_id or sibling.pitch_midi is None:
+            continue
+        if sibling.end <= event.start and event.start - sibling.end <= max_gap:
+            return True
+        if event.end <= sibling.start and sibling.start - event.end <= max_gap:
+            return True
+    return False
+
+
+def _add_double_stop_candidate(
+    selected: dict[str, list[SourceEvent]],
+    selected_source_ids: set[str],
+    covered_pitch_classes: set[int],
+    targets: Sequence[TargetPart],
+    candidate: SourceEvent,
+    config: ReductionConfig,
+) -> bool:
+    hosts = _double_stop_hosts(selected, targets, candidate, config)
+    if not hosts:
+        return False
+    target, host, prepared_events = min(
+        hosts,
+        key=lambda item: (
+            _target_attacks_at(selected, item[0], item[2][0].end),
+            item[0].role == "bottom",
+            _register_fit_score(item[0], int(item[2][0].pitch_midi), config),
+            item[1].end - item[2][0].end,
+            abs(int(item[2][0].pitch_midi) - int(candidate.pitch_midi)) / 12,
+            targets.index(item[0]),
+        ),
+    )
+    overlap = prepared_events[0]
+    _split_host_for_double_stop(selected, target, host, overlap.start, overlap.end)
+    selected[target.id].extend(prepared_events)
+    selected_source_ids.add(candidate.source_id)
+    covered_pitch_classes.add(int(overlap.pitch_midi) % 12)
+    return True
 
 
 def _is_long_homorhythmic_source_attack(
@@ -1908,6 +1988,9 @@ def _add_source_double_stops(
         for event in source_events
         if not event.is_rest and event.pitch_midi is not None
     ]
+    events_by_part: dict[int, list[SourceEvent]] = {}
+    for event in note_events:
+        events_by_part.setdefault(event.part_index, []).append(event)
     starts = sorted({event.start for event in note_events})
     for start in starts:
         active_source_events = _active_events_at(note_events, start)
@@ -1951,39 +2034,44 @@ def _add_source_double_stops(
         for candidate in candidates:
             if candidate.source_id in selected_source_ids:
                 continue
-            hosts = _double_stop_hosts(selected, targets, candidate, config)
-            if not hosts:
-                continue
-            target, host, prepared = min(
-                hosts,
-                key=lambda item: (
-                    _target_attacks_at(selected, item[0], item[2].end),
-                    item[0].role == "bottom",
-                    _register_fit_score(item[0], int(item[2].pitch_midi), config),
-                    item[1].end - item[2].end,
-                    abs(int(item[2].pitch_midi) - int(candidate.pitch_midi)) / 12,
-                    targets.index(item[0]),
-                ),
+            _add_double_stop_candidate(
+                selected,
+                selected_source_ids,
+                covered_pitch_classes,
+                targets,
+                candidate,
+                config,
             )
-            _split_host_for_double_stop(selected, target, host, prepared.start, prepared.end)
-            selected[target.id].append(prepared)
-            selected_source_ids.add(prepared.source_id)
-            covered_pitch_classes.add(int(prepared.pitch_midi) % 12)
 
         if not allow_source_doublings:
-            continue
+            represented_parts = _represented_source_parts(selected, start)
+            duplicate_candidates = [
+                event
+                for event in active_source_events
+                if event.source_id not in selected_source_ids
+                and event.pitch_midi is not None
+                and event.start == start
+                and int(event.pitch_midi) % 12 in covered_pitch_classes
+                and event.part_index not in represented_parts
+                and _is_new_onset(event)
+                and event.duration >= Fraction(1, 2)
+                and _has_adjacent_source_motion(event, events_by_part)
+            ]
+        else:
+            duplicate_candidates = [
+                event
+                for event in active_source_events
+                if event.source_id not in selected_source_ids
+                and event.pitch_midi is not None
+                and event.start == start
+                and int(event.pitch_midi) % 12 in covered_pitch_classes
+            ]
 
         added_duplicate_pitch_classes: set[int] = set()
-        duplicate_candidates = [
-            event
-            for event in active_source_events
-            if event.source_id not in selected_source_ids
-            and event.pitch_midi is not None
-            and event.start == start
-            and int(event.pitch_midi) % 12 in covered_pitch_classes
-        ]
+        added_melodic_parts: set[int] = set()
         duplicate_candidates.sort(
             key=lambda event: (
+                event.part_index in added_melodic_parts,
                 -event.duration,
                 -_jazz_color_tone_score(
                     int(event.pitch_midi) % 12,
@@ -1998,26 +2086,20 @@ def _add_source_double_stops(
             if candidate.source_id in selected_source_ids:
                 continue
             candidate_pitch_class = int(candidate.pitch_midi) % 12
-            if candidate_pitch_class in added_duplicate_pitch_classes:
+            if allow_source_doublings and candidate_pitch_class in added_duplicate_pitch_classes:
                 continue
-            hosts = _double_stop_hosts(selected, targets, candidate, config)
-            if not hosts:
+            if not allow_source_doublings and candidate.part_index in added_melodic_parts:
                 continue
-            target, host, prepared = min(
-                hosts,
-                key=lambda item: (
-                    _target_attacks_at(selected, item[0], item[2].end),
-                    item[0].role == "bottom",
-                    _register_fit_score(item[0], int(item[2].pitch_midi), config),
-                    item[1].end - item[2].end,
-                    abs(int(item[2].pitch_midi) - int(candidate.pitch_midi)) / 12,
-                    targets.index(item[0]),
-                ),
-            )
-            _split_host_for_double_stop(selected, target, host, prepared.start, prepared.end)
-            selected[target.id].append(prepared)
-            selected_source_ids.add(prepared.source_id)
-            added_duplicate_pitch_classes.add(candidate_pitch_class)
+            if _add_double_stop_candidate(
+                selected,
+                selected_source_ids,
+                covered_pitch_classes,
+                targets,
+                candidate,
+                config,
+            ):
+                added_duplicate_pitch_classes.add(candidate_pitch_class)
+                added_melodic_parts.add(candidate.part_index)
 
 
 def _selected_source_ids(selected: dict[str, list[SourceEvent]]) -> set[str]:
