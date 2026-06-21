@@ -6,6 +6,7 @@ pytest.importorskip("music21")
 
 from music21 import clef, dynamics, key, meter, note, pitch, stream, tie
 
+from gesualdo_reduction.musicxml_compat import strip_time_modifications
 from gesualdo_reduction.notation_cleanup import cleanup_score
 from gesualdo_reduction.octave_optimization import optimize_score_octaves
 from gesualdo_reduction.reduction import (
@@ -65,6 +66,36 @@ def test_editorial_dynamic_points_avoid_final_diminuendo():
 
     assert points[-1].bar_index == 3
     assert points[-1].level > points[-2].level
+
+
+def test_strip_time_modifications_preserves_tuplet_notations(tmp_path):
+    path = tmp_path / "tuplets.musicxml"
+    path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="3.1">
+  <part id="P1">
+    <measure number="1">
+      <note>
+        <pitch><step>C</step><octave>4</octave></pitch>
+        <duration>1</duration>
+        <time-modification>
+          <actual-notes>3</actual-notes>
+          <normal-notes>2</normal-notes>
+        </time-modification>
+        <notations><tuplet type="start"/></notations>
+      </note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    assert strip_time_modifications(path) == 1
+    musicxml = path.read_text(encoding="utf-8")
+    assert "<time-modification>" not in musicxml
+    assert "<duration>1</duration>" in musicxml
+    assert '<tuplet type="start"/>' in musicxml
 
 
 def test_cleanup_score_hides_redundant_naturals_and_adds_final_barlines():

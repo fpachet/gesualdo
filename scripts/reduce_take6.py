@@ -12,6 +12,7 @@ from pathlib import Path
 
 from music21 import converter, tempo
 
+from gesualdo_reduction.musicxml_compat import strip_time_modifications
 from gesualdo_reduction.reduction import reduce_take6_to_quartet, title_from_source_path
 
 
@@ -136,6 +137,7 @@ def main() -> int:
             if tempo_override is not None:
                 apply_tempo_override(reduced, tempo_override)
                 reduced.write("musicxml", fp=str(output_path))
+            strip_time_modifications(output_path)
             report_rows.append(
                 {
                     "source_path": str(source_path),

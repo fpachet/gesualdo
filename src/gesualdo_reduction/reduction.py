@@ -34,6 +34,8 @@ from music21 import (
     tie,
 )
 
+from gesualdo_reduction.musicxml_compat import strip_time_modifications
+
 
 SEMITONES = -9
 OUT_PATH = "gesualdo_quartet_V2.musicxml"
@@ -3844,7 +3846,7 @@ def reduce_take6_to_quartet(
     editorial_harmony_target_active_parts: int = 4,
     candidate_semitones: Sequence[int] = DEFAULT_TRANSPOSITION_CANDIDATES,
 ) -> stream.Score:
-    return reduce_to_ensemble(
+    out_score = reduce_to_ensemble(
         midi_path,
         STRING_QUARTET,
         semitones=semitones,
@@ -3865,6 +3867,8 @@ def reduce_take6_to_quartet(
         candidate_semitones=candidate_semitones,
         reduction_composer=TAKE6_REDUCTION_COMPOSER,
     )
+    strip_time_modifications(out_path)
+    return out_score
 
 
 def reduce_to_quartet_plus_viole(

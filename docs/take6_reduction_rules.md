@@ -96,7 +96,16 @@ longer inherit the generic Music21 metadata.
    `5/12` rest. The earlier note is now shortened to the following onset, so
    the following source attack can be represented normally.
 
-5. Preserve exact offsets and durations after cleanup.
+5. Strip MuseScore-problematic explicit time-modification tags.
+
+   The generated MusicXML keeps its exact `<duration>` values and tuplet
+   notation brackets, but the Take 6 pipeline removes music21-written
+   `<time-modification>` tags before saving final MusicXML files. MuseScore
+   Studio can otherwise over-count certain mixed tuplets and report corrupted
+   measures, as in `Come Unto Me`, measures 26 and 32, staff 2. This is an
+   import-compatibility pass rather than a rhythmic quantization pass.
+
+6. Preserve exact offsets and durations after cleanup.
 
    The reducer does not rebuild the piece on a new rhythmic grid. It copies
    source offsets and durations, splitting only where notation or double-stop

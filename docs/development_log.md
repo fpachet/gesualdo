@@ -131,11 +131,19 @@ melodic-pickup double-stops remain available.
 
 The later Take 6 director pass also corrected two score-level editorial items.
 Reviewed tempos are now stored outside the code in
-`data/take6/tempo_overrides.json`; currently `He Never Sleeps` is 50,
+`data/take6/tempo_overrides.json`; currently `He Never Sleeps` is 75,
 `A Quiet Place` is 68, `Hark Herald` is 108, and `If We Ever` is 117. The
 automatic editorial dynamics layer also avoids ending a score with a generated
 diminuendo; when the final generated transition would soften, the final point is
 raised so the closing hairpin opens instead.
+
+`Come Unto Me` then exposed a raw MusicXML import problem in MuseScore Studio:
+staff 2 was reported as overfull/incomplete in measures 26 and 32 even though
+music21 measured each bar exactly. The issue was the combination of exact
+MusicXML `<duration>` values with music21's explicit `<time-modification>` tags
+on mixed tuplets. The Take 6 generator now strips those tags after writing the
+MusicXML while preserving actual durations and tuplet notation brackets, so
+MuseScore imports the file without corruption warnings.
 
 Implemented:
 

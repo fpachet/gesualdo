@@ -45,6 +45,10 @@ def __getattr__(name: str):
         from importlib import import_module
 
         return getattr(import_module("gesualdo_reduction.notation_cleanup"), name)
+    if name in {"strip_time_modifications"}:
+        from importlib import import_module
+
+        return getattr(import_module("gesualdo_reduction.musicxml_compat"), name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
@@ -83,6 +87,7 @@ __all__ = [
     "reduce_to_quartet_plus_viole",
     "reduce_take6_to_quartet",
     "score_global_transposition",
+    "strip_time_modifications",
     "transposition_plan",
     "voice_ranges",
 ]
