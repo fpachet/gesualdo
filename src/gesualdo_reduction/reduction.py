@@ -1777,6 +1777,7 @@ _STRING_TUNINGS = {
 _CONSERVATIVE_DOUBLE_STOP_INTERVALS = {3, 4, 5, 6, 7, 8, 9, 12, 15, 16}
 _SIMPLE_SPLIT_DENOMINATORS = {1, 2, 3, 4, 6, 8}
 _LONG_HELD_DOUBLE_STOP_MIN_DURATION = Fraction(2, 1)
+_SOURCE_DOUBLE_STOP_MIN_DURATION = Fraction(1, 2)
 
 
 def _pitch_string_positions(midi_pitch: int, target: TargetPart) -> list[tuple[int, int]]:
@@ -1912,6 +1913,8 @@ def _double_stop_hosts(
             continue
         overlap_end = min(event.end, candidate.end)
         if overlap_end <= candidate.start:
+            continue
+        if overlap_end - candidate.start < _SOURCE_DOUBLE_STOP_MIN_DURATION:
             continue
         split_durations = [
             candidate.start - event.start,

@@ -207,13 +207,20 @@ This layer is enabled with `add_source_double_stops=True` or the CLI
    from collapsing into a thin four-note texture when the extra source notes
    are octave or register doublings.
 
-4. Do not densify short passing attacks with duplicate pitch classes.
+4. Do not add very short isolated double-stops.
+
+   Optional source double-stops must overlap their host note for at least a
+   half quarter note. Shorter source attacks stay monophonic in the quartet
+   line. This was added after `He Never Sleeps`, measure 27, where a quarter-note
+   source chord produced an awkward one-off Violin I double-stop.
+
+5. Do not densify short passing attacks with duplicate pitch classes.
 
    Duplicate-pitch-class double-stops are not added for short attacks. The goal
    is to preserve sustained sonority, not to make every transient verticality
    heavier.
 
-5. Preserve exposed omitted melodic pickups.
+6. Preserve exposed omitted melodic pickups.
 
    There is one narrow exception to the previous rule. If a source voice is not
    otherwise represented, enters with real melodic motion, and can be attached
@@ -229,12 +236,12 @@ This layer is enabled with `add_source_double_stops=True` or the CLI
    as a playable double-stop and lets the `G` continue alone when the host note
    releases.
 
-6. Keep at most two simultaneous notes on one string part.
+7. Keep at most two simultaneous notes on one string part.
 
    The MusicXML writer accepts only real double-stops here, not triple-stops or
    independent polyphonic voices inside one string part.
 
-7. Require conservative playability.
+8. Require conservative playability.
 
    A double-stop candidate must fit the target instrument range and pass a
    simple adjacent-string check. The current accepted intervals are:
@@ -246,7 +253,7 @@ This layer is enabled with `add_source_double_stops=True` or the CLI
    The check also uses approximate string positions and rejects stretches that
    are too wide for this conservative model.
 
-8. Split host notes only when notation remains simple.
+9. Split host notes only when notation remains simple.
 
    A longer already-selected note may be split so a shorter source note can be
    attached as a double-stop. This can happen at the host onset or inside an

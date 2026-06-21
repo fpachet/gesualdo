@@ -813,6 +813,36 @@ def test_take6_double_stops_do_not_preserve_short_source_doublings():
     assert set(name[:-1] for name in output_pitches) == {"G", "B", "A", "D"}
 
 
+def test_take6_double_stops_do_not_add_short_isolated_color_attacks():
+    score = make_score(
+        [
+            make_part("lead", [(0, Fraction(1, 4), "D5"), (Fraction(1, 4), Fraction(15, 4), None)]),
+            make_part("alto", [(0, Fraction(1, 4), "A4"), (Fraction(1, 4), Fraction(15, 4), None)]),
+            make_part("upper color", [(0, Fraction(1, 4), "E4"), (Fraction(1, 4), Fraction(15, 4), None)]),
+            make_part("lower color", [(0, Fraction(1, 4), "C4"), (Fraction(1, 4), Fraction(15, 4), None)]),
+            make_part("baritone", [(0, Fraction(1, 4), "B3"), (Fraction(1, 4), Fraction(15, 4), None)]),
+            make_part("bass", [(0, Fraction(1, 4), "G2"), (Fraction(1, 4), Fraction(15, 4), None)]),
+        ]
+    )
+
+    doubled = build_take6_quartet_score(score, enforce_ranges=False, add_source_double_stops=True)
+    chord_count = 0
+    output_pitches = []
+    for part in doubled.parts:
+        for element in part.flatten().notes:
+            start = ql_to_fraction(element.offset)
+            end = start + ql_to_fraction(element.quarterLength)
+            if start <= Fraction(0, 1) < end:
+                if element.isChord:
+                    chord_count += 1
+                    output_pitches.extend(chord_note.pitch.nameWithOctave for chord_note in element.notes)
+                else:
+                    output_pitches.append(element.pitch.nameWithOctave)
+
+    assert chord_count == 0
+    assert len(output_pitches) == 4
+
+
 def test_take6_preservation_avoids_tiny_trimmed_duple_triplet_splice():
     score = make_score(
         [

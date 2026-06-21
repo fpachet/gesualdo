@@ -123,6 +123,12 @@ which blocked the following source attack and left a strange `1/3` note plus
 `5/12` rest in Violin II. Tiny same-voice note overlaps are now trimmed to the
 later onset before source selection, yielding ordinary readable subdivisions.
 
+The same measure also showed that very short isolated double-stops are not
+useful even when their intervals are playable on paper. Optional source
+double-stops now require at least a half-quarter overlap with their host note,
+so quarter-note color grabs stay as single notes while longer sustained or
+melodic-pickup double-stops remain available.
+
 Implemented:
 
 - Added pitch-class-preserving octave optimization in
