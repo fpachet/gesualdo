@@ -28,6 +28,9 @@ experiments over the sacred and secular vocal catalogue.
 | CPDL 6-voice string quartet reductions | `data/cpdl/6-voices/reductions/string_quartet/` | 34 | Dedicated six-voice-to-string-quartet batch using the separate six-voice compression policy, indexed by `report.tsv`. |
 | CPDL 6-voice string quartet MP3 renders | `data/cpdl/6-voices/renders/string_quartet_mp3/` | 34 | MP3 audio exported from the CPDL six-voice string quartet reductions with MuseScore 4. |
 | CPDL 7-voice sources | `data/cpdl/7-voices/sources/` | 2 | Sources only; seven-to-four reduction is out of scope for the current reducer. |
+| Take 6 double-stop quartet reductions | `data/take6/reductions/string_quartet_double_stops/` | 10 | Preferred Take 6 six-voice-to-quartet MusicXML batch, with conservative source-derived double-stops and cleaned display titles. |
+| Take 6 double-stop PDF renders | `data/take6/renders/string_quartet_double_stops_pdf/` | 10 | Clean MuseScore PDF exports generated from the Take 6 MusicXML reductions. |
+| Take 6 double-stop MP3 renders | `data/take6/renders/string_quartet_double_stops_mp3/` | 10 | MuseScore MP3 exports generated from the Take 6 MusicXML reductions. |
 | Editorial dynamics examples | `data/kdf/examples/dynamic/` | 3 | MusicXML and MuseScore MP3 examples with generated score dynamics and hairpins. |
 | Quartet enrichment examples | `data/kdf/examples/enrichment/` | 4 variants | Side-by-side MusicXML/MP3 renders for plain, source-enriched, source-plus-harmony, and source-plus-thirds quartet reductions. |
 
@@ -151,10 +154,31 @@ The detailed editorial rules are documented in
 Batch reduction for local source files:
 
 ```bash
-uv run --extra notation python scripts/reduce_take6.py --input-dir data/take6/sources --force
+uv run --extra notation python scripts/reduce_take6.py \
+  "data/take6/44 Spread love.mid" \
+  "data/take6/46 Gold Mine.mid" \
+  "data/take6/47 A quiet place, originalrevu.mid" \
+  "data/take6/47 He never sleeps.mid" \
+  "data/take6/48 David et Goliath.mid" \
+  "data/take6/48 Get away Jordan.mid" \
+  "data/take6/50 If we ever.mid" \
+  "data/take6/51 Hark herald.mid" \
+  "data/take6/53 I'm on my way.mid" \
+  "data/take6/ComeUntoMe.mid" \
+  --input-dir data/take6/none \
+  --force
 ```
 
-For Take 6 material, the double-stop variant is the current output.
+For Take 6 material, the double-stop variant is the current output. The active
+set intentionally excludes `data/take6/A_quiet_place_joined.mid`, which is an
+alternate/intermediate source for `A Quiet Place`.
+
+The Take 6 `reductions/` and `renders/` folders are intentionally separate:
+`data/take6/reductions/string_quartet_double_stops/` contains the canonical
+MusicXML files and `report.tsv`, while
+`data/take6/renders/string_quartet_double_stops_pdf/` and
+`data/take6/renders/string_quartet_double_stops_mp3/` contain derived PDF and
+MP3 exports used by the web review page and compiled conductor PDF.
 
 The comparison set for `Gia piansi nel dolore` is kept in
 `data/kdf/examples/enrichment/` as MusicXML and MuseScore MP3:
@@ -265,7 +289,19 @@ quartet texture with source-traceable enrichment.
 Generate Take 6-tuned six-voice reductions from local sources:
 
 ```bash
-uv run --extra notation python scripts/reduce_take6.py --input-dir data/take6/sources --force
+uv run --extra notation python scripts/reduce_take6.py \
+  "data/take6/44 Spread love.mid" \
+  "data/take6/46 Gold Mine.mid" \
+  "data/take6/47 A quiet place, originalrevu.mid" \
+  "data/take6/47 He never sleeps.mid" \
+  "data/take6/48 David et Goliath.mid" \
+  "data/take6/48 Get away Jordan.mid" \
+  "data/take6/50 If we ever.mid" \
+  "data/take6/51 Hark herald.mid" \
+  "data/take6/53 I'm on my way.mid" \
+  "data/take6/ComeUntoMe.mid" \
+  --input-dir data/take6/none \
+  --force
 ```
 
 This expects exactly six source parts. It uses the same four-part quartet target
@@ -299,7 +335,7 @@ The PDF renderer uses MuseScore 4 and runs a shared notation cleanup pass before
 export. Clean mode suppresses editorial dynamics/hairpins, hides redundant
 naturals, adds final barlines, and inserts cello clef changes for sustained
 high passages. Use `--job take6:string_quartet_double_stops` to render only
-the Take 6 reductions. The active review set currently contains 317 PDFs. Eight
+the Take 6 reductions. The active review set currently contains 326 PDFs. Eight
 CPDL five-voice PDFs use the renderer's MIDI-to-PDF fallback because MuseScore
 does not complete direct MusicXML PDF export for those files; the fallback rows
 are marked in each `review_pdf_report.tsv`.
