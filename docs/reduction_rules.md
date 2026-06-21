@@ -285,6 +285,14 @@ only the short version.
    Take 6-style voicings can be suspended, quartal, altered, or rootless, and a
    generated triadic third would often be the wrong editorial assumption.
 
+7. Keep the Take 6 cello in its sweet spot when possible.
+
+   After the source-derived quartet texture is built, cello pitches at G3 or
+   above are lowered by one octave when the shifted note stays inside cello
+   range and any resulting double-stop remains conservatively playable. This
+   keeps pitch classes and harmonic coverage while avoiding a cello part that
+   lives unnecessarily in tenor register.
+
 ## Rhythm, Durations, and Ties
 
 1. Preserve source offsets and durations whenever possible.

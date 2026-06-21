@@ -14,6 +14,7 @@ from music21 import converter, tempo
 
 from gesualdo_reduction.musicxml_compat import strip_time_modifications
 from gesualdo_reduction.reduction import (
+    lower_take6_high_cello_register,
     normalize_musescore_grid_rhythm,
     normalize_musescore_rhythm_artifacts,
     reduce_take6_to_quartet,
@@ -148,6 +149,8 @@ def main() -> int:
                 should_write = True
             if stem in MUSESCORE_GRID_NORMALIZATION_STEMS:
                 normalize_musescore_grid_rhythm(reduced)
+                should_write = True
+            if lower_take6_high_cello_register(reduced):
                 should_write = True
             if should_write:
                 reduced.write("musicxml", fp=str(output_path))

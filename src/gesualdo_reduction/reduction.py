@@ -186,6 +186,7 @@ class ReductionConfig:
     normalize_short_note_rest_artifacts: bool = False
     min_preserved_trimmed_duration: Fraction | None = None
     max_borrowed_bottom_duplicate_pitch: int | None = None
+    lower_high_cello_threshold: int | None = None
     add_editorial_dynamics: bool = True
     dynamic_phrase_bars: int = 4
     dynamic_hairpin_bars: int = 2
@@ -2088,6 +2089,56 @@ def _is_playable_double_stop(target: TargetPart, first_pitch: int, second_pitch:
     return False
 
 
+def _lowered_cello_event_pitches(
+    element: note.Note | chord.Chord,
+    target: TargetPart,
+    threshold: int,
+) -> list[int] | None:
+    pitches = [int(round(item.midi)) for item in element.pitches]
+    if not pitches:
+        return None
+
+    shifted = [midi_pitch - 12 if midi_pitch >= threshold else midi_pitch for midi_pitch in pitches]
+    if shifted == pitches:
+        return None
+    low, high = target.midi_range
+    if any(midi_pitch < low or midi_pitch > high for midi_pitch in shifted):
+        return None
+    if len(shifted) == 1:
+        return shifted
+    if len(shifted) != 2:
+        return None
+    if not _is_playable_double_stop(target, shifted[0], shifted[1]):
+        return None
+    return shifted
+
+
+def _lower_high_cello_register(score: stream.Score, target: TargetPart, threshold: int) -> int:
+    """Move high cello-only material into the instrument's lower sweet spot."""
+    changes = 0
+    target_name = target.name.casefold()
+    for part in score.parts:
+        part_name = (part.partName or "").casefold()
+        if target_name not in part_name and "cello" not in part_name and "violoncello" not in part_name:
+            continue
+        for element in part.recurse().notes:
+            shifted = _lowered_cello_event_pitches(element, target, threshold)
+            if shifted is None:
+                continue
+            if element.isChord:
+                for chord_note, shifted_pitch in zip(element.notes, shifted, strict=True):
+                    chord_note.pitch.midi = shifted_pitch
+            else:
+                element.pitch.midi = shifted[0]
+            changes += 1
+    return changes
+
+
+def lower_take6_high_cello_register(score: stream.Score, threshold: int = 55) -> int:
+    """Lower high Take 6 cello pitches when the result remains idiomatic."""
+    return _lower_high_cello_register(score, STRING_QUARTET.bottom_part, threshold)
+
+
 def _simultaneous_event_count(
     selected: dict[str, list[SourceEvent]],
     target: TargetPart,
@@ -3805,6 +3856,12 @@ class ReductionBuilder:
             out.insert(0, measured_part)
 
         copy_top_staff_markings(src_score, out, context.bars)
+        if self.config.lower_high_cello_threshold is not None:
+            _lower_high_cello_register(
+                out,
+                self.profile.bottom_part,
+                self.config.lower_high_cello_threshold,
+            )
         if self.config.add_editorial_dynamics:
             add_editorial_dynamics(
                 out,
@@ -3982,6 +4039,7 @@ def build_take6_quartet_score(
             normalize_short_note_rest_artifacts=normalize_short_note_rest_artifacts,
             min_preserved_trimmed_duration=Fraction(1, 3),
             max_borrowed_bottom_duplicate_pitch=60,
+            lower_high_cello_threshold=55,
         ),
         policy=Take6QuartetCompressionPolicy(),
         reduction_composer=TAKE6_REDUCTION_COMPOSER,
@@ -4155,12 +4213,14 @@ def reduce_take6_to_quartet(
             normalize_short_note_rest_artifacts=normalize_short_note_rest_artifacts,
             min_preserved_trimmed_duration=Fraction(1, 3),
             max_borrowed_bottom_duplicate_pitch=60,
+            lower_high_cello_threshold=55,
         ),
         policy=Take6QuartetCompressionPolicy(),
         candidate_semitones=candidate_semitones,
         reduction_composer=TAKE6_REDUCTION_COMPOSER,
     )
     normalize_musescore_rhythm_artifacts(out_score)
+    lower_take6_high_cello_register(out_score)
     out_score.write("musicxml", fp=str(out_path))
     strip_time_modifications(out_path)
     return out_score

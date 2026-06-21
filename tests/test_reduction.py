@@ -4,7 +4,7 @@ import pytest
 
 pytest.importorskip("music21")
 
-from music21 import clef, dynamics, instrument, key, meter, note, pitch, stream, tie
+from music21 import chord, clef, dynamics, instrument, key, meter, note, pitch, stream, tie
 
 from gesualdo_reduction.musicxml_compat import strip_time_modifications
 from gesualdo_reduction.notation_cleanup import cleanup_score
@@ -14,7 +14,9 @@ from gesualdo_reduction.reduction import (
     PIANO_REDUCTION,
     ReductionConfig,
     SourceEvent,
+    STRING_QUARTET,
     _editorial_dynamic_points,
+    _lower_high_cello_register,
     _merge_adjacent_generated_harmony_events,
     build_ensemble_score,
     build_bar_map,
@@ -889,6 +891,65 @@ def test_take6_does_not_put_high_borrowed_duplicate_in_cello():
         and ql_to_fraction(element.offset) == Fraction(0, 1)
         for element in cello_notes
     )
+
+
+def test_take6_lowers_high_cello_line_into_sweet_spot():
+    score = make_score(
+        [
+            make_part("lead", [(0, 2, "C6"), (2, 2, "D6")]),
+            make_part("alto", [(0, 4, "B-4")]),
+            make_part("tenor", [(0, 4, "G4")]),
+            make_part("inner", [(0, 4, "E4")]),
+            make_part("baritone", [(0, 4, "C4")]),
+            make_part("bass", [(0, 2, "G3"), (2, 2, "F3")]),
+        ]
+    )
+
+    reduced = build_take6_quartet_score(score, enforce_ranges=False)
+    cello_notes = list(reduced.parts[3].flatten().notes)
+
+    assert [element.pitch.nameWithOctave for element in cello_notes] == ["G2", "F3"]
+
+
+def test_take6_lowers_only_playable_high_cello_double_stops():
+    score = make_score(
+        [
+            make_part("lead", [(0, 4, "C6")]),
+            make_part("alto", [(0, 4, "A4")]),
+            make_part("tenor", [(0, 4, "F4")]),
+            make_part("inner", [(0, 4, "E4")]),
+            make_part("baritone", [(0, 4, "C4")]),
+            make_part("bass", [(0, 4, "C4")]),
+        ]
+    )
+
+    reduced = build_take6_quartet_score(score, enforce_ranges=False, add_source_double_stops=True)
+    cello_notes = list(reduced.parts[3].flatten().notes)
+    cello_pitches = [
+        pitch.nameWithOctave
+        for element in cello_notes
+        for pitch in (element.pitches if element.isChord else [element.pitch])
+    ]
+
+    assert "C3" in cello_pitches
+    assert "C4" not in cello_pitches
+
+
+def test_high_cello_register_pass_can_lower_only_upper_chord_pitch():
+    score = stream.Score()
+    cello_part = stream.Part()
+    cello_part.partName = "Violoncello"
+    cello_part.insert(0, meter.TimeSignature("4/4"))
+    measure = stream.Measure(number=1)
+    measure.append(chord.Chord(["D3", "F4"], quarterLength=4))
+    cello_part.append(measure)
+    score.insert(0, cello_part)
+
+    changed = _lower_high_cello_register(score, STRING_QUARTET.bottom_part, 55)
+    lowered = list(score.parts[0].recurse().notes)[0]
+
+    assert changed == 1
+    assert [pitch.nameWithOctave for pitch in lowered.pitches] == ["D3", "F3"]
 
 
 def test_take6_double_stops_are_optional_and_source_based():

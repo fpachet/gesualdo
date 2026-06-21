@@ -202,6 +202,15 @@ borrowed cello duplicate pitch classes above C4. The regenerated score keeps the
 same global transposition but removes those C5 cello doublings, lowering the
 piece's cello maximum from C5 to F4.
 
+A broader review of the same piece showed that this was not only an isolated
+C5 accident: the cello still lived too often in tenor register. The Take 6
+pipeline now applies a final cello sweet-spot octave pass after assignment and
+double-stop recovery. Cello pitches at G3 or above are moved down an octave
+when the shifted result stays in range and any double-stop remains
+conservatively playable. This keeps the same pitch classes and rhythms but gives
+the cello its normal color. In `Come Unto Me`, the active cello part now has no
+G3-or-higher material instead of the F4 maximum left after the earlier C5 fix.
+
 A further `Come Unto Me` review found complex string rhythms in measure 32 even
 though the source bar is rhythmically simple. The complexity came from output
 selection scars: two same-pitch fragments plus a `1/12` generated rest before a

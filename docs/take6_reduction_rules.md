@@ -287,6 +287,18 @@ longer inherit the generic Music21 metadata.
    voices rested. The current reduction leaves the cello resting there instead
    of pushing it far outside its normal color.
 
+8. Prefer the cello sweet spot for high cello material.
+
+   After Take 6 assignment and optional double-stop recovery, cello notes are
+   checked once more for tessitura. Any cello pitch at G3 or above is considered
+   for octave lowering. The shift is applied only when the resulting note or
+   double-stop remains inside cello range and any double-stop passes the
+   conservative string-playability test. This preserves rhythm and pitch class,
+   but avoids using the cello as a tenor/treble instrument for long stretches.
+   The rule was added after reviewing `Come Unto Me`: the cello part no longer
+   reaches G3 or higher in the active reduction, instead of the earlier F4/C5
+   register.
+
 ## Optional Source Double-Stops
 
 This layer is enabled with `add_source_double_stops=True` or the CLI

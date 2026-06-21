@@ -154,6 +154,9 @@ main implemented responses are:
 - Cello sweet-spot protection in `Come Unto Me`, where high borrowed duplicate
   C5 material was removed from the cello without changing the global
   transposition.
+- General Take 6 cello sweet-spot octave lowering, where cello pitches at G3 or
+  above are transposed down an octave when range and double-stop playability
+  allow it.
 - Final output rhythm-scar cleanup in `Come Unto Me`, where bar 32 was reduced
   from tiny slivers and a micro-rest to ordinary string-readable durations.
 - Piece-specific quarter/eighth-grid cleanup in `Come Unto Me`, where bar 26
