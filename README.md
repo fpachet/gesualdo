@@ -50,7 +50,9 @@ The retained MusicXML batch completed successfully according to its report TSV:
 
 The MP3 batches contain one audio file per supported reduction. The files are
 44.1 kHz MP3s exported by MuseScore 4 and are intended to be usable directly by
-a static listening page.
+a static listening page. The MP3 renderer peak-normalizes exports by default so
+review audio is not accidentally left at MuseScore's very quiet raw level; pass
+`--no-normalize` to keep the raw export.
 
 Global transposition is now key-signature aware. The reducer first finds the
 best range/register transposition, then allows only near-equivalent candidates

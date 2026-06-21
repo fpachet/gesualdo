@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import csv
+import re
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -16,6 +18,7 @@ MUSESCORE_CANDIDATES = (
     DEFAULT_MUSESCORE,
     Path("/Applications/MuseScore 4.app/Contents/MacOS/mscore"),
 )
+DEFAULT_NORMALIZE_PEAK_DB = -1.0
 
 
 def default_musescore_path() -> Path:
@@ -44,10 +47,85 @@ def run_musescore(musescore: Path, input_path: Path, output_path: Path) -> subpr
     )
 
 
-def render_musicxml(musescore: Path, input_path: Path, output_path: Path) -> str:
+def _detect_max_volume_db(path: Path) -> float | None:
+    ffmpeg = shutil.which("ffmpeg")
+    if ffmpeg is None:
+        return None
+    result = subprocess.run(
+        [
+            ffmpeg,
+            "-hide_banner",
+            "-nostats",
+            "-i",
+            str(path),
+            "-filter:a",
+            "volumedetect",
+            "-f",
+            "null",
+            "-",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    match = re.search(r"max_volume:\s*(-?\d+(?:\.\d+)?) dB", result.stderr)
+    if not match:
+        return None
+    return float(match.group(1))
+
+
+def normalize_mp3_peak(path: Path, target_peak_db: float) -> bool:
+    ffmpeg = shutil.which("ffmpeg")
+    if ffmpeg is None:
+        raise RuntimeError("ffmpeg is required for MP3 peak normalization.")
+    max_volume = _detect_max_volume_db(path)
+    if max_volume is None:
+        raise RuntimeError(f"Could not detect max volume for {path}.")
+    gain_db = target_peak_db - max_volume
+    if abs(gain_db) < 0.1:
+        return False
+
+    with tempfile.TemporaryDirectory(prefix="mp3_normalize_") as tmpdir:
+        normalized_path = Path(tmpdir) / path.name
+        result = subprocess.run(
+            [
+                ffmpeg,
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-y",
+                "-i",
+                str(path),
+                "-filter:a",
+                f"volume={gain_db:.2f}dB",
+                "-codec:a",
+                "libmp3lame",
+                "-b:a",
+                "192k",
+                str(normalized_path),
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip() or f"ffmpeg failed normalizing {path}.")
+        normalized_path.replace(path)
+    return True
+
+
+def render_musicxml(
+    musescore: Path,
+    input_path: Path,
+    output_path: Path,
+    *,
+    normalize_peak_db: float | None = DEFAULT_NORMALIZE_PEAK_DB,
+) -> str:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     direct_result = run_musescore(musescore, input_path, output_path)
     if direct_result.returncode == 0:
+        if normalize_peak_db is not None:
+            normalize_mp3_peak(output_path, normalize_peak_db)
         return "musicxml"
 
     if output_path.exists():
@@ -58,6 +136,8 @@ def render_musicxml(musescore: Path, input_path: Path, output_path: Path) -> str
         converter.parse(input_path).write("midi", fp=str(midi_path))
         midi_result = run_musescore(musescore, midi_path, output_path)
         if midi_result.returncode == 0:
+            if normalize_peak_db is not None:
+                normalize_mp3_peak(output_path, normalize_peak_db)
             return "midi_fallback"
 
     raise RuntimeError(
@@ -65,7 +145,14 @@ def render_musicxml(musescore: Path, input_path: Path, output_path: Path) -> str
     )
 
 
-def render_job(root: Path, musescore: Path, voice_dir: str, target: str, force: bool) -> dict[str, int]:
+def render_job(
+    root: Path,
+    musescore: Path,
+    voice_dir: str,
+    target: str,
+    force: bool,
+    normalize_peak_db: float | None,
+) -> dict[str, int]:
     if voice_dir == "take6":
         report_path = root / "data" / "take6" / "reductions" / target / "report.tsv"
         output_dir = root / "data" / "take6" / "renders" / f"{target}_mp3"
@@ -84,7 +171,12 @@ def render_job(root: Path, musescore: Path, voice_dir: str, target: str, force: 
             continue
         print(f"{input_path} -> {output_path}", flush=True)
         try:
-            mode = render_musicxml(musescore, input_path, output_path)
+            mode = render_musicxml(
+                musescore,
+                input_path,
+                output_path,
+                normalize_peak_db=normalize_peak_db,
+            )
         except Exception as error:  # noqa: BLE001 - batch rendering should finish and report every miss.
             counts["failed"] += 1
             print(f"FAILED {input_path}: {error}", flush=True)
@@ -107,6 +199,13 @@ def main() -> None:
     parser.add_argument("--musescore", type=Path, default=default_musescore_path())
     parser.add_argument("--force", action="store_true")
     parser.add_argument(
+        "--normalize-peak-db",
+        type=float,
+        default=DEFAULT_NORMALIZE_PEAK_DB,
+        help="Normalize rendered MP3 peak level to this dBFS value.",
+    )
+    parser.add_argument("--no-normalize", action="store_true", help="Disable MP3 peak normalization.")
+    parser.add_argument(
         "--job",
         action="append",
         type=parse_job,
@@ -118,9 +217,10 @@ def main() -> None:
         raise FileNotFoundError(args.musescore)
 
     jobs = args.job or DEFAULT_JOBS
+    normalize_peak_db = None if args.no_normalize else args.normalize_peak_db
     totals = {"musicxml": 0, "midi_fallback": 0, "failed": 0, "skipped": 0}
     for voice_dir, target in jobs:
-        counts = render_job(args.root, args.musescore, voice_dir, target, args.force)
+        counts = render_job(args.root, args.musescore, voice_dir, target, args.force, normalize_peak_db)
         for key, value in counts.items():
             totals[key] += value
         print(f"{voice_dir}/{target}: {counts}", flush=True)
