@@ -145,6 +145,14 @@ on mixed tuplets. The Take 6 generator now strips those tags after writing the
 MusicXML while preserving actual durations and tuplet notation brackets, so
 MuseScore imports the file without corruption warnings.
 
+`If We Ever` exposed a second raw MuseScore import problem: several measures
+were reported as `49/48`, `51/48`, `52/48`, or `56/48` even after the generic
+MusicXML tag cleanup. This piece contains many imported non-dyadic residues, so
+the Take 6 batch script now applies a piece-specific dynamic-programming
+quarter-grid fallback for `if_we_ever`. The fallback preserves each measure's
+total duration and is intentionally scoped to this song rather than applied to
+all Take 6 reductions.
+
 Implemented:
 
 - Added pitch-class-preserving octave optimization in

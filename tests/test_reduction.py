@@ -26,6 +26,8 @@ from gesualdo_reduction.reduction import (
     choose_global_transposition,
     extract_events,
     key_signature_transposition_burden,
+    normalize_musescore_grid_rhythm,
+    normalize_musescore_rhythm_artifacts,
     normalize_short_note_rest_artifacts,
     ql_to_fraction,
     reduce_to_piano,
@@ -96,6 +98,65 @@ def test_strip_time_modifications_preserves_tuplet_notations(tmp_path):
     assert "<time-modification>" not in musicxml
     assert "<duration>1</duration>" in musicxml
     assert '<tuplet type="start"/>' in musicxml
+
+
+def test_normalize_musescore_rhythm_artifacts_rewrites_tiny_residues():
+    score = stream.Score()
+    part = stream.Part()
+    measure = stream.Measure(number=1)
+    measure.insert(0, meter.TimeSignature("4/4"))
+    for offset, ql, pitch_name in [
+        (0, 1, "C5"),
+        (1, Fraction(1, 4), "C5"),
+        (Fraction(5, 4), Fraction(5, 12), "A4"),
+        (Fraction(5, 3), Fraction(1, 3), "G4"),
+        (2, 1, "G4"),
+        (3, 1, "A4"),
+    ]:
+        measure.insert(offset, note.Note(pitch_name, quarterLength=ql))
+    part.insert(0, measure)
+    score.insert(0, part)
+
+    changes = normalize_musescore_rhythm_artifacts(score)
+    measure = list(score.parts[0].getElementsByClass(stream.Measure))[0]
+
+    assert changes == 1
+    assert [(ql_to_fraction(el.offset), ql_to_fraction(el.quarterLength)) for el in measure.notesAndRests] == [
+        (Fraction(0, 1), Fraction(1, 1)),
+        (Fraction(1, 1), Fraction(1, 4)),
+        (Fraction(5, 4), Fraction(1, 2)),
+        (Fraction(7, 4), Fraction(1, 4)),
+        (Fraction(2, 1), Fraction(1, 1)),
+        (Fraction(3, 1), Fraction(1, 1)),
+    ]
+    assert sum((ql_to_fraction(el.quarterLength) for el in measure.notesAndRests), Fraction(0, 1)) == 4
+
+
+def test_normalize_musescore_grid_rhythm_preserves_measure_total():
+    score = stream.Score()
+    part = stream.Part()
+    measure = stream.Measure(number=1)
+    measure.insert(0, meter.TimeSignature("4/4"))
+    for offset, ql, pitch_name in [
+        (0, Fraction(1, 3), "G5"),
+        (Fraction(1, 3), Fraction(1, 3), "A5"),
+        (Fraction(2, 3), Fraction(1, 3), "G5"),
+        (1, Fraction(1, 2), "F5"),
+        (Fraction(3, 2), Fraction(7, 6), "E5"),
+        (Fraction(8, 3), Fraction(2, 3), "D5"),
+        (Fraction(10, 3), Fraction(1, 3), "C5"),
+        (Fraction(11, 3), Fraction(1, 3), "D5"),
+    ]:
+        measure.insert(offset, note.Note(pitch_name, quarterLength=ql))
+    part.insert(0, measure)
+    score.insert(0, part)
+
+    changes = normalize_musescore_grid_rhythm(score)
+
+    assert changes == 1
+    durations = [ql_to_fraction(el.quarterLength) for el in measure.notesAndRests]
+    assert sum(durations, Fraction(0, 1)) == 4
+    assert all(duration.denominator in {1, 2, 4} for duration in durations)
 
 
 def test_cleanup_score_hides_redundant_naturals_and_adds_final_barlines():

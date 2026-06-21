@@ -13,10 +13,16 @@ from pathlib import Path
 from music21 import converter, tempo
 
 from gesualdo_reduction.musicxml_compat import strip_time_modifications
-from gesualdo_reduction.reduction import reduce_take6_to_quartet, title_from_source_path
+from gesualdo_reduction.reduction import (
+    normalize_musescore_grid_rhythm,
+    normalize_musescore_rhythm_artifacts,
+    reduce_take6_to_quartet,
+    title_from_source_path,
+)
 
 
 SUPPORTED_SUFFIXES = {".mxl", ".musicxml", ".xml", ".mid", ".midi"}
+MUSESCORE_GRID_NORMALIZATION_STEMS = {"if_we_ever"}
 
 
 def slugify(text: str) -> str:
@@ -133,9 +139,17 @@ def main() -> int:
                     add_source_double_stops=args.double_stops,
                     normalize_short_note_rest_artifacts=not args.no_normalize_artifacts,
                 )
-            tempo_override = tempo_overrides.get(output_stem(source_path))
+            stem = output_stem(source_path)
+            tempo_override = tempo_overrides.get(stem)
+            should_write = False
             if tempo_override is not None:
                 apply_tempo_override(reduced, tempo_override)
+                normalize_musescore_rhythm_artifacts(reduced)
+                should_write = True
+            if stem in MUSESCORE_GRID_NORMALIZATION_STEMS:
+                normalize_musescore_grid_rhythm(reduced)
+                should_write = True
+            if should_write:
                 reduced.write("musicxml", fp=str(output_path))
             strip_time_modifications(output_path)
             report_rows.append(

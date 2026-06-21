@@ -21,6 +21,7 @@ from music21 import (
     clef,
     common,
     converter,
+    duration as m21duration,
     dynamics,
     expressions,
     instrument,
@@ -1008,6 +1009,133 @@ def add_editorial_dynamics(
             _insert_dynamic_mark(part, bars, point)
         for start, end in zip(points, points[1:], strict=False):
             _insert_dynamic_hairpin(score, part, bars, start, end, max_hairpin_bars)
+
+
+_MUSESCORE_SAFE_RHYTHM_PATTERNS: tuple[tuple[tuple[Fraction, ...], tuple[Fraction, ...]], ...] = (
+    ((Fraction(5, 12), Fraction(1, 3)), (Fraction(1, 2), Fraction(1, 4))),
+    ((Fraction(5, 12), Fraction(7, 12)), (Fraction(1, 2), Fraction(1, 2))),
+    ((Fraction(17, 12), Fraction(13, 12)), (Fraction(3, 2), Fraction(1, 1))),
+    (
+        (Fraction(7, 6), Fraction(2, 3), Fraction(1, 3), Fraction(1, 3)),
+        (Fraction(1, 1), Fraction(1, 2), Fraction(1, 2), Fraction(1, 2)),
+    ),
+)
+_MUSESCORE_GRID_DURATION = Fraction(1, 4)
+_MUSESCORE_GRID_MAX_DELTA = Fraction(1, 3)
+_MUSESCORE_GRID_SAFE_DENOMINATORS = {1, 2, 4, 8, 16, 32, 64}
+
+
+def _measure_note_groups(measure: stream.Measure) -> list[list[note.GeneralNote]]:
+    by_offset: dict[Fraction, list[note.GeneralNote]] = {}
+    for element in measure.notesAndRests:
+        by_offset.setdefault(ql_to_fraction(element.offset), []).append(element)
+    return [by_offset[offset] for offset in sorted(by_offset)]
+
+
+def _group_duration(group: Sequence[note.GeneralNote]) -> Fraction | None:
+    durations = {ql_to_fraction(element.quarterLength) for element in group}
+    if len(durations) != 1:
+        return None
+    return next(iter(durations))
+
+
+def _rewrite_measure_group_durations(
+    measure: stream.Measure,
+    groups: Sequence[Sequence[note.GeneralNote]],
+    start_index: int,
+    durations: Sequence[Fraction],
+) -> None:
+    cursor = ql_to_fraction(groups[start_index][0].offset)
+    for group, new_duration in zip(groups[start_index : start_index + len(durations)], durations, strict=True):
+        for element in group:
+            measure.setElementOffset(element, fraction_to_ql(cursor))
+            element.duration = m21duration.Duration(fraction_to_ql(new_duration))
+        cursor += new_duration
+
+
+def normalize_musescore_rhythm_artifacts(score: stream.Score) -> int:
+    """Rewrite tiny Take 6 residues that MuseScore imports as overfull bars."""
+
+    changes = 0
+    for part in score.parts:
+        for measure in part.getElementsByClass(stream.Measure):
+            groups = _measure_note_groups(measure)
+            index = 0
+            while index < len(groups):
+                matched = False
+                for old_durations, new_durations in _MUSESCORE_SAFE_RHYTHM_PATTERNS:
+                    span = len(old_durations)
+                    if index + span > len(groups):
+                        continue
+                    current = tuple(_group_duration(group) for group in groups[index : index + span])
+                    if current != old_durations:
+                        continue
+                    _rewrite_measure_group_durations(measure, groups, index, new_durations)
+                    changes += 1
+                    index += span
+                    matched = True
+                    break
+                if not matched:
+                    index += 1
+    return changes
+
+
+def _is_musescore_grid_safe_duration(duration_value: Fraction) -> bool:
+    return duration_value.denominator in _MUSESCORE_GRID_SAFE_DENOMINATORS
+
+
+def _musescore_grid_candidates(duration_value: Fraction, total: Fraction) -> list[Fraction]:
+    candidates: set[Fraction] = set()
+    if _is_musescore_grid_safe_duration(duration_value):
+        candidates.add(duration_value)
+    steps = int(total / _MUSESCORE_GRID_DURATION)
+    for step in range(1, steps + 1):
+        candidate = step * _MUSESCORE_GRID_DURATION
+        if abs(candidate - duration_value) <= _MUSESCORE_GRID_MAX_DELTA:
+            candidates.add(candidate)
+    return sorted(candidates, key=lambda value: (abs(value - duration_value), value))
+
+
+def _optimize_musescore_grid_durations(durations: Sequence[Fraction], total: Fraction) -> list[Fraction] | None:
+    states: dict[Fraction, tuple[float, list[Fraction]]] = {Fraction(0, 1): (0.0, [])}
+    for duration_value in durations:
+        next_states: dict[Fraction, tuple[float, list[Fraction]]] = {}
+        for subtotal, (cost, path) in states.items():
+            for candidate in _musescore_grid_candidates(duration_value, total):
+                next_subtotal = subtotal + candidate
+                if next_subtotal > total:
+                    continue
+                delta = float(candidate - duration_value)
+                candidate_cost = cost + delta * delta + (0.0 if candidate == duration_value else 0.001)
+                if next_subtotal not in next_states or candidate_cost < next_states[next_subtotal][0]:
+                    next_states[next_subtotal] = (candidate_cost, [*path, candidate])
+        states = next_states
+    result = states.get(total)
+    if result is None:
+        return None
+    return result[1]
+
+
+def normalize_musescore_grid_rhythm(score: stream.Score) -> int:
+    """Quantize non-dyadic measures to a nearby quarter-grid for MuseScore import."""
+
+    changes = 0
+    for part in score.parts:
+        for measure in part.getElementsByClass(stream.Measure):
+            groups = _measure_note_groups(measure)
+            durations = [_group_duration(group) for group in groups]
+            if not durations or any(duration_value is None for duration_value in durations):
+                continue
+            typed_durations = [duration_value for duration_value in durations if duration_value is not None]
+            if all(_is_musescore_grid_safe_duration(duration_value) for duration_value in typed_durations):
+                continue
+            total = sum(typed_durations, Fraction(0, 1))
+            optimized = _optimize_musescore_grid_durations(typed_durations, total)
+            if optimized is None or optimized == typed_durations:
+                continue
+            _rewrite_measure_group_durations(measure, groups, 0, optimized)
+            changes += 1
+    return changes
 
 
 def _event_fragments_for_bar(event: SourceEvent, bar: Bar) -> Fragment | None:
@@ -3867,6 +3995,8 @@ def reduce_take6_to_quartet(
         candidate_semitones=candidate_semitones,
         reduction_composer=TAKE6_REDUCTION_COMPOSER,
     )
+    normalize_musescore_rhythm_artifacts(out_score)
+    out_score.write("musicxml", fp=str(out_path))
     strip_time_modifications(out_path)
     return out_score
 

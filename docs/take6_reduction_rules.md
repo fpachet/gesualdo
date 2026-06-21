@@ -105,7 +105,17 @@ longer inherit the generic Music21 metadata.
    measures, as in `Come Unto Me`, measures 26 and 32, staff 2. This is an
    import-compatibility pass rather than a rhythmic quantization pass.
 
-6. Preserve exact offsets and durations after cleanup.
+6. Use a piece-specific MuseScore grid fallback only where needed.
+
+   `If We Ever` still triggered raw MuseScore "incomplete measure" warnings
+   after the tag-level compatibility pass, notably in measures 9, 25, 35, 55,
+   57, 82, 91, 107, and 117. For that song only, the batch Take 6 generator
+   now runs a dynamic-programming measure optimizer that keeps each affected
+   measure total unchanged while replacing non-dyadic MIDI residues with nearby
+   quarter-grid durations. This is deliberately not applied corpus-wide because
+   it is more rhythmically invasive than the normal tiny-artifact cleanup.
+
+7. Preserve exact offsets and durations after cleanup.
 
    The reducer does not rebuild the piece on a new rhythmic grid. It copies
    source offsets and durations, splitting only where notation or double-stop
