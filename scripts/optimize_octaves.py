@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import tempfile
+from collections import Counter
 from pathlib import Path
 
 from music21 import chord, converter, note, stream
@@ -24,38 +25,78 @@ def _write_rows(path: Path, fieldnames: list[str], rows: list[dict[str, str]]) -
         writer.writerows(rows)
 
 
-def _event_signature(score: stream.Score) -> list[tuple[int, str, float, float, tuple[int, ...]]]:
-    signature = []
+def _coverage_boundaries(score: stream.Score) -> list[set[float]]:
+    boundaries = [set() for _part in score.parts]
     for part_index, part in enumerate(score.parts):
         for element in part.recurse().notesAndRests:
-            measure = element.getContextByClass(stream.Measure)
-            measure_number = "" if measure is None else str(getattr(measure, "number", ""))
             try:
                 offset = float(element.getOffsetInHierarchy(part))
             except Exception:
                 offset = float(element.offset)
             duration = float(element.quarterLength)
-            if isinstance(element, note.Rest):
-                pitch_classes: tuple[int, ...] = ()
-            elif isinstance(element, note.Note):
-                pitch_classes = (int(element.pitch.midi) % 12,)
-            elif isinstance(element, chord.Chord):
-                pitch_classes = tuple(sorted(int(pitch.midi) % 12 for pitch in element.pitches))
-            else:
+            if duration > 0:
+                boundaries[part_index].add(offset)
+                boundaries[part_index].add(offset + duration)
+    return boundaries
+
+
+def _pitch_intervals(part: stream.Part) -> list[tuple[float, float, tuple[int, ...]]]:
+    intervals = []
+    for element in part.recurse().notes:
+        try:
+            start = float(element.getOffsetInHierarchy(part))
+        except Exception:
+            start = float(element.offset)
+        end = start + float(element.quarterLength)
+        if isinstance(element, note.Note):
+            pitch_classes = (int(element.pitch.midi) % 12,)
+        elif isinstance(element, chord.Chord):
+            pitch_classes = tuple(int(pitch.midi) % 12 for pitch in element.pitches)
+        else:
+            continue
+        if end > start:
+            intervals.append((start, end, pitch_classes))
+    return intervals
+
+
+def _coverage_signature(score: stream.Score, boundaries: list[set[float]]) -> list[tuple[int, float, float, tuple[int, ...]]]:
+    signature = []
+    for part_index, part in enumerate(score.parts):
+        part_boundaries = sorted(boundaries[part_index])
+        starts: dict[float, list[tuple[int, ...]]] = {}
+        ends: dict[float, list[tuple[int, ...]]] = {}
+        for start, end, pitch_classes in _pitch_intervals(part):
+            starts.setdefault(start, []).append(pitch_classes)
+            ends.setdefault(end, []).append(pitch_classes)
+        active: Counter[int] = Counter()
+        for start, end in zip(part_boundaries, part_boundaries[1:], strict=False):
+            for pitch_classes in ends.get(start, []):
+                active.subtract(pitch_classes)
+                active += Counter()
+            for pitch_classes in starts.get(start, []):
+                active.update(pitch_classes)
+            if end <= start:
                 continue
-            signature.append((part_index, measure_number, offset, duration, pitch_classes))
+            pitch_classes = tuple(sorted(active.elements()))
+            signature.append((part_index, start, end, pitch_classes))
     return signature
 
 
 def verify_pitch_class_invariants(before_path: Path, after_path: Path) -> None:
     before = converter.parse(before_path)
     after = converter.parse(after_path)
-    before_sig = _event_signature(before)
-    after_sig = _event_signature(after)
+    if len(before.parts) != len(after.parts):
+        raise AssertionError(f"Part count mismatch: {len(before.parts)} != {len(after.parts)}")
+    boundaries = _coverage_boundaries(before)
+    after_boundaries = _coverage_boundaries(after)
+    for index, part_boundaries in enumerate(after_boundaries):
+        boundaries[index].update(part_boundaries)
+    before_sig = _coverage_signature(before, boundaries)
+    after_sig = _coverage_signature(after, boundaries)
     if before_sig != after_sig:
         for index, (left, right) in enumerate(zip(before_sig, after_sig, strict=False)):
             if left != right:
-                raise AssertionError(f"Invariant mismatch at event {index}: {left} != {right}")
+                raise AssertionError(f"Invariant mismatch at segment {index}: {left} != {right}")
         raise AssertionError(f"Invariant length mismatch: {len(before_sig)} != {len(after_sig)}")
 
 

@@ -145,10 +145,35 @@ For `A Quiet Place`, the clean optimization pass removed:
 The resulting optimized MusicXML has no remaining dynamic marks, wedge hairpins,
 or dynamic playback tags.
 
+## Batch Octave Optimization Rollout
+
+The `A Quiet Place` workflow was generalized into
+`scripts/batch_optimize_octaves.py`.
+
+The batch script:
+
+- selects works with fixable part-coherence audit issues;
+- creates optimized clean candidate MusicXML files outside the active corpus;
+- caps this first rollout at 20 octave changes per piece;
+- writes per-piece octave-change reports and before/after audit comparisons;
+- verifies sounding pitch-class coverage before accepting each candidate.
+
+The first broader rollout produced:
+
+- Take 6: 8 safe candidates out of 10, with 2 true invariant failures and 4
+  MusicXML-safe candidates whose PDF rendering failed.
+- KDF Gesualdo: 37 safe candidates out of 37.
+- CPDL Gesualdo: 276 safe candidates out of 278.
+
+The detailed rollout summary is in
+`outputs/batch_octave_optimization/rollout_report.md`.
+
 ## Current Remaining Work
 
 - Musically review the clean optimized `A Quiet Place` PDF before applying
   octave optimization corpus-wide.
+- Musically review the broader batch candidates before replacing active corpus
+  files.
 - Add a deeper enharmonic-spelling audit, because the current accidental cleanup
   handles visual artifacts but does not yet decide between spellings such as
   F-sharp versus G-flat in harmonic context.
@@ -156,4 +181,3 @@ or dynamic playback tags.
   or whether a later expressive edition should keep a curated subset.
 - Continue iterating on annotated director examples and promote repeated
   observations into explicit rules, tests, and audit checks.
-
