@@ -330,6 +330,8 @@ only the short version.
 1. Dynamics are an optional notation layer.
 
    They do not alter source rhythm or note choice.
+   Take 6 reductions disable this layer by default because the generated marks
+   proved more misleading than helpful for the close-harmony material.
 
 2. Dynamics follow a coarse energy estimate.
 

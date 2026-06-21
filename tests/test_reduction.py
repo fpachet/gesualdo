@@ -1365,6 +1365,27 @@ def test_editorial_dynamics_can_be_disabled(tmp_path):
     assert "<wedge" not in musicxml
 
 
+def test_take6_reduction_disables_editorial_dynamics(tmp_path):
+    score = make_score(
+        [
+            make_part("lead", [(0, 8, "C6"), (8, 4, "D6")]),
+            make_part("alto", [(0, 8, "A4"), (8, 4, "B4")]),
+            make_part("tenor", [(0, 8, "F4"), (8, 4, "G4")]),
+            make_part("inner", [(0, 8, "E4"), (8, 4, "F4")]),
+            make_part("baritone", [(0, 8, "C4"), (8, 4, "D4")]),
+            make_part("bass", [(0, 8, "C3"), (8, 4, "D3")]),
+        ]
+    )
+
+    reduced = build_take6_quartet_score(score, enforce_ranges=False)
+    out_path = tmp_path / "take6_without_dynamics.musicxml"
+    reduced.write("musicxml", fp=str(out_path))
+    musicxml = out_path.read_text()
+
+    assert "<dynamics" not in musicxml
+    assert "<wedge" not in musicxml
+
+
 def test_editorial_hairpins_are_locally_bounded():
     score = make_score(
         [

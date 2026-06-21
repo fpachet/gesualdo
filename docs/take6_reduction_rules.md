@@ -89,12 +89,11 @@ longer inherit the generic Music21 metadata.
 
    The same transposition machinery as the general reducer is used. Candidate
    transpositions are scored for string range, preferred register, source
-   displacement, and key-signature simplicity. Reviewed per-song overrides live
-   in `data/take6/transposition_overrides.json`. These are used when the
-   automatic optimum is technically playable but misses a song-specific
-   character or instrumental role. `Come Unto Me` currently uses `-10`, rather
-   than the automatic `-3`, so the cello can function as a real bass while the
-   printed key remains readable.
+   displacement, and key-signature simplicity. The optional
+   `data/take6/transposition_overrides.json` file can be used for reviewed
+   per-song exceptions, but `Come Unto Me` currently keeps the automatic `-3`
+   transposition: this preserves the one-flat character while the cello
+   sweet-spot pass supplies the bass register.
 
 3. Apply reviewed song tempos when known.
 
@@ -103,7 +102,14 @@ longer inherit the generic Music21 metadata.
    generating each score, replacing imported/default MIDI tempos while leaving
    unknown songs untouched until reviewed tempos are available.
 
-4. Normalize isolated MIDI duration artifacts.
+4. Do not generate editorial dynamics for Take 6.
+
+   The generic reducer can add coarse dynamics and hairpins, but the Take 6
+   material exposed these as misleading: printed `pp`, `p`, `mf`, and long
+   wedges implied an interpretation that was not present in the source. The
+   Take 6 MusicXML now omits generated dynamics and hairpins entirely.
+
+5. Normalize isolated MIDI duration artifacts.
 
    `normalize_short_note_rest_artifacts=True` is the default for Take 6. It
    fixes isolated suspicious note+rest pairs such as `5/12 + 7/12` when their
@@ -125,7 +131,7 @@ longer inherit the generic Music21 metadata.
    `5/12` rest. The earlier note is now shortened to the following onset, so
    the following source attack can be represented normally.
 
-5. Strip MuseScore-problematic explicit time-modification tags.
+6. Strip MuseScore-problematic explicit time-modification tags.
 
    The generated MusicXML keeps its exact `<duration>` values and tuplet
    notation brackets, but the Take 6 pipeline removes music21-written
@@ -134,7 +140,7 @@ longer inherit the generic Music21 metadata.
    measures, as in `Come Unto Me`, measures 26 and 32, staff 2. This is an
    import-compatibility pass rather than a rhythmic quantization pass.
 
-6. Use piece-specific grid fallback only where needed.
+7. Use piece-specific grid fallback only where needed.
 
    `If We Ever` still triggered raw MuseScore "incomplete measure" warnings
    after the tag-level compatibility pass, notably in measures 9, 25, 35, 55,
@@ -151,7 +157,7 @@ longer inherit the generic Music21 metadata.
    This is deliberately not applied corpus-wide because it is more rhythmically
    invasive than the normal tiny-artifact cleanup.
 
-7. Prefer the MIDI part that carries real time signatures.
+8. Prefer the MIDI part that carries real time signatures.
 
    Some corrected Take 6 MIDI files carry time-signature changes only in the
    first source part, while the remaining parts parse as uninterrupted 4/4
@@ -160,13 +166,13 @@ longer inherit the generic Music21 metadata.
    real 2/4 bar at measure 22 was previously merged with naive 4/4 measures
    from the other parts, causing a stutter/repeated phrase at measures 22-23.
 
-8. Preserve exact offsets and durations after cleanup.
+9. Preserve exact offsets and durations after cleanup.
 
    The reducer does not rebuild the piece on a new rhythmic grid. It copies
    source offsets and durations, splitting only where notation or double-stop
    construction requires it.
 
-9. Smooth tiny output-only rhythm scars.
+10. Smooth tiny output-only rhythm scars.
 
    After source selection, a string part may still contain tiny notation scars
    created by switching between source voices: adjacent same-pitch slivers, or
