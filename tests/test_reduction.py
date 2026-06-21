@@ -4,7 +4,7 @@ import pytest
 
 pytest.importorskip("music21")
 
-from music21 import clef, dynamics, key, meter, note, pitch, stream
+from music21 import clef, dynamics, key, meter, note, pitch, stream, tie
 
 from gesualdo_reduction.notation_cleanup import cleanup_score
 from gesualdo_reduction.octave_optimization import optimize_score_octaves
@@ -119,6 +119,51 @@ def test_cleanup_score_clean_mode_removes_dynamics_and_hairpins():
     assert report.removed_hairpins == 1
     assert not list(score.recurse().getElementsByClass(dynamics.Dynamic))
     assert not list(score.recurse().getElementsByClass(dynamics.DynamicWedge))
+
+
+def test_cleanup_score_hides_accidentals_on_tie_continuations():
+    score = stream.Score()
+    part = stream.Part()
+    part.partName = "Violin I"
+    measure = stream.Measure(number=1)
+    first = note.Note("C#4", quarterLength=2)
+    first.tie = tie.Tie("start")
+    second = note.Note("C#4", quarterLength=2)
+    second.tie = tie.Tie("stop")
+    second.pitch.accidental.displayStatus = True
+    measure.insert(0, first)
+    measure.insert(2, second)
+    part.insert(0, measure)
+    score.insert(0, part)
+
+    report = cleanup_score(score)
+
+    assert report.suppressed_tie_continuation_accidentals == 1
+    assert second.pitch.accidental.displayStatus is False
+
+
+def test_cleanup_score_normalizes_dangling_ties():
+    score = stream.Score()
+    part = stream.Part()
+    part.partName = "Violin II"
+    measure = stream.Measure(number=1)
+    dangling_start = note.Note("D4", quarterLength=2)
+    dangling_start.tie = tie.Tie("start")
+    tied_start = note.Note("G4", quarterLength=1)
+    tied_start.tie = tie.Tie("start")
+    tied_continue = note.Note("G4", quarterLength=1)
+    tied_continue.tie = tie.Tie("continue")
+    measure.insert(0, dangling_start)
+    measure.insert(2, tied_start)
+    measure.insert(3, tied_continue)
+    part.insert(0, measure)
+    score.insert(0, part)
+
+    report = cleanup_score(score)
+
+    assert report.normalized_dangling_ties == 2
+    assert dangling_start.tie is None
+    assert tied_continue.tie.type == "stop"
 
 
 def test_cleanup_score_adds_cello_high_clef_without_flicker():

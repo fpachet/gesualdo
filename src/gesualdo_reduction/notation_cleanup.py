@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
 
-from music21 import bar, clef, converter, dynamics, key, note, stream
+from music21 import bar, clef, converter, dynamics, key, note, stream, tie
 
 
 @dataclass
@@ -18,6 +18,8 @@ class NotationCleanupReport:
     removed_hairpins: int = 0
     final_barlines_added: int = 0
     cello_clef_changes_added: int = 0
+    suppressed_tie_continuation_accidentals: int = 0
+    normalized_dangling_ties: int = 0
     pdf_midi_fallbacks: int = 0
 
     def as_row(self) -> dict[str, str]:
@@ -103,6 +105,79 @@ def remove_editorial_dynamics(score: stream.Score) -> tuple[int, int]:
         if _safe_remove(element):
             hairpin_count += 1
     return dynamic_count, hairpin_count
+
+
+def _tied_note_items(part: stream.Part) -> list[tuple[note.Note, float, float, int]]:
+    items: list[tuple[note.Note, float, float, int]] = []
+    for element in part.recurse().notes:
+        try:
+            offset = float(element.getOffsetInHierarchy(part))
+        except Exception:
+            offset = float(element.offset)
+        duration = float(element.quarterLength)
+        if isinstance(element, note.Note):
+            items.append((element, offset, offset + duration, int(round(element.pitch.midi))))
+        elif element.isChord:
+            for chord_note in element.notes:
+                items.append((chord_note, offset, offset + duration, int(round(chord_note.pitch.midi))))
+    return sorted(items, key=lambda item: (item[1], item[2], item[3]))
+
+
+def suppress_tie_continuation_accidentals(score: stream.Score) -> int:
+    """Hide visible accidentals on notes that continue an existing tie."""
+
+    count = 0
+    for part in score.parts:
+        for tied_note, _start, _end, _midi in _tied_note_items(part):
+            if getattr(getattr(tied_note, "tie", None), "type", None) not in {"stop", "continue"}:
+                continue
+            accidental = tied_note.pitch.accidental
+            if accidental is not None and accidental.displayStatus is not False:
+                accidental.displayStatus = False
+                count += 1
+    return count
+
+
+def normalize_dangling_ties(score: stream.Score) -> int:
+    """Remove or repair tie markings that do not connect to a matching pitch."""
+
+    count = 0
+    for part in score.parts:
+        items = _tied_note_items(part)
+        for tied_note, start, end, midi in items:
+            tie_type = getattr(getattr(tied_note, "tie", None), "type", None)
+            if tie_type is None:
+                continue
+            has_previous = any(
+                previous_midi == midi
+                and abs(previous_end - start) < 1e-6
+                and getattr(getattr(previous_note, "tie", None), "type", None) in {"start", "continue"}
+                for previous_note, _previous_start, previous_end, previous_midi in items
+            )
+            has_next = any(
+                next_midi == midi
+                and abs(next_start - end) < 1e-6
+                and getattr(getattr(next_note, "tie", None), "type", None) in {"stop", "continue"}
+                for next_note, next_start, _next_end, next_midi in items
+            )
+            new_tie_type = tie_type
+            if tie_type == "start" and not has_next:
+                new_tie_type = None
+            elif tie_type == "continue":
+                if has_previous and not has_next:
+                    new_tie_type = "stop"
+                elif not has_previous and has_next:
+                    new_tie_type = "start"
+                elif not has_previous and not has_next:
+                    new_tie_type = None
+            elif tie_type == "stop" and not has_previous:
+                new_tie_type = None
+
+            if new_tie_type == tie_type:
+                continue
+            tied_note.tie = None if new_tie_type is None else tie.Tie(new_tie_type)
+            count += 1
+    return count
 
 
 def add_final_barlines(score: stream.Score) -> int:
@@ -217,14 +292,20 @@ def cleanup_score(
     *,
     clean_dynamics: bool = False,
     suppress_naturals: bool = True,
+    suppress_tie_accidentals: bool = True,
+    normalize_ties: bool = True,
     final_barlines: bool = True,
     cello_clefs: bool = True,
 ) -> NotationCleanupReport:
     """Apply conservative notation cleanup for review exports."""
 
     report = NotationCleanupReport()
+    if normalize_ties:
+        report.normalized_dangling_ties = normalize_dangling_ties(score)
     if suppress_naturals:
         report.suppressed_naturals = suppress_unneeded_naturals(score)
+    if suppress_tie_accidentals:
+        report.suppressed_tie_continuation_accidentals = suppress_tie_continuation_accidentals(score)
     if clean_dynamics:
         report.removed_dynamics, report.removed_hairpins = remove_editorial_dynamics(score)
     if final_barlines:
@@ -240,6 +321,8 @@ def cleanup_musicxml(
     *,
     clean_dynamics: bool = False,
     suppress_naturals: bool = True,
+    suppress_tie_accidentals: bool = True,
+    normalize_ties: bool = True,
     final_barlines: bool = True,
     cello_clefs: bool = True,
 ) -> NotationCleanupReport:
@@ -250,6 +333,8 @@ def cleanup_musicxml(
         score,
         clean_dynamics=clean_dynamics,
         suppress_naturals=suppress_naturals,
+        suppress_tie_accidentals=suppress_tie_accidentals,
+        normalize_ties=normalize_ties,
         final_barlines=final_barlines,
         cello_clefs=cello_clefs,
     )

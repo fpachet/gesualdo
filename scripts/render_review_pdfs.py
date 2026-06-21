@@ -205,6 +205,8 @@ def write_audit(root: Path, job: RenderJob, rows: list[dict[str, str]]) -> None:
         "removed_hairpins",
         "final_barlines_added",
         "cello_clef_changes_added",
+        "suppressed_tie_continuation_accidentals",
+        "normalized_dangling_ties",
         "pdf_midi_fallbacks",
         "error",
     ]
