@@ -170,6 +170,66 @@ This makes the process explainable in a presentation: each director comment can
 be shown as a musical observation, then as a rule or audit, then as a tested
 implementation, then as regenerated review material.
 
+## Suggested Presentation Structure
+
+1. Problem statement.
+
+   Show the core challenge: reducing dense vocal or vocal-style polyphony to a
+   string quartet without losing source identity, harmonic color, or
+   playability.
+
+2. Baseline rule system.
+
+   Explain that the reducer is deterministic and source-traceable. The main
+   baseline decisions are global transposition, outer-voice anchoring, middle
+   voice compression, range fitting, and optional editorial layers.
+
+3. Take 6 special case.
+
+   Present Take 6 as a harder close-harmony case: six active voices often
+   contain more color than four monophonic string parts can carry. The key
+   design choice is to preserve guide tones, altered tones, source doublings,
+   and selected playable double-stops instead of applying generic triadic
+   completion.
+
+4. Professional feedback loop.
+
+   Show how quartet-director comments became engineering requirements:
+   awkward jumps became part-coherence audits, confusing hairpins became clean
+   review PDFs, accidentals on tied notes became notation cleanup, and
+   interrupted fragments became continuity rules.
+
+5. Iterative improvements.
+
+   Use concrete examples: `A Quiet Place` for octave optimization,
+   `He Never Sleeps` for missing pickup and rhythm-artifact cleanup,
+   `Come Unto Me` and `If We Ever` for MuseScore import compatibility, and
+   `Hark Herald` for mixed meter and cello-line continuity.
+
+6. Validation.
+
+   Close the technical story with tests, MusicXML measure completeness,
+   MuseScore raw import/export checks, cleanup TSV reports, and before/after
+   audit comparisons.
+
+7. Musical status and next work.
+
+   End with the active review set, remaining enharmonic-spelling work, the
+   question of applying octave optimization corpus-wide, and the possible later
+   creation of an expressive edition after clean review materials are stable.
+
+## Presentation Artifacts To Show
+
+- A source excerpt and its generated quartet reduction.
+- One clean PDF before/after example where generated dynamics were removed.
+- The `A Quiet Place` before/after octave-optimization comparison.
+- The `He Never Sleeps` examples for restored pickup, cleaned micro-rest, and
+  short double-stop rejection.
+- The `Hark Herald` mixed-meter correction at measures 22-23.
+- The `Hark Herald` cello-continuity correction at measures 2-3.
+- A TSV or Markdown audit excerpt showing how improvements are counted.
+- The current Take 6 review set and known tempo metadata.
+
 ## Current Outputs
 
 The active Take 6 review set contains ten preferred double-stop quartet
