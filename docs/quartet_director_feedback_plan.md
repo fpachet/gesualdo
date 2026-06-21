@@ -151,6 +151,44 @@ Add an automatic report that flags, by part and measure:
 This report should not automatically rewrite music at first. It should help
 identify the most important examples to inspect with the director.
 
+## Phase 6B: Part-Coherence Feedback And Octave Optimization
+
+The second quartet-director pass identified three related problems:
+
+- awkward cello register jumps in some five- and six-voice reductions;
+- fragmentary writing in other parts too, especially Take 6 Violin I and Viola
+  passages where a player rests for several bars and then plays a small scrap;
+- residual visual artifacts such as dangling slurs/ties or accidentals on
+  continuations.
+
+The follow-up audit in `scripts/audit_part_coherence.py` broadens Phase 6 from
+cello-only jumps to all-part coherence. It flags register jumps, sparse note
+islands, low-density windows, dangling ties/slurs, and visible accidentals on
+tied continuations.
+
+For register jumps, the preferred first repair is not deletion. The reducer
+should preserve pitch classes and harmonic coverage, then choose better octave
+placements for each written part. A local example is Take 6 `A Quiet Place`,
+bars 33-42:
+
+- Violin II bar 37 should be improved by raising the previous E in bar 36 from
+  E4 to E5, rather than lowering the F-sharp in bar 37.
+- Viola bar 37 should move the first E-flat from E-flat5 to E-flat4.
+- Violin I bar 39 is flagged, but should remain unchanged unless visual review
+  confirms that it is musically awkward.
+
+The first `A Quiet Place` prototype made four octave changes: the two expected
+bar 36-37 fixes, the earlier cello bar 15 jump, and Violin I bar 39 E4 to E5.
+The part-coherence audit comparison removed all four register-jump warnings
+for this piece without increasing sparse-fragment or notation-artifact counts.
+
+The implementation should be auditable:
+
+- preserve rhythm, pitch classes, note counts, and measure completeness;
+- keep notes in instrumental range and keep double-stops conservative;
+- compare before/after issue counts with the part-coherence audit;
+- write a changed-note report explaining every octave move.
+
 ## Phase 7: Endings And Completeness
 
 Ensure every exported score has a musically clear ending.
@@ -174,9 +212,14 @@ rather than silently masking the problem.
 5. Done: add cello clef changes for high passages.
 6. Done: add redundant-natural cleanup.
 7. Done: recompute cleaner-key transpositions with the `0.05` tolerance.
-8. Next: add enharmonic spelling audit and source-spelling preservation.
-9. Next: add octave-jump audit and inspect flagged examples.
-10. Next: iterate on spelling, clefs, and suspicious jumps using director annotations.
+8. Done: add all-part part-coherence audit for jumps, sparse fragments, and
+   notation artifacts.
+9. Done: prototype pitch-class-preserving octave optimization on Take 6
+   `A Quiet Place`.
+10. Next: review the `A Quiet Place` optimized PDF musically before applying
+   octave optimization corpus-wide.
+11. Next: add enharmonic spelling audit and source-spelling preservation.
+12. Next: iterate on spelling, clefs, and suspicious jumps using director annotations.
 
 ## Open Questions
 

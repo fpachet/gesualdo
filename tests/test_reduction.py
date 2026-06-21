@@ -7,6 +7,7 @@ pytest.importorskip("music21")
 from music21 import clef, dynamics, key, meter, note, pitch, stream
 
 from gesualdo_reduction.notation_cleanup import cleanup_score
+from gesualdo_reduction.octave_optimization import optimize_score_octaves
 from gesualdo_reduction.reduction import (
     PIANO_REDUCTION,
     ReductionConfig,
@@ -1040,6 +1041,34 @@ def test_take6_reduction_metadata_uses_take6_composer_and_clean_title(tmp_path):
     assert reduced.metadata.title == "A Quiet Place - Reduction for String Quartet"
     assert reduced.metadata.composer == "Take 6, arrangement F. Pachet and AI"
     assert out_path.exists()
+
+
+def test_octave_optimizer_preserves_pitch_classes_while_smoothing_neighbors():
+    score = make_score(
+        [
+            make_part("Violin II", [(0, 1, "C#5"), (1, 1, "E4"), (2, 1, "F#5"), (3, 1, "E5")]),
+            make_part("Viola", [(0, 1, "B-3"), (1, 2, "E-5"), (3, 1, "F#4")]),
+        ]
+    )
+    before_pitch_classes = [
+        int(element.pitch.midi) % 12
+        for part in score.parts
+        for element in part.recurse().notes
+        if isinstance(element, note.Note)
+    ]
+
+    changes = optimize_score_octaves(score)
+
+    changed = {(change.part, change.old_pitches, change.new_pitches) for change in changes}
+    assert ("Violin II", (64,), (76,)) in changed
+    assert ("Viola", (75,), (63,)) in changed
+    after_pitch_classes = [
+        int(element.pitch.midi) % 12
+        for part in score.parts
+        for element in part.recurse().notes
+        if isinstance(element, note.Note)
+    ]
+    assert after_pitch_classes == before_pitch_classes
 
 
 def test_title_from_source_path_splits_take6_camel_case():
