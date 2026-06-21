@@ -153,6 +153,13 @@ quarter-grid fallback for `if_we_ever`. The fallback preserves each measure's
 total duration and is intentionally scoped to this song rather than applied to
 all Take 6 reductions.
 
+`Hark Herald` then exposed a bar-map error in the corrected MIDI source. The
+2/4 bar at measure 22 and the following 4/4 bar at measure 23 were present only
+in the first MIDI part; the remaining parts parsed as continuous 4/4. The
+reducer now uses the part with real non-initial time-signature events as the
+authoritative measure map, eliminating the stutter/repeated phrase caused by
+merging incompatible part-local measures.
+
 Implemented:
 
 - Added pitch-class-preserving octave optimization in

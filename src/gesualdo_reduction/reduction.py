@@ -464,11 +464,25 @@ def identify_outer_parts(parts: Sequence[stream.Part]) -> tuple[int, int]:
     return max(medians, key=lambda item: item[1])[0], min(medians, key=lambda item: item[1])[0]
 
 
+def _part_measure_time_signature_count(part: stream.Part) -> int:
+    return sum(
+        1
+        for ts_obj in part.recurse().getElementsByClass(meter.TimeSignature)
+        if ql_to_fraction(ts_obj.getOffsetInHierarchy(part)) > 0
+    )
+
+
 def build_bar_map(src_score: stream.Score) -> list[Bar]:
     """Build authoritative bar boundaries from the source measure structure."""
 
     measured = src_score.makeMeasures(inPlace=False)
     measured_parts = list(measured.parts) if measured.parts else [measured]
+    authoritative_part = max(
+        measured_parts,
+        key=lambda part: (_part_measure_time_signature_count(part), len(list(part.getElementsByClass(stream.Measure)))),
+    )
+    if _part_measure_time_signature_count(authoritative_part) > 0:
+        measured_parts = [authoritative_part]
     bars_by_start: dict[Fraction, dict[str, object]] = {}
 
     for part in measured_parts:

@@ -63,6 +63,29 @@ def assert_measures_are_exact(score, bars):
             assert total == bar.duration
 
 
+def test_build_bar_map_prefers_part_with_real_time_signature_changes():
+    score = stream.Score()
+    authoritative = stream.Part()
+    authoritative.insert(0, meter.TimeSignature("4/4"))
+    authoritative.insert(4, meter.TimeSignature("2/4"))
+    authoritative.insert(6, meter.TimeSignature("4/4"))
+    authoritative.insert(0, note.Note("C4", quarterLength=10))
+    naive = stream.Part()
+    naive.insert(0, meter.TimeSignature("4/4"))
+    naive.insert(0, note.Note("E3", quarterLength=10))
+    score.insert(0, authoritative)
+    score.insert(0, naive)
+
+    bars = build_bar_map(score)
+
+    assert [(bar.start, bar.duration, bar.time_signature.ratioString if bar.time_signature else None) for bar in bars[:3]] == [
+        (Fraction(0, 1), Fraction(4, 1), "4/4"),
+        (Fraction(4, 1), Fraction(2, 1), "2/4"),
+        (Fraction(6, 1), Fraction(4, 1), "4/4"),
+    ]
+    assert Fraction(8, 1) not in {bar.start for bar in bars}
+
+
 def test_editorial_dynamic_points_avoid_final_diminuendo():
     points = _editorial_dynamic_points([0.2, 0.9, 0.4, 0.1], phrase_bars=2)
 

@@ -115,7 +115,16 @@ longer inherit the generic Music21 metadata.
    quarter-grid durations. This is deliberately not applied corpus-wide because
    it is more rhythmically invasive than the normal tiny-artifact cleanup.
 
-7. Preserve exact offsets and durations after cleanup.
+7. Prefer the MIDI part that carries real time signatures.
+
+   Some corrected Take 6 MIDI files carry time-signature changes only in the
+   first source part, while the remaining parts parse as uninterrupted 4/4
+   measures. The bar-map builder now treats the part with non-initial
+   time-signature events as authoritative. This fixed `Hark Herald`, where a
+   real 2/4 bar at measure 22 was previously merged with naive 4/4 measures
+   from the other parts, causing a stutter/repeated phrase at measures 22-23.
+
+8. Preserve exact offsets and durations after cleanup.
 
    The reducer does not rebuild the piece on a new rhythmic grid. It copies
    source offsets and durations, splitting only where notation or double-stop
