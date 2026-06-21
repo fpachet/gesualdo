@@ -449,6 +449,8 @@ whose decisions can be traced back to the original madrigal.
   ensemble profiles, and assignment policies.
 - `docs/reduction_rules.md`: human-readable description of the current
   reduction and enrichment rules.
+- `docs/development_log.md`: chronological log of the main musical and
+  technical improvements, useful for presentations and progress summaries.
 - `docs/quartet_director_feedback_plan.md`: action plan for addressing
   professional quartet feedback, including PDF export, spelling, clefs, and
   review workflow.

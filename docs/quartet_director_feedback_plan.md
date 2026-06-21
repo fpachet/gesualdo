@@ -3,6 +3,9 @@
 This document turns the first professional string-quartet feedback into a
 practical cleanup and review plan for the Gesualdo reductions.
 
+For a chronological, presentation-friendly summary of the broader development
+work, see `docs/development_log.md`.
+
 ## Implemented Status
 
 The GitHub review app in `docs/index.html` now exposes pre-exported PDF links
