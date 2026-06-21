@@ -642,6 +642,30 @@ def normalize_short_note_rest_artifacts(events: Sequence[SourceEvent]) -> list[S
     while index < len(ordered):
         event = ordered[index]
         next_event = ordered[index + 1] if index + 1 < len(ordered) else None
+        following_event = ordered[index + 2] if index + 2 < len(ordered) else None
+        if (
+            next_event is not None
+            and following_event is not None
+            and event.part_index == next_event.part_index == following_event.part_index
+            and not event.is_rest
+            and event.pitch_midi is not None
+            and next_event.is_rest
+            and not following_event.is_rest
+            and following_event.pitch_midi is not None
+            and event.end == next_event.start
+            and next_event.end == following_event.start
+            and next_event.duration <= _ARTIFACT_MAX_SNAP_DELTA
+        ):
+            normalized.append(event)
+            normalized.append(
+                replace(
+                    following_event,
+                    start=next_event.start,
+                    duration=following_event.duration + next_event.duration,
+                )
+            )
+            index += 3
+            continue
         if (
             next_event is not None
             and event.part_index == next_event.part_index
@@ -1552,9 +1576,13 @@ def _extract_voice_events_for_target(
     source_part: stream.Stream,
     source_index: int,
     target: TargetPart,
+    config: ReductionConfig | None = None,
 ) -> list[SourceEvent]:
     chord_policy = "bottom" if target.role == "bottom" else "top"
-    return extract_events(source_part, source_index, include_rests=True, chord_policy=chord_policy)
+    events = extract_events(source_part, source_index, include_rests=True, chord_policy=chord_policy)
+    if config is not None and config.normalize_short_note_rest_artifacts:
+        events = normalize_short_note_rest_artifacts(events)
+    return events
 
 
 def _ordered_source_indices_by_median(source_parts: Sequence[stream.Stream]) -> list[int]:
@@ -2781,12 +2809,12 @@ class SixVoiceQuartetCompressionPolicy(AssignmentPolicy):
         bottom_index = ordered_indices[-1]
 
         top_events = _fit_events_to_target(
-            _extract_voice_events_for_target(context.source_parts[top_index], top_index, top_target),
+            _extract_voice_events_for_target(context.source_parts[top_index], top_index, top_target, config),
             top_target,
             config,
         )
         bottom_events = _fit_events_to_target(
-            _extract_voice_events_for_target(context.source_parts[bottom_index], bottom_index, bottom_target),
+            _extract_voice_events_for_target(context.source_parts[bottom_index], bottom_index, bottom_target, config),
             bottom_target,
             config,
         )
@@ -2848,7 +2876,7 @@ class VoiceOrderAssignmentPolicy(AssignmentPolicy):
 
         assignments: dict[str, list[SourceEvent]] = {}
         for target, source_index in zip(profile.parts, ordered_indices, strict=True):
-            events = _extract_voice_events_for_target(context.source_parts[source_index], source_index, target)
+            events = _extract_voice_events_for_target(context.source_parts[source_index], source_index, target, config)
             assignments[target.id] = _fit_events_to_target(events, target, config)
         return assignments
 
@@ -3220,6 +3248,7 @@ class SweetSpotAssignmentPolicy(AssignmentPolicy):
                 context.source_parts[source_index],
                 source_index,
                 top_target,
+                config,
             )
             for source_index in middle_sources
         }
@@ -3260,6 +3289,7 @@ class SweetSpotAssignmentPolicy(AssignmentPolicy):
                 context.source_parts[source_index],
                 source_index,
                 profile.parts[0],
+                config,
             )
             for source_index in ordered_indices
         }
@@ -3290,7 +3320,7 @@ class SweetSpotAssignmentPolicy(AssignmentPolicy):
     ) -> dict[str, list[SourceEvent]]:
         assignments: dict[str, list[SourceEvent]] = {part.id: [] for part in profile.parts}
         for target, source_index in target_source_pairs:
-            events = _extract_voice_events_for_target(context.source_parts[source_index], source_index, target)
+            events = _extract_voice_events_for_target(context.source_parts[source_index], source_index, target, config)
             if self.prefer_registers:
                 assignments[target.id] = _fit_events_to_preferred_register(events, target, config)
             else:
@@ -3507,7 +3537,7 @@ def build_piano_score(
     def voice_groups(source_indices: Sequence[int], target: TargetPart) -> list[list[SourceEvent]]:
         groups: list[list[SourceEvent]] = []
         for source_index in source_indices:
-            events = _extract_voice_events_for_target(parts[source_index], source_index, target)
+            events = _extract_voice_events_for_target(parts[source_index], source_index, target, config)
             if prefer_hand_registers:
                 events = _fit_events_to_preferred_register(events, target, config)
             else:

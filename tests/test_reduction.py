@@ -928,6 +928,23 @@ def test_short_note_rest_artifact_normalization_snaps_isolated_odd_pair():
     ]
 
 
+def test_short_note_rest_artifact_normalization_absorbs_tiny_intra_voice_gap():
+    events = [
+        SourceEvent("p0:e0", 0, 0, Fraction(0, 1), Fraction(1, 3), 70, False),
+        SourceEvent("p0:e1", 0, 1, Fraction(1, 3), Fraction(1, 3), 66, False),
+        SourceEvent("p0:e2", 0, 2, Fraction(2, 3), Fraction(1, 12), None, True),
+        SourceEvent("p0:e3", 0, 3, Fraction(3, 4), Fraction(3, 4), 68, False),
+    ]
+
+    normalized = normalize_short_note_rest_artifacts(events)
+
+    assert [(event.start, event.duration, event.pitch_midi, event.is_rest) for event in normalized] == [
+        (Fraction(0, 1), Fraction(1, 3), 70, False),
+        (Fraction(1, 3), Fraction(1, 3), 66, False),
+        (Fraction(2, 3), Fraction(5, 6), 68, False),
+    ]
+
+
 def test_six_voice_quartet_reduction_trims_overlapping_outer_source_voice():
     score = make_score(
         [

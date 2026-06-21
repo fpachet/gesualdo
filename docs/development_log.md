@@ -110,6 +110,13 @@ narrow exception for exposed omitted melodic pickups: a duplicate pitch class
 from an otherwise unrepresented moving source voice may be attached as a
 playable double-stop, then continue alone if the host note releases.
 
+`He Never Sleeps`, measure 22 exposed another MIDI-import rhythm artifact in a
+fixed outer voice: `1/3 + 1/3 + 1/12 rest + 3/4`. The Take 6 short-artifact
+normalizer now also applies to outer anchor voices and absorbs tiny intra-voice
+gaps of at most `1/12` quarter note into the following source note. This keeps
+the melodic content and endpoint intact while removing the unreadable micro-rest
+from the quartet part.
+
 Implemented:
 
 - Added pitch-class-preserving octave optimization in

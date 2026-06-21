@@ -75,6 +75,13 @@ longer inherit the generic Music21 metadata.
    such as `1/2`. This is deliberately narrow: it cleans MIDI import noise
    without quantizing the whole source.
 
+   It also absorbs tiny intra-voice gaps of at most `1/12` quarter note when
+   they occur directly between two notes in the same source line. The following
+   note is started at the tiny-rest offset and lengthened to keep the same end
+   point. This was added for `He Never Sleeps`, measure 22, where the top source
+   voice contained `1/3 + 1/3 + 1/12 rest + 3/4`; the reduction now prints the
+   opening as continuous source notes instead of exposing the micro-rest.
+
 4. Preserve exact offsets and durations after cleanup.
 
    The reducer does not rebuild the piece on a new rhythmic grid. It copies

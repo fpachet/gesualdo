@@ -19,57 +19,57 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="Pdfe7e5a4d114e13bee3d184b3741ab2a">
+    <score-part id="P4f65b4502fe5315d0adcadea1b25db5c">
       <part-name>Violin I</part-name>
       <part-abbreviation>Vln</part-abbreviation>
-      <score-instrument id="I9fa1baaf3a4518f1c4c8210467e1e086">
+      <score-instrument id="Idd2d409b1048b876717155bf30627abd">
         <instrument-name>Violin</instrument-name>
         <instrument-abbreviation>Vln</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I9fa1baaf3a4518f1c4c8210467e1e086">
+      <midi-instrument id="Idd2d409b1048b876717155bf30627abd">
         <midi-channel>1</midi-channel>
         <midi-program>41</midi-program>
       </midi-instrument>
     </score-part>
-    <score-part id="Pdc8285623993aaa7758398e87bae6c4b">
+    <score-part id="Pb29b0a6638ca85464b3850210689e750">
       <part-name>Violin II</part-name>
       <part-abbreviation>Vln</part-abbreviation>
-      <score-instrument id="Ie7df64f8ee10cf850195f031af793934">
+      <score-instrument id="I8d63ed7f726ce1658faa9c82a153b287">
         <instrument-name>Violin</instrument-name>
         <instrument-abbreviation>Vln</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="Ie7df64f8ee10cf850195f031af793934">
+      <midi-instrument id="I8d63ed7f726ce1658faa9c82a153b287">
         <midi-channel>2</midi-channel>
         <midi-program>41</midi-program>
       </midi-instrument>
     </score-part>
-    <score-part id="Pfdf583c57b267ff8113f1a4f27589ecc">
+    <score-part id="P0c1b24e90575ff934e45631304a14c2f">
       <part-name>Viola</part-name>
       <part-abbreviation>Vla</part-abbreviation>
-      <score-instrument id="I42d2aa3ac4687959ce83f4e01f30df04">
+      <score-instrument id="Id71607b1bd3279c89ddc4586b7e1fe7d">
         <instrument-name>Viola</instrument-name>
         <instrument-abbreviation>Vla</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I42d2aa3ac4687959ce83f4e01f30df04">
+      <midi-instrument id="Id71607b1bd3279c89ddc4586b7e1fe7d">
         <midi-channel>3</midi-channel>
         <midi-program>42</midi-program>
       </midi-instrument>
     </score-part>
-    <score-part id="P03ec3a7dfeb3783f2970eec2d988337f">
+    <score-part id="P4842907652e1221310d09c57cfb104f6">
       <part-name>Violoncello</part-name>
       <part-abbreviation>Vc</part-abbreviation>
-      <score-instrument id="Ib934e0d7c46ef2f340c3e094a43cd9c5">
+      <score-instrument id="I299d39472e82ae294896dca56d029635">
         <instrument-name>Violoncello</instrument-name>
         <instrument-abbreviation>Vc</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="Ib934e0d7c46ef2f340c3e094a43cd9c5">
+      <midi-instrument id="I299d39472e82ae294896dca56d029635">
         <midi-channel>4</midi-channel>
         <midi-program>43</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
   <!--=========================== Part 1 ===========================-->
-  <part id="Pdfe7e5a4d114e13bee3d184b3741ab2a">
+  <part id="P4f65b4502fe5315d0adcadea1b25db5c">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -220,7 +220,7 @@
           <normal-type>eighth</normal-type>
         </time-modification>
         <stem>down</stem>
-        <beam number="1">end</beam>
+        <beam number="1">continue</beam>
       </note>
       <note>
         <chord />
@@ -239,29 +239,23 @@
         </time-modification>
       </note>
       <note>
-        <rest />
-        <duration>840</duration>
-        <type>32nd</type>
-        <time-modification>
-          <actual-notes>3</actual-notes>
-          <normal-notes>2</normal-notes>
-          <normal-type>32nd</normal-type>
-        </time-modification>
-        <notations>
-          <tuplet number="1" type="stop" />
-        </notations>
-      </note>
-      <note>
         <pitch>
           <step>C</step>
           <alter>0</alter>
           <octave>5</octave>
         </pitch>
-        <duration>2520</duration>
-        <type>16th</type>
+        <duration>3360</duration>
+        <type>eighth</type>
+        <time-modification>
+          <actual-notes>3</actual-notes>
+          <normal-notes>2</normal-notes>
+          <normal-type>eighth</normal-type>
+        </time-modification>
         <stem>down</stem>
-        <beam number="1">begin</beam>
-        <beam number="2">begin</beam>
+        <beam number="1">continue</beam>
+        <notations>
+          <tuplet number="1" type="stop" />
+        </notations>
       </note>
       <note>
         <pitch>
@@ -274,7 +268,7 @@
         <accidental>flat</accidental>
         <stem>down</stem>
         <beam number="1">end</beam>
-        <beam number="2">end</beam>
+        <beam number="2">backward hook</beam>
       </note>
       <note>
         <chord />
@@ -3768,18 +3762,27 @@
           <normal-type>eighth</normal-type>
         </time-modification>
         <stem>up</stem>
-        <beam number="1">end</beam>
+        <beam number="1">continue</beam>
       </note>
       <note>
-        <rest />
-        <duration>840</duration>
-        <type>32nd</type>
+        <pitch>
+          <step>G</step>
+          <alter>0</alter>
+          <octave>4</octave>
+        </pitch>
+        <duration>3360</duration>
+        <tie type="start" />
+        <type>eighth</type>
+        <accidental>natural</accidental>
         <time-modification>
           <actual-notes>3</actual-notes>
           <normal-notes>2</normal-notes>
-          <normal-type>32nd</normal-type>
+          <normal-type>eighth</normal-type>
         </time-modification>
+        <stem>up</stem>
+        <beam number="1">continue</beam>
         <notations>
+          <tied type="start" />
           <tuplet number="1" type="stop" />
         </notations>
       </note>
@@ -3789,10 +3792,14 @@
           <alter>0</alter>
           <octave>4</octave>
         </pitch>
-        <duration>7560</duration>
+        <duration>5040</duration>
+        <tie type="stop" />
         <type>eighth</type>
-        <dot />
-        <accidental>natural</accidental>
+        <stem>up</stem>
+        <beam number="1">end</beam>
+        <notations>
+          <tied type="stop" />
+        </notations>
       </note>
       <note>
         <pitch>
@@ -8250,7 +8257,7 @@
     </measure>
   </part>
   <!--=========================== Part 2 ===========================-->
-  <part id="Pdc8285623993aaa7758398e87bae6c4b">
+  <part id="Pb29b0a6638ca85464b3850210689e750">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -16498,7 +16505,7 @@
     </measure>
   </part>
   <!--=========================== Part 3 ===========================-->
-  <part id="Pfdf583c57b267ff8113f1a4f27589ecc">
+  <part id="P0c1b24e90575ff934e45631304a14c2f">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -24822,7 +24829,7 @@
     </measure>
   </part>
   <!--=========================== Part 4 ===========================-->
-  <part id="P03ec3a7dfeb3783f2970eec2d988337f">
+  <part id="P4842907652e1221310d09c57cfb104f6">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
