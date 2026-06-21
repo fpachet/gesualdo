@@ -129,15 +129,22 @@ longer inherit the generic Music21 metadata.
    measures, as in `Come Unto Me`, measures 26 and 32, staff 2. This is an
    import-compatibility pass rather than a rhythmic quantization pass.
 
-6. Use a piece-specific MuseScore grid fallback only where needed.
+6. Use piece-specific grid fallback only where needed.
 
    `If We Ever` still triggered raw MuseScore "incomplete measure" warnings
    after the tag-level compatibility pass, notably in measures 9, 25, 35, 55,
    57, 82, 91, 107, and 117. For that song only, the batch Take 6 generator
    now runs a dynamic-programming measure optimizer that keeps each affected
    measure total unchanged while replacing non-dyadic MIDI residues with nearby
-   quarter-grid durations. This is deliberately not applied corpus-wide because
-   it is more rhythmically invasive than the normal tiny-artifact cleanup.
+   quarter-grid durations.
+
+   The same scoped fallback is also enabled for `Come Unto Me`, but for
+   readability rather than import safety. Measure 26 still contained visible
+   triplet/sixth-note residue in Violin II and Viola even though the surrounding
+   string texture was simple. The fallback rewrites those affected measures to
+   nearby quarter/eighth-grid durations while preserving each measure total.
+   This is deliberately not applied corpus-wide because it is more rhythmically
+   invasive than the normal tiny-artifact cleanup.
 
 7. Prefer the MIDI part that carries real time signatures.
 

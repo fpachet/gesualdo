@@ -22,7 +22,7 @@ from gesualdo_reduction.reduction import (
 
 
 SUPPORTED_SUFFIXES = {".mxl", ".musicxml", ".xml", ".mid", ".midi"}
-MUSESCORE_GRID_NORMALIZATION_STEMS = {"if_we_ever"}
+MUSESCORE_GRID_NORMALIZATION_STEMS = {"if_we_ever", "come_unto_me"}
 
 
 def slugify(text: str) -> str:

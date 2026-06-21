@@ -173,6 +173,13 @@ quarter-grid fallback for `if_we_ever`. The fallback preserves each measure's
 total duration and is intentionally scoped to this song rather than applied to
 all Take 6 reductions.
 
+The same grid fallback was later enabled for `come_unto_me` after visual review
+of measure 26. Unlike `If We Ever`, this was not needed for MuseScore import;
+the issue was string readability. Violin II and Viola still showed triplet and
+sixth-note residue in an otherwise simple texture. The fallback now rewrites the
+affected `Come Unto Me` measures to nearby quarter/eighth-grid durations while
+preserving measure totals.
+
 `Hark Herald` then exposed a bar-map error in the corrected MIDI source. The
 2/4 bar at measure 22 and the following 4/4 bar at measure 23 were present only
 in the first MIDI part; the remaining parts parsed as continuous 4/4. The
@@ -203,6 +210,11 @@ readability cleanup, merging adjacent same-pitch fragments and absorbing a tiny
 generated rest only when the result becomes a simple notated duration. In this
 case Violin II now prints `D5` quarter, repeated `B3` quarter/eighth, and `D5`
 eighth instead of the previous tuplet-like sliver and micro-rest.
+
+Another nearby `Come Unto Me` review pointed to measure 26, where Violin II and
+Viola still contained triplet/sixth-note residue. That case is now covered by
+the piece-specific grid fallback described above; the regenerated score has no
+denominator-3, denominator-6, or denominator-12 note/rest durations remaining.
 
 Implemented:
 

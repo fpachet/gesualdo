@@ -127,9 +127,10 @@ The work has two complementary goals:
 
    MusicXML validity is not enough: MuseScore import/export is part of the
    validation loop. The pipeline strips problematic explicit
-   `<time-modification>` tags where MuseScore over-counts tuplets and applies a
-   scoped quarter-grid fallback only for `If We Ever`, where raw MuseScore still
-   reported overfull measures.
+   `<time-modification>` tags where MuseScore over-counts tuplets and applies
+   scoped quarter-grid fallbacks only for pieces that need them: `If We Ever`
+   for raw MuseScore import warnings and `Come Unto Me` for string-readability
+   cleanup of visible tuplets/sixths.
 
 ## Director-Driven Improvements
 
@@ -155,6 +156,8 @@ main implemented responses are:
   transposition.
 - Final output rhythm-scar cleanup in `Come Unto Me`, where bar 32 was reduced
   from tiny slivers and a micro-rest to ordinary string-readable durations.
+- Piece-specific quarter/eighth-grid cleanup in `Come Unto Me`, where bar 26
+  no longer shows triplet/sixth-note residue in the string parts.
 
 ## Validation And Audit Trail
 
@@ -233,6 +236,7 @@ implementation, then as regenerated review material.
 - The `Hark Herald` mixed-meter correction at measures 22-23.
 - The `Hark Herald` cello-continuity correction at measures 2-3.
 - The `Come Unto Me` cello tessitura correction in measure 7.
+- The `Come Unto Me` grid-rhythm simplification in measure 26.
 - The `Come Unto Me` rhythm simplification in measure 32.
 - A TSV or Markdown audit excerpt showing how improvements are counted.
 - The current Take 6 review set and known tempo metadata.
