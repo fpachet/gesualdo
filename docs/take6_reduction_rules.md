@@ -154,6 +154,21 @@ longer inherit the generic Music21 metadata.
    source offsets and durations, splitting only where notation or double-stop
    construction requires it.
 
+9. Smooth tiny output-only rhythm scars.
+
+   After source selection, a string part may still contain tiny notation scars
+   created by switching between source voices: adjacent same-pitch slivers, or
+   a `1/12` generated rest that prevents a near-quarter note from printing as a
+   simple quarter. The measured-part writer now merges adjacent same-pitch
+   fragments and absorbs a tiny generated rest when doing so turns an awkward
+   duration into a simple one. This is not a global quantizer; it is a final
+   monophonic readability pass.
+
+   This was added for `Come Unto Me`, measure 32. Violin II previously printed
+   a `2/3 + 1/4 + 1/12 rest` scar before the next attack. The current reduction
+   prints the passage as ordinary `D5` quarter, repeated `B3` quarter/eighth,
+   and `D5` eighth material.
+
 ## Structural Voice Mapping
 
 1. Preserve outer source voices as anchors.

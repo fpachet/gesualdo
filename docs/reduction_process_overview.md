@@ -153,6 +153,8 @@ main implemented responses are:
 - Cello sweet-spot protection in `Come Unto Me`, where high borrowed duplicate
   C5 material was removed from the cello without changing the global
   transposition.
+- Final output rhythm-scar cleanup in `Come Unto Me`, where bar 32 was reduced
+  from tiny slivers and a micro-rest to ordinary string-readable durations.
 
 ## Validation And Audit Trail
 
@@ -231,6 +233,7 @@ implementation, then as regenerated review material.
 - The `Hark Herald` mixed-meter correction at measures 22-23.
 - The `Hark Herald` cello-continuity correction at measures 2-3.
 - The `Come Unto Me` cello tessitura correction in measure 7.
+- The `Come Unto Me` rhythm simplification in measure 32.
 - A TSV or Markdown audit excerpt showing how improvements are counted.
 - The current Take 6 review set and known tempo metadata.
 

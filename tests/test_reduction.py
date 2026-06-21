@@ -4,12 +4,13 @@ import pytest
 
 pytest.importorskip("music21")
 
-from music21 import clef, dynamics, key, meter, note, pitch, stream, tie
+from music21 import clef, dynamics, instrument, key, meter, note, pitch, stream, tie
 
 from gesualdo_reduction.musicxml_compat import strip_time_modifications
 from gesualdo_reduction.notation_cleanup import cleanup_score
 from gesualdo_reduction.octave_optimization import optimize_score_octaves
 from gesualdo_reduction.reduction import (
+    Bar,
     PIANO_REDUCTION,
     ReductionConfig,
     SourceEvent,
@@ -17,6 +18,7 @@ from gesualdo_reduction.reduction import (
     _merge_adjacent_generated_harmony_events,
     build_ensemble_score,
     build_bar_map,
+    build_measured_part,
     build_piano_score,
     build_quartet_plus_viole_sweetspot_score,
     build_quartet_plus_viole_score,
@@ -180,6 +182,32 @@ def test_normalize_musescore_grid_rhythm_preserves_measure_total():
     durations = [ql_to_fraction(el.quarterLength) for el in measure.notesAndRests]
     assert sum(durations, Fraction(0, 1)) == 4
     assert all(duration.denominator in {1, 2, 4} for duration in durations)
+
+
+def test_build_measured_part_simplifies_tiny_output_rhythm_scar():
+    events = [
+        SourceEvent("d:first", 1, 0, Fraction(0, 1), Fraction(2, 3), 74, False),
+        SourceEvent("d:second", 1, 1, Fraction(2, 3), Fraction(1, 4), 74, False),
+        SourceEvent("b", 4, 2, Fraction(1, 1), Fraction(1, 1), 59, False),
+    ]
+    bars = [Bar(0, 1, Fraction(0, 1), Fraction(2, 1), meter.TimeSignature("2/4"))]
+
+    part = build_measured_part(
+        events,
+        bars,
+        part_name="Violin II",
+        instrument_obj=instrument.Violin(),
+        clef_obj=clef.TrebleClef(),
+    )
+    measure = list(part.getElementsByClass(stream.Measure))[0]
+
+    assert [
+        (ql_to_fraction(element.offset), element.pitch.nameWithOctave, ql_to_fraction(element.quarterLength))
+        for element in measure.notes
+    ] == [
+        (Fraction(0, 1), "D5", Fraction(1, 1)),
+        (Fraction(1, 1), "B3", Fraction(1, 1)),
+    ]
 
 
 def test_cleanup_score_hides_redundant_naturals_and_adds_final_barlines():

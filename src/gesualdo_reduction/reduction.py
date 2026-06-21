@@ -1161,6 +1161,78 @@ def _event_fragments_for_bar(event: SourceEvent, bar: Bar) -> Fragment | None:
     return Fragment(event=event, offset=start - bar.start, duration=end - start)
 
 
+def _is_single_pitched_fragment(fragment: Fragment, offset_counts: dict[Fraction, int]) -> bool:
+    return (
+        offset_counts.get(fragment.offset, 0) == 1
+        and fragment.event is not None
+        and not fragment.event.is_rest
+        and fragment.event.pitch_midi is not None
+    )
+
+
+def _is_simple_notated_duration(duration: Fraction) -> bool:
+    return duration.denominator in {1, 2, 3, 4, 6, 8}
+
+
+def _simplify_monophonic_fragments(
+    fragments: Sequence[Fragment],
+    *,
+    max_gap: Fraction = Fraction(1, 12),
+) -> list[Fragment]:
+    if not fragments:
+        return []
+
+    offset_counts: dict[Fraction, int] = {}
+    for fragment in fragments:
+        offset_counts[fragment.offset] = offset_counts.get(fragment.offset, 0) + 1
+
+    merged: list[Fragment] = []
+    for fragment in fragments:
+        if merged:
+            previous = merged[-1]
+            gap = fragment.offset - previous.end
+            combined_duration = fragment.end - previous.offset
+            if (
+                Fraction(0, 1) <= gap <= max_gap
+                and _is_single_pitched_fragment(previous, offset_counts)
+                and _is_single_pitched_fragment(fragment, offset_counts)
+                and previous.event is not None
+                and fragment.event is not None
+                and previous.event.part_index == fragment.event.part_index
+                and previous.event.pitch_midi == fragment.event.pitch_midi
+                and (
+                    gap > 0
+                    or not _is_simple_notated_duration(combined_duration)
+                    or not _is_simple_notated_duration(previous.duration)
+                    or not _is_simple_notated_duration(fragment.duration)
+                )
+            ):
+                merged[-1] = replace(previous, duration=combined_duration)
+                continue
+        merged.append(fragment)
+
+    offset_counts = {}
+    for fragment in merged:
+        offset_counts[fragment.offset] = offset_counts.get(fragment.offset, 0) + 1
+
+    simplified: list[Fragment] = list(merged)
+    for index in range(len(simplified) - 1):
+        current = simplified[index]
+        following = simplified[index + 1]
+        gap = following.offset - current.end
+        extended_duration = current.duration + gap
+        if (
+            Fraction(0, 1) < gap <= max_gap
+            and _is_single_pitched_fragment(current, offset_counts)
+            and _is_single_pitched_fragment(following, offset_counts)
+            and not _is_simple_notated_duration(current.duration)
+            and _is_simple_notated_duration(extended_duration)
+        ):
+            simplified[index] = replace(current, duration=extended_duration)
+
+    return simplified
+
+
 def _make_note_fragment_element(event: SourceEvent, offset: Fraction, duration: Fraction, bar: Bar) -> note.Note:
     if event.pitch_midi is None:
         raise ValueError(f"Note event without pitch: {event.source_id}")
@@ -1259,6 +1331,7 @@ def _insert_complete_fragments(
         if (fragment := _event_fragments_for_bar(event, bar)) is not None
     ]
     fragments.sort(key=lambda frag: (frag.offset, frag.end, frag.event.source_id if frag.event else ""))
+    fragments = _simplify_monophonic_fragments(fragments)
 
     cursor = Fraction(0, 1)
     index = 0

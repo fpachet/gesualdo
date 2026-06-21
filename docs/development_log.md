@@ -195,6 +195,15 @@ borrowed cello duplicate pitch classes above C4. The regenerated score keeps the
 same global transposition but removes those C5 cello doublings, lowering the
 piece's cello maximum from C5 to F4.
 
+A further `Come Unto Me` review found complex string rhythms in measure 32 even
+though the source bar is rhythmically simple. The complexity came from output
+selection scars: two same-pitch fragments plus a `1/12` generated rest before a
+new source voice entered. The measured-part writer now performs a narrow final
+readability cleanup, merging adjacent same-pitch fragments and absorbing a tiny
+generated rest only when the result becomes a simple notated duration. In this
+case Violin II now prints `D5` quarter, repeated `B3` quarter/eighth, and `D5`
+eighth instead of the previous tuplet-like sliver and micro-rest.
+
 Implemented:
 
 - Added pitch-class-preserving octave optimization in
