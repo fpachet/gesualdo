@@ -24,7 +24,17 @@ The batch script exposes the same behavior:
 
 ```bash
 uv run --extra notation python scripts/reduce_take6.py \
+  "data/take6/44 Spread love.mid" \
+  "data/take6/46 Gold Mine.mid" \
   "data/take6/47 A quiet place, originalrevu.mid" \
+  "data/take6/47 He never sleeps.mid" \
+  "data/take6/48 David et Goliath.mid" \
+  "data/take6/48 Get away Jordan.mid" \
+  "data/take6/50 If we ever.mid" \
+  "data/take6/51 Hark herald.mid" \
+  "data/take6/53 I'm on my way.mid" \
+  "data/take6/ComeUntoMe.mid" \
+  --input-dir data/take6/none \
   --output-dir data/take6/reductions/string_quartet_double_stops \
   --double-stops \
   --force
@@ -36,9 +46,12 @@ traceable to a real source event.
 
 The generated MusicXML title is derived from the source filename when reducing
 from a file path. For example, `47 A quiet place, originalrevu.mid` becomes
-`A Quiet Place - Reduction for String Quartet`. Take 6 reductions write the
-score composer as `Take 6, arrangement F. Pachet and AI` so exported PDFs and
-audio renders no longer inherit the generic Music21 metadata.
+`A Quiet Place - Reduction for String Quartet`, and `ComeUntoMe.mid` becomes
+`Come Unto Me - Reduction for String Quartet`. Leading track numbers and the
+`originalrevu` suffix are removed for the generated score titles and output
+filenames. Take 6 reductions write the score composer as
+`Take 6, arrangement F. Pachet and AI` so exported PDFs and audio renders no
+longer inherit the generic Music21 metadata.
 
 ## Source Preparation
 
@@ -219,10 +232,16 @@ This layer is enabled with `add_source_double_stops=True` or the CLI
    Generated notes are still tagged internally as generated events, separate
    from copied source notes.
 
-## Current A Quiet Place Behavior
+## Current Generated Set
 
-The current Take 6 double-stop reduction of
-`47 A quiet place, originalrevu.mid` uses global transposition `+3`.
+The current Take 6 web/review set contains 10 double-stop quartet reductions:
+`Spread Love`, `Gold Mine`, `A Quiet Place`, `He Never Sleeps`,
+`David et Goliath`, `Get Away Jordan`, `If We Ever`, `Hark Herald`,
+`I'm On My Way`, and `Come Unto Me`. `A_quiet_place_joined.mid` is treated as
+an intermediate/alternate source and is not included in the active report.
+
+The current Take 6 double-stop reduction of `A Quiet Place` uses global
+transposition `+3`.
 
 With `--double-stops`, the long-homorhythmic doubling rule currently affects
 these onsets:

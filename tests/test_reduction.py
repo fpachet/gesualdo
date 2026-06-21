@@ -28,6 +28,7 @@ from gesualdo_reduction.reduction import (
     reduce_to_piano,
     reduce_to_quartet,
     reduce_take6_to_quartet,
+    title_from_source_path,
     validate_score_measures,
 )
 
@@ -1039,3 +1040,7 @@ def test_take6_reduction_metadata_uses_take6_composer_and_clean_title(tmp_path):
     assert reduced.metadata.title == "A Quiet Place - Reduction for String Quartet"
     assert reduced.metadata.composer == "Take 6, arrangement F. Pachet and AI"
     assert out_path.exists()
+
+
+def test_title_from_source_path_splits_take6_camel_case():
+    assert title_from_source_path("data/take6/ComeUntoMe.mid") == "Come Unto Me"

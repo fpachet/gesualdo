@@ -66,11 +66,15 @@ def render_musicxml(musescore: Path, input_path: Path, output_path: Path) -> str
 
 
 def render_job(root: Path, musescore: Path, voice_dir: str, target: str, force: bool) -> dict[str, int]:
-    report_path = root / "data" / "cpdl" / voice_dir / "reductions" / target / "report.tsv"
+    if voice_dir == "take6":
+        report_path = root / "data" / "take6" / "reductions" / target / "report.tsv"
+        output_dir = root / "data" / "take6" / "renders" / f"{target}_mp3"
+    else:
+        report_path = root / "data" / "cpdl" / voice_dir / "reductions" / target / "report.tsv"
+        output_dir = root / "data" / "cpdl" / voice_dir / "renders" / f"{target}_mp3"
     if not report_path.exists():
         raise FileNotFoundError(report_path)
 
-    output_dir = root / "data" / "cpdl" / voice_dir / "renders" / f"{target}_mp3"
     counts = {"musicxml": 0, "midi_fallback": 0, "failed": 0, "skipped": 0}
     for row in report_rows(report_path):
         input_path = root / row["output_path"]

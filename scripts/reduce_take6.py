@@ -11,7 +11,7 @@ from pathlib import Path
 
 from music21 import converter
 
-from gesualdo_reduction.reduction import reduce_take6_to_quartet
+from gesualdo_reduction.reduction import reduce_take6_to_quartet, title_from_source_path
 
 
 SUPPORTED_SUFFIXES = {".mxl", ".musicxml", ".xml", ".mid", ".midi"}
@@ -20,6 +20,10 @@ SUPPORTED_SUFFIXES = {".mxl", ".musicxml", ".xml", ".mid", ".midi"}
 def slugify(text: str) -> str:
     slug = re.sub(r"[^A-Za-z0-9]+", "_", text).strip("_").lower()
     return slug or "untitled"
+
+
+def output_stem(source_path: Path) -> str:
+    return slugify(title_from_source_path(source_path))
 
 
 def discover_sources(input_dir: Path | None, explicit_sources: list[Path]) -> list[Path]:
@@ -87,7 +91,7 @@ def main() -> int:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     report_rows: list[dict[str, str]] = []
     for ordinal, source_path in enumerate(sources, start=1):
-        output_path = args.output_dir / f"{slugify(source_path.stem)}.musicxml"
+        output_path = args.output_dir / f"{output_stem(source_path)}.musicxml"
         print(f"[{ordinal:03d}/{len(sources):03d}] {source_path}", flush=True)
         try:
             parsed = converter.parse(source_path)

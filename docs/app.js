@@ -1,5 +1,5 @@
 const RAW_BASE = "https://raw.githubusercontent.com/fpachet/gesualdo/main/";
-const ASSET_VERSION = "2026-06-21-review-pdfs-take6";
+const ASSET_VERSION = "2026-06-21-take6-full-double-stops";
 const STORAGE_KEY = "gesualdo-quartet-review-v1";
 const VEROVIO_SCRIPT_URL = "https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js";
 const SCORE_RENDER_OPTIONS = {

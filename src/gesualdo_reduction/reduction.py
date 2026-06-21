@@ -362,6 +362,7 @@ def ql_to_fraction(value) -> Fraction:
 
 def title_from_source_path(source_path: str | Path) -> str:
     title = Path(source_path).stem.replace("_", " ").strip()
+    title = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", title)
     title = re.sub(r"^\d+\s+", "", title)
     title = re.sub(r"\s*,?\s*originalrevu$", "", title, flags=re.IGNORECASE)
     title = title.strip() or Path(source_path).stem

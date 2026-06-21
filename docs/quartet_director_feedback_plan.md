@@ -11,12 +11,12 @@ SVG rendering in `docs/app.js`, but conductor review can use static PDFs.
 
 Current generated review outputs:
 
-- 317 active review PDFs across KDF, CPDL five-voice, CPDL six-voice, and Take 6.
+- 326 active review PDFs across KDF, CPDL five-voice, CPDL six-voice, and Take 6.
 - Three compiled director books under `output/pdf/quartet_director/`: Gesualdo
   five-voice reductions, Gesualdo six-voice reductions, and Take 6 double-stop
   reductions.
 - A draft response email at `docs/quartet_director_email.md`.
-- Take 6 keeps only the preferred `string_quartet_double_stops` active output.
+- Take 6 now exposes 10 preferred `string_quartet_double_stops` active outputs.
 - The previous generated corpus was archived at
   `data/archive/key_signature_optimization_pre_2026-06-21/`.
 - Eight CPDL five-voice PDFs are marked with `pdf_midi_fallbacks=1` because
