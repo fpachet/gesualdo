@@ -155,6 +155,21 @@ longer inherit the generic Music21 metadata.
    active source voices represented, capped by the available four quartet
    parts before optional double-stops are considered.
 
+5. Avoid tiny trimmed preservation fragments.
+
+   Preserving active source voices must not create unreadable splice rhythms.
+   When a duplicate-pitch preservation candidate would be trimmed to less than
+   a triplet eighth (`1/3` quarter note), the Take 6 reducer keeps the full
+   source event instead of creating the tiny clipped fragment. This favors a
+   stable readable line over a momentary voice-count repair.
+
+   This rule was introduced for `A Quiet Place`, measure 18. The earlier
+   reduction spliced a straight eighth-note inner voice into a triplet-tied
+   line, creating a `1/6`-quarter Violin II fragment. The current reduction
+   keeps the straight eighth-note source line through the second half of the
+   measure, removing the visual rhythmic scar while still using real source
+   notes.
+
 ## Optional Source Double-Stops
 
 This layer is enabled with `add_source_double_stops=True` or the CLI

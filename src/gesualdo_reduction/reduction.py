@@ -181,6 +181,7 @@ class ReductionConfig:
     prefer_jazz_color_tones: bool = False
     add_source_double_stops: bool = False
     normalize_short_note_rest_artifacts: bool = False
+    min_preserved_trimmed_duration: Fraction | None = None
     add_editorial_dynamics: bool = True
     dynamic_phrase_bars: int = 4
     dynamic_hairpin_bars: int = 2
@@ -2217,6 +2218,26 @@ def _trim_event_end(event: SourceEvent, end: Fraction) -> SourceEvent | None:
     return replace(event, duration=end - event.start)
 
 
+def _prepare_preserving_candidate(
+    event: SourceEvent,
+    next_source_change: Fraction | None,
+    covered_pitch_classes: set[int],
+    config: ReductionConfig,
+) -> SourceEvent | None:
+    if event.pitch_midi is None:
+        return event
+    if event.pitch_midi % 12 not in covered_pitch_classes or next_source_change is None:
+        return event
+
+    prepared = _trim_event_end(event, next_source_change)
+    if prepared is None:
+        return None
+    min_duration = config.min_preserved_trimmed_duration
+    if prepared.duration < event.duration and min_duration is not None and prepared.duration < min_duration:
+        return event
+    return prepared
+
+
 def _is_generated_harmony_event(event: SourceEvent) -> bool:
     return event.part_index < 0 and event.source_id.startswith(("generated:harmony:", "generated:third:"))
 
@@ -2461,13 +2482,12 @@ def _select_inner_events(
                 ]
                 prepared_candidates: list[SourceEvent] = []
                 for event in preserving_candidates:
-                    prepared = event
-                    if (
-                        event.pitch_midi is not None
-                        and event.pitch_midi % 12 in covered_at_start
-                        and next_source_change is not None
-                    ):
-                        prepared = _trim_event_end(event, next_source_change)
+                    prepared = _prepare_preserving_candidate(
+                        event,
+                        next_source_change,
+                        covered_at_start,
+                        config,
+                    )
                     if prepared is not None:
                         prepared_candidates.append(prepared)
                 preserving_candidates = prepared_candidates
@@ -3523,6 +3543,7 @@ def build_take6_quartet_score(
             prefer_jazz_color_tones=True,
             add_source_double_stops=add_source_double_stops,
             normalize_short_note_rest_artifacts=normalize_short_note_rest_artifacts,
+            min_preserved_trimmed_duration=Fraction(1, 3),
         ),
         policy=Take6QuartetCompressionPolicy(),
         reduction_composer=TAKE6_REDUCTION_COMPOSER,
@@ -3694,6 +3715,7 @@ def reduce_take6_to_quartet(
             prefer_jazz_color_tones=True,
             add_source_double_stops=add_source_double_stops,
             normalize_short_note_rest_artifacts=normalize_short_note_rest_artifacts,
+            min_preserved_trimmed_duration=Fraction(1, 3),
         ),
         policy=Take6QuartetCompressionPolicy(),
         candidate_semitones=candidate_semitones,

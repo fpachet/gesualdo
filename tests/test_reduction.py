@@ -813,6 +813,74 @@ def test_take6_double_stops_do_not_preserve_short_source_doublings():
     assert set(name[:-1] for name in output_pitches) == {"G", "B", "A", "D"}
 
 
+def test_take6_preservation_avoids_tiny_trimmed_duple_triplet_splice():
+    score = make_score(
+        [
+            make_part(
+                "lead",
+                [
+                    (0, 2, "E5"),
+                    (2, 1, None),
+                    (3, Fraction(1, 2), "B-5"),
+                    (Fraction(7, 2), Fraction(1, 2), "A5"),
+                ],
+            ),
+            make_part(
+                "straight inner",
+                [
+                    (0, 2, "E4"),
+                    (2, Fraction(1, 2), "C4"),
+                    (Fraction(5, 2), Fraction(1, 2), "D4"),
+                    (3, Fraction(1, 2), "E-4"),
+                    (Fraction(7, 2), Fraction(1, 2), "D4"),
+                ],
+            ),
+            make_part(
+                "triplet inner",
+                [
+                    (0, Fraction(3, 2), "F#4"),
+                    (Fraction(3, 2), Fraction(1, 2), "E4"),
+                    (2, Fraction(1, 3), "E4"),
+                    (Fraction(7, 3), Fraction(1, 3), "D4"),
+                    (Fraction(8, 3), Fraction(4, 3), "E4"),
+                ],
+            ),
+            make_part(
+                "tenor",
+                [
+                    (0, 2, "B3"),
+                    (2, Fraction(1, 2), "G3"),
+                    (Fraction(5, 2), Fraction(1, 2), "A3"),
+                    (3, 1, "B-3"),
+                ],
+            ),
+            make_part("baritone", [(0, 2, "G3"), (2, 2, "E3")]),
+            make_part("bass", [(0, 2, "C#3"), (2, 2, "F#2")]),
+        ]
+    )
+
+    reduced = build_take6_quartet_score(score, enforce_ranges=False)
+    violin_2_measure = list(reduced.parts[1].getElementsByClass(stream.Measure))[0]
+    second_half = [
+        element
+        for element in violin_2_measure.notesAndRests
+        if ql_to_fraction(element.offset) >= Fraction(2, 1)
+    ]
+
+    assert [ql_to_fraction(element.quarterLength) for element in second_half] == [
+        Fraction(1, 2),
+        Fraction(1, 2),
+        Fraction(1, 2),
+        Fraction(1, 2),
+    ]
+    assert [element.pitch.nameWithOctave for element in second_half if isinstance(element, note.Note)] == [
+        "C4",
+        "D4",
+        "E-4",
+        "D4",
+    ]
+
+
 def test_short_note_rest_artifact_normalization_snaps_isolated_odd_pair():
     events = [
         SourceEvent("p0:e0", 0, 0, Fraction(0, 1), Fraction(5, 12), 64, False),
