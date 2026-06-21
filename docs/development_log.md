@@ -211,6 +211,15 @@ conservatively playable. This keeps the same pitch classes and rhythms but gives
 the cello its normal color. In `Come Unto Me`, the active cello part now has no
 G3-or-higher material instead of the F4 maximum left after the earlier C5 fix.
 
+That still did not fully restore the character of `Come Unto Me`: the generic
+global transposition `-3` kept the quartet bright, even though the cello was now
+technically in a comfortable range. Reviewed Take 6 transposition overrides now
+live in `data/take6/transposition_overrides.json`, parallel to the tempo
+metadata. `Come Unto Me` is forced to `-10`, which gives the cello a real bass
+range (`E-flat2` to `F-sharp3`) while preserving a readable two-flat key. A
+full octave-lower override was rejected because it produced an impractical
+eight-sharp printed key.
+
 A further `Come Unto Me` review found complex string rhythms in measure 32 even
 though the source bar is rhythmically simple. The complexity came from output
 selection scars: two same-pitch fragments plus a `1/12` generated rest before a

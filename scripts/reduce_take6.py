@@ -72,6 +72,14 @@ def load_tempo_overrides(path: Path) -> dict[str, int]:
     return {str(key): int(value) for key, value in raw.items()}
 
 
+def load_transposition_overrides(path: Path) -> dict[str, int]:
+    if not path.exists():
+        return {}
+    with path.open(encoding="utf-8") as handle:
+        raw = json.load(handle)
+    return {str(key): int(value) for key, value in raw.items()}
+
+
 def apply_tempo_override(score, bpm: int) -> None:
     for mark in list(score.recurse().getElementsByClass(tempo.MetronomeMark)):
         if mark.activeSite is not None:
@@ -90,6 +98,7 @@ def main() -> int:
     parser.add_argument("--input-dir", type=Path, default=Path("data/take6/sources"))
     parser.add_argument("--output-dir", type=Path, default=Path("data/take6/reductions/string_quartet_double_stops"))
     parser.add_argument("--tempo-overrides", type=Path, default=Path("data/take6/tempo_overrides.json"))
+    parser.add_argument("--transposition-overrides", type=Path, default=Path("data/take6/transposition_overrides.json"))
     parser.add_argument("--semitones", type=int, default=None)
     parser.add_argument(
         "--double-stops",
@@ -120,6 +129,7 @@ def main() -> int:
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     tempo_overrides = load_tempo_overrides(args.tempo_overrides)
+    transposition_overrides = load_transposition_overrides(args.transposition_overrides)
     report_rows: list[dict[str, str]] = []
     for ordinal, source_path in enumerate(sources, start=1):
         output_path = args.output_dir / f"{output_stem(source_path)}.musicxml"
@@ -133,9 +143,10 @@ def main() -> int:
             if output_path.exists() and not args.force:
                 reduced = converter.parse(output_path)
             else:
+                stem = output_stem(source_path)
                 reduced = reduce_take6_to_quartet(
                     source_path,
-                    semitones=args.semitones,
+                    semitones=args.semitones if args.semitones is not None else transposition_overrides.get(stem),
                     out_path=output_path,
                     add_source_double_stops=args.double_stops,
                     normalize_short_note_rest_artifacts=not args.no_normalize_artifacts,

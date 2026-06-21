@@ -85,11 +85,16 @@ longer inherit the generic Music21 metadata.
    is intentionally explicit, so a four- or five-part source is not silently
    treated as Take 6 close harmony.
 
-2. Choose a global transposition unless the caller forces one.
+2. Choose a global transposition unless a reviewed override exists.
 
    The same transposition machinery as the general reducer is used. Candidate
    transpositions are scored for string range, preferred register, source
-   displacement, and key-signature simplicity.
+   displacement, and key-signature simplicity. Reviewed per-song overrides live
+   in `data/take6/transposition_overrides.json`. These are used when the
+   automatic optimum is technically playable but misses a song-specific
+   character or instrumental role. `Come Unto Me` currently uses `-10`, rather
+   than the automatic `-3`, so the cello can function as a real bass while the
+   printed key remains readable.
 
 3. Apply reviewed song tempos when known.
 

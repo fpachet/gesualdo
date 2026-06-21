@@ -263,6 +263,10 @@ reductions:
 Known reviewed tempos are stored in `data/take6/tempo_overrides.json` rather
 than in code. At the time of this note: `He Never Sleeps` is 75,
 `A Quiet Place` is 68, `Hark Herald` is 108, and `If We Ever` is 117.
+Reviewed transposition overrides are stored separately in
+`data/take6/transposition_overrides.json`; currently `Come Unto Me` is forced
+to `-10` so the cello reads and sounds as the bass foundation rather than a
+high support voice.
 
 ## Remaining Work
 
