@@ -4,6 +4,10 @@ This document describes the musical rules currently encoded in the quartet
 reduction algorithm. It is written as an editorial guide rather than as code
 documentation, so that the output can be reviewed musically.
 
+For a presentation-level narrative of the whole process, including review
+workflow, director-feedback iterations, and validation strategy, see
+[`reduction_process_overview.md`](reduction_process_overview.md).
+
 The reducer is deterministic. It does not learn from examples, and it does not
 improvise freely. Most notes in the quartet are copied from real source notes
 in the madrigal. A smaller optional layer may add explicitly marked editorial
@@ -35,6 +39,23 @@ harmony.
    Empty strings are acceptable when the source texture is sparse or when
    filling them would create weak doublings, isolated fragments, or misleading
    harmony.
+
+## Process Summary
+
+The production workflow is deliberately auditable:
+
+1. Parse and normalize the source without changing musical identity.
+2. Choose a global transposition that balances range, register, source
+   displacement, and printed key-signature burden.
+3. Assign source voices to quartet instruments with provenance.
+4. Add only explicitly enabled source-preservation or editorial layers.
+5. Export MusicXML, MP3, and PDF review material.
+6. Run clean notation cleanup for review PDFs.
+7. Run score/audit checks and record the result in TSV or Markdown reports.
+
+Repeated director comments are promoted into this workflow only after they can
+be stated as a rule, checked on the corpus, and covered by tests or export
+validation.
 
 ## Global Transposition
 

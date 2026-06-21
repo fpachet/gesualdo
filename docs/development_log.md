@@ -4,6 +4,26 @@ This document tracks the successive musical and technical improvements made to
 the reduction pipeline. It is intended as a presentation-friendly companion to
 the detailed rule documents.
 
+For a shorter presentation narrative organized by process rather than by commit
+history, see `docs/reduction_process_overview.md`.
+
+## Presentation Storyline
+
+The project can be presented as a repeated loop:
+
+1. Extract explicit musical rules from the source-reduction problem.
+2. Generate auditable quartet MusicXML, audio, and PDF material.
+3. Collect expert string-quartet feedback on real scores.
+4. Convert repeated comments into corpus-wide audits or deterministic rules.
+5. Validate the rule with tests, MuseScore import/export checks, and before/after
+   reports.
+6. Regenerate the review material and document the musical reason for the
+   change.
+
+This is why the documentation is split in three layers: the rule references
+describe what the reducer does, this log records when and why it changed, and
+the process overview gives the high-level narrative for presentations.
+
 ## Rule Extraction And Baseline Reducer
 
 - Built an explicit reduction pipeline for turning vocal polyphony into string

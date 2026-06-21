@@ -6,6 +6,9 @@ practical cleanup and review plan for the Gesualdo reductions.
 For a chronological, presentation-friendly summary of the broader development
 work, see `docs/development_log.md`.
 
+For a shorter presentation overview of the full process and validation loop,
+see `docs/reduction_process_overview.md`.
+
 ## Implemented Status
 
 The GitHub review app in `docs/index.html` now exposes pre-exported PDF links
@@ -20,6 +23,10 @@ Current generated review outputs:
   reductions.
 - A draft response email at `docs/quartet_director_email.md`.
 - Take 6 now exposes 10 preferred `string_quartet_double_stops` active outputs.
+- The Take 6 pass now includes reviewed tempo metadata, short-artifact cleanup,
+  exposed-pickup preservation, short double-stop rejection, MusicXML import
+  compatibility fixes, mixed-meter bar-map handling, and continuity protection
+  for borrowed lower lines such as `Hark Herald` measures 2-3.
 - The previous generated corpus was archived at
   `data/archive/key_signature_optimization_pre_2026-06-21/`.
 - Eight CPDL five-voice PDFs are marked with `pdf_midi_fallbacks=1` because

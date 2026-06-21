@@ -5,11 +5,35 @@ close-harmony sources reduced to string quartet. It is an editorial guide, not
 an implementation manual: the goal is to make the musical decisions inspectable
 when reviewing the generated score.
 
+For a presentation-level narrative of the complete reduction process and the
+director-feedback loop, see
+[`reduction_process_overview.md`](reduction_process_overview.md).
+
 The Take 6 reducer is deterministic. It does not learn from examples and it
 does not invent jazz harmony by default. Its main difference from the Gesualdo
 quartet reducer is that dense vertical color is treated as primary material:
 thirds, sevenths, altered tones, and added tones are often more important than
 roots and fifths.
+
+## Presentation Summary
+
+The Take 6 problem is not simply "six voices into four instruments." It is a
+choice about which musical information survives when close-harmony source
+textures contain more notes than the quartet can play literally.
+
+The current answer is:
+
+1. Keep the soprano and bass frame stable.
+2. Preserve missing pitch classes before adding duplicates.
+3. Prefer guide tones and color tones in dense sonorities.
+4. Use source-based double-stops only when they are playable and musically
+   useful.
+5. Avoid unreadable notation fragments, short isolated double-stops, and
+   interrupted borrowed lines.
+6. Validate the result as both music and MusicXML/MuseScore material.
+
+The rules below record the successive refinements that came from score
+inspection and quartet-director feedback.
 
 ## Entry Points
 
@@ -389,6 +413,20 @@ source-based, and playable under the current conservative model.
    The Take 6 generated MusicXML is checked by exporting with MuseScore when
    practical, because notation-valid MusicXML can still expose reader-specific
    duration or chord issues.
+
+5. Rule changes should have regression tests.
+
+   Repeated musical problems are converted into small tests when possible:
+   missing melodic pickups, tiny preservation fragments, micro-rest cleanup,
+   overlap cleanup, short double-stop rejection, mixed time-signature mapping,
+   and borrowed-line continuity all have focused checks or export validation.
+
+6. Presentation traceability is part of the artifact.
+
+   Improvements are recorded in `docs/development_log.md`; the higher-level
+   story is summarized in `docs/reduction_process_overview.md`; exported PDF
+   cleanup counts are recorded in
+   `data/take6/renders/string_quartet_double_stops_pdf/review_pdf_report.tsv`.
 
 ## Known Limits
 
