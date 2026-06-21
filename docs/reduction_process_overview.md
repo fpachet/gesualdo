@@ -150,6 +150,9 @@ main implemented responses are:
 - MuseScore import fixes for `Come Unto Me` and `If We Ever`.
 - Correct mixed-meter bar mapping for `Hark Herald`.
 - Continuous borrowed cello line in `Hark Herald` measures 2-3.
+- Cello sweet-spot protection in `Come Unto Me`, where high borrowed duplicate
+  C5 material was removed from the cello without changing the global
+  transposition.
 
 ## Validation And Audit Trail
 
@@ -227,6 +230,7 @@ implementation, then as regenerated review material.
   short double-stop rejection.
 - The `Hark Herald` mixed-meter correction at measures 22-23.
 - The `Hark Herald` cello-continuity correction at measures 2-3.
+- The `Come Unto Me` cello tessitura correction in measure 7.
 - A TSV or Markdown audit excerpt showing how improvements are counted.
 - The current Take 6 review set and known tempo metadata.
 

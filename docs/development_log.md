@@ -187,6 +187,14 @@ covered above. The preservation matcher now reserves same-source continuations
 before assigning other missing voices, so the cello continues the line through
 measure 3 instead of making a short entrance, rest, and second entrance.
 
+`Come Unto Me` then exposed the opposite cello problem: the cello was being used
+as spare high-register capacity for duplicate upper material. In measure 7, once
+the lower source voices rested, the reducer copied Violin I's C5 line into the
+cello even though it added no harmonic coverage. Take 6 selection now rejects
+borrowed cello duplicate pitch classes above C4. The regenerated score keeps the
+same global transposition but removes those C5 cello doublings, lowering the
+piece's cello maximum from C5 to F4.
+
 Implemented:
 
 - Added pitch-class-preserving octave optimization in

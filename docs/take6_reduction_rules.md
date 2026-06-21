@@ -254,6 +254,17 @@ longer inherit the generic Music21 metadata.
    two lower notes duplicate upper pitch classes, but keeping them avoids an
    awkward stop-and-reenter cello gesture.
 
+7. Keep the cello out of high borrowed duplicate material.
+
+   The cello may still carry the true lowest source voice, and it may still
+   borrow material when this is needed for missing harmonic coverage. But in
+   Take 6 reductions it should not act as spare high-register capacity for a
+   duplicate pitch class already covered above. Borrowed cello duplicates above
+   C4 are therefore rejected. This was added for `Come Unto Me`, measure 7,
+   where the cello had copied Violin I's high C5 line after the real lower
+   voices rested. The current reduction leaves the cello resting there instead
+   of pushing it far outside its normal color.
+
 ## Optional Source Double-Stops
 
 This layer is enabled with `add_source_double_stops=True` or the CLI

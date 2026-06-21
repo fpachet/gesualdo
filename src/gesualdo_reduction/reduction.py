@@ -185,6 +185,7 @@ class ReductionConfig:
     add_source_double_stops: bool = False
     normalize_short_note_rest_artifacts: bool = False
     min_preserved_trimmed_duration: Fraction | None = None
+    max_borrowed_bottom_duplicate_pitch: int | None = None
     add_editorial_dynamics: bool = True
     dynamic_phrase_bars: int = 4
     dynamic_hairpin_bars: int = 2
@@ -1918,6 +1919,43 @@ def _target_continuing_source_part(
     return None
 
 
+def _target_anchor_part_indices(
+    initial_events_by_target: dict[str, Sequence[SourceEvent]],
+) -> dict[str, set[int]]:
+    return {
+        target_id: {event.part_index for event in events if event.part_index >= 0}
+        for target_id, events in initial_events_by_target.items()
+    }
+
+
+def _is_borrowed_from_target_anchor(
+    target: TargetPart,
+    event: SourceEvent,
+    target_anchor_parts: dict[str, set[int]],
+) -> bool:
+    anchor_parts = target_anchor_parts.get(target.id)
+    return anchor_parts is not None and event.part_index not in anchor_parts
+
+
+def _is_high_borrowed_bottom_duplicate(
+    target: TargetPart,
+    event: SourceEvent,
+    *,
+    covered_pitch_classes: set[int],
+    target_anchor_parts: dict[str, set[int]],
+    config: ReductionConfig,
+) -> bool:
+    if (
+        config.max_borrowed_bottom_duplicate_pitch is None
+        or target.role != "bottom"
+        or event.pitch_midi is None
+        or event.pitch_midi <= config.max_borrowed_bottom_duplicate_pitch
+        or event.pitch_midi % 12 not in covered_pitch_classes
+    ):
+        return False
+    return _is_borrowed_from_target_anchor(target, event, target_anchor_parts)
+
+
 def _duplicate_color_tone_penalty(
     event: SourceEvent,
     *,
@@ -2571,6 +2609,7 @@ def _select_inner_events(
         for target in targets
     }
     borrowed_target_ids = set(initial_events_by_target)
+    target_anchor_parts = _target_anchor_part_indices(initial_events_by_target)
     last_pitch: dict[str, int | None] = {target.id: None for target in targets}
 
     note_events = sorted(
@@ -2732,7 +2771,14 @@ def _select_inner_events(
                 borrowed_targets,
                 last_pitch,
                 config,
-                can_assign=lambda target, event: _target_is_free_for_event(target, event, selected),
+                can_assign=lambda target, event: _target_is_free_for_event(target, event, selected)
+                and not _is_high_borrowed_bottom_duplicate(
+                    target,
+                    event,
+                    covered_pitch_classes=covered,
+                    target_anchor_parts=target_anchor_parts,
+                    config=config,
+                ),
             )
             for target, event in support_pairs:
                 if config.enforce_ranges:
@@ -2832,7 +2878,14 @@ def _select_inner_events(
                         remaining_targets,
                         last_pitch,
                         config,
-                        can_assign=lambda target, event: _target_is_free_for_event(target, event, selected),
+                        can_assign=lambda target, event: _target_is_free_for_event(target, event, selected)
+                        and not _is_high_borrowed_bottom_duplicate(
+                            target,
+                            event,
+                            covered_pitch_classes=covered_at_start,
+                            target_anchor_parts=target_anchor_parts,
+                            config=config,
+                        ),
                     )
                     if len(matched_pairs) == len(remaining_chosen):
                         preserve_pairs = continuation_pairs + matched_pairs
@@ -3855,6 +3908,7 @@ def build_take6_quartet_score(
             add_source_double_stops=add_source_double_stops,
             normalize_short_note_rest_artifacts=normalize_short_note_rest_artifacts,
             min_preserved_trimmed_duration=Fraction(1, 3),
+            max_borrowed_bottom_duplicate_pitch=60,
         ),
         policy=Take6QuartetCompressionPolicy(),
         reduction_composer=TAKE6_REDUCTION_COMPOSER,
@@ -4027,6 +4081,7 @@ def reduce_take6_to_quartet(
             add_source_double_stops=add_source_double_stops,
             normalize_short_note_rest_artifacts=normalize_short_note_rest_artifacts,
             min_preserved_trimmed_duration=Fraction(1, 3),
+            max_borrowed_bottom_duplicate_pitch=60,
         ),
         policy=Take6QuartetCompressionPolicy(),
         candidate_semitones=candidate_semitones,

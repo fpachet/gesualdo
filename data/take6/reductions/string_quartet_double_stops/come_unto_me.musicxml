@@ -19,57 +19,57 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="P1c3b5f8e742faf83189d4e3df711347b">
+    <score-part id="Pef5f9671a8a0c328c3301c05dca739a7">
       <part-name>Violin I</part-name>
       <part-abbreviation>Vln</part-abbreviation>
-      <score-instrument id="I428ad1a60726b8a7f50e2119640511a9">
+      <score-instrument id="Ia7b934fe41609de71c9344a557122ab7">
         <instrument-name>Violin</instrument-name>
         <instrument-abbreviation>Vln</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I428ad1a60726b8a7f50e2119640511a9">
+      <midi-instrument id="Ia7b934fe41609de71c9344a557122ab7">
         <midi-channel>1</midi-channel>
         <midi-program>41</midi-program>
       </midi-instrument>
     </score-part>
-    <score-part id="P4f5c384bf83a751def5cf5828759788c">
+    <score-part id="P79d6349444c131bb69081c567a4916f9">
       <part-name>Violin II</part-name>
       <part-abbreviation>Vln</part-abbreviation>
-      <score-instrument id="I227435a1369a502d903f56d30146ccf4">
+      <score-instrument id="I319e301cc191a0c8cdef020b6c7aac51">
         <instrument-name>Violin</instrument-name>
         <instrument-abbreviation>Vln</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I227435a1369a502d903f56d30146ccf4">
+      <midi-instrument id="I319e301cc191a0c8cdef020b6c7aac51">
         <midi-channel>2</midi-channel>
         <midi-program>41</midi-program>
       </midi-instrument>
     </score-part>
-    <score-part id="P11e0ad114ccbb1ca93536f2bf26027dc">
+    <score-part id="Pc8ea2b6e26af04639ceedad77d0c9b59">
       <part-name>Viola</part-name>
       <part-abbreviation>Vla</part-abbreviation>
-      <score-instrument id="I46c2381406b6a8c791a5b6d5cc3fe534">
+      <score-instrument id="I8c663f135119c7e8a8a7629398e5ab04">
         <instrument-name>Viola</instrument-name>
         <instrument-abbreviation>Vla</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I46c2381406b6a8c791a5b6d5cc3fe534">
+      <midi-instrument id="I8c663f135119c7e8a8a7629398e5ab04">
         <midi-channel>3</midi-channel>
         <midi-program>42</midi-program>
       </midi-instrument>
     </score-part>
-    <score-part id="Pbf04c3134716d53bd57fc0bf3405658d">
+    <score-part id="P03295dc97faba276e63290288482a1a8">
       <part-name>Violoncello</part-name>
       <part-abbreviation>Vc</part-abbreviation>
-      <score-instrument id="I50b8ff5eace8a1d1ba58041d7a4a850b">
+      <score-instrument id="Icbdb1794b19b9570e2f647455489a2be">
         <instrument-name>Violoncello</instrument-name>
         <instrument-abbreviation>Vc</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I50b8ff5eace8a1d1ba58041d7a4a850b">
+      <midi-instrument id="Icbdb1794b19b9570e2f647455489a2be">
         <midi-channel>4</midi-channel>
         <midi-program>43</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
   <!--=========================== Part 1 ===========================-->
-  <part id="P1c3b5f8e742faf83189d4e3df711347b">
+  <part id="Pef5f9671a8a0c328c3301c05dca739a7">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -3500,7 +3500,7 @@
     </measure>
   </part>
   <!--=========================== Part 2 ===========================-->
-  <part id="P4f5c384bf83a751def5cf5828759788c">
+  <part id="P79d6349444c131bb69081c567a4916f9">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -7359,7 +7359,7 @@
     </measure>
   </part>
   <!--=========================== Part 3 ===========================-->
-  <part id="P11e0ad114ccbb1ca93536f2bf26027dc">
+  <part id="Pc8ea2b6e26af04639ceedad77d0c9b59">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -8655,14 +8655,24 @@
         </direction-type>
         <sound dynamics="88" />
       </direction>
-      <note>
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
       <direction placement="below">
         <direction-type>
           <wedge number="6" spread="15" type="diminuendo" />
+        </direction-type>
+      </direction>
+      <note>
+        <pitch>
+          <step>C</step>
+          <alter>0</alter>
+          <octave>4</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
+        <accidental>natural</accidental>
+      </note>
+      <direction placement="below">
+        <direction-type>
+          <wedge number="5" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -8677,11 +8687,6 @@
         <stem>down</stem>
         <beam number="1">begin</beam>
       </note>
-      <direction placement="below">
-        <direction-type>
-          <wedge number="5" spread="15" type="stop" />
-        </direction-type>
-      </direction>
       <note>
         <pitch>
           <step>B</step>
@@ -8797,7 +8802,6 @@
         </pitch>
         <duration>2520</duration>
         <type>16th</type>
-        <accidental>natural</accidental>
         <stem>down</stem>
         <beam number="1">continue</beam>
         <beam number="2">continue</beam>
@@ -10729,7 +10733,7 @@
     </measure>
   </part>
   <!--=========================== Part 4 ===========================-->
-  <part id="Pbf04c3134716d53bd57fc0bf3405658d">
+  <part id="P03295dc97faba276e63290288482a1a8">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -11099,40 +11103,8 @@
       </note>
       <note>
         <rest />
-        <duration>5040</duration>
-        <type>eighth</type>
-      </note>
-      <note>
-        <pitch>
-          <step>C</step>
-          <alter>0</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-      </note>
-      <note>
-        <pitch>
-          <step>C</step>
-          <alter>0</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-        <accidental>natural</accidental>
-        <stem>down</stem>
-        <beam number="1">begin</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>C</step>
-          <alter>0</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-        <stem>down</stem>
-        <beam number="1">end</beam>
+        <duration>20160</duration>
+        <type>half</type>
       </note>
     </measure>
     <!--========================= Measure 8 ==========================-->

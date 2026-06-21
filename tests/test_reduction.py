@@ -841,6 +841,28 @@ def test_take6_voice_preservation_keeps_continuing_octave_duplicate_line():
     assert carrying_parts == [(2, ["E3", "A3"])]
 
 
+def test_take6_does_not_put_high_borrowed_duplicate_in_cello():
+    score = make_score(
+        [
+            make_part("lead", [(0, 1, "C6"), (1, 1, None)]),
+            make_part("duplicate upper glue", [(0, 1, "C5"), (1, 1, "D5")]),
+            make_part("inner color", [(0, 1, "E4"), (1, 1, "E4")]),
+            make_part("inner 2", [(0, 1, None), (1, 1, "A4")]),
+            make_part("lower inner", [(0, 1, None), (1, 1, "G3")]),
+            make_part("bass", [(0, 1, None), (1, 1, "C2")]),
+        ]
+    )
+
+    reduced = build_take6_quartet_score(score, enforce_ranges=False)
+    cello_notes = list(reduced.parts[3].flatten().notes)
+
+    assert not any(
+        element.pitch.nameWithOctave == "C5"
+        and ql_to_fraction(element.offset) == Fraction(0, 1)
+        for element in cello_notes
+    )
+
+
 def test_take6_double_stops_are_optional_and_source_based():
     score = make_score(
         [
