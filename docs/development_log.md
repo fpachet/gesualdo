@@ -129,6 +129,14 @@ double-stops now require at least a half-quarter overlap with their host note,
 so quarter-note color grabs stay as single notes while longer sustained or
 melodic-pickup double-stops remain available.
 
+The later Take 6 director pass also corrected two score-level editorial items.
+Reviewed tempos are now stored outside the code in
+`data/take6/tempo_overrides.json`; currently `He Never Sleeps` is 50,
+`A Quiet Place` is 68, `Hark Herald` is 108, and `If We Ever` is 117. The
+automatic editorial dynamics layer also avoids ending a score with a generated
+diminuendo; when the final generated transition would soften, the final point is
+raised so the closing hairpin opens instead.
+
 Implemented:
 
 - Added pitch-class-preserving octave optimization in

@@ -888,6 +888,21 @@ def _coalesce_dynamic_points(points: Sequence[_DynamicPoint]) -> list[_DynamicPo
     return coalesced
 
 
+def _avoid_final_diminuendo(points: Sequence[_DynamicPoint]) -> list[_DynamicPoint]:
+    adjusted = list(points)
+    if len(adjusted) < 2:
+        return adjusted
+    previous = adjusted[-2]
+    final = adjusted[-1]
+    if final.level >= previous.level:
+        return adjusted
+    final_level = min(previous.level + 1, len(_DYNAMIC_NAMES) - 1)
+    if final_level == previous.level:
+        return adjusted[:-1]
+    adjusted[-1] = _DynamicPoint(final.bar_index, final_level)
+    return adjusted
+
+
 def _editorial_dynamic_points(profile: Sequence[float], phrase_bars: int) -> list[_DynamicPoint]:
     if not profile:
         return []
@@ -919,7 +934,7 @@ def _editorial_dynamic_points(profile: Sequence[float], phrase_bars: int) -> lis
 
     if not raw_points:
         raw_points.append(_DynamicPoint(0, levels[0]))
-    return _coalesce_dynamic_points(raw_points)
+    return _avoid_final_diminuendo(_coalesce_dynamic_points(raw_points))
 
 
 def _insert_dynamic_mark(part: stream.Part, bars: Sequence[Bar], point: _DynamicPoint) -> None:

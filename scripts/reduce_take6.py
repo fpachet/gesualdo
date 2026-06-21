@@ -5,11 +5,12 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import re
 import sys
 from pathlib import Path
 
-from music21 import converter
+from music21 import converter, tempo
 
 from gesualdo_reduction.reduction import reduce_take6_to_quartet, title_from_source_path
 
@@ -55,11 +56,32 @@ def write_report(path: Path, rows: list[dict[str, str]]) -> None:
         writer.writerows(rows)
 
 
+def load_tempo_overrides(path: Path) -> dict[str, int]:
+    if not path.exists():
+        return {}
+    with path.open(encoding="utf-8") as handle:
+        raw = json.load(handle)
+    return {str(key): int(value) for key, value in raw.items()}
+
+
+def apply_tempo_override(score, bpm: int) -> None:
+    for mark in list(score.recurse().getElementsByClass(tempo.MetronomeMark)):
+        if mark.activeSite is not None:
+            mark.activeSite.remove(mark)
+    if not score.parts:
+        return
+    measures = list(score.parts[0].getElementsByClass("Measure"))
+    if not measures:
+        return
+    measures[0].insert(0, tempo.MetronomeMark(number=bpm))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("sources", nargs="*", type=Path)
     parser.add_argument("--input-dir", type=Path, default=Path("data/take6/sources"))
     parser.add_argument("--output-dir", type=Path, default=Path("data/take6/reductions/string_quartet_double_stops"))
+    parser.add_argument("--tempo-overrides", type=Path, default=Path("data/take6/tempo_overrides.json"))
     parser.add_argument("--semitones", type=int, default=None)
     parser.add_argument(
         "--double-stops",
@@ -89,6 +111,7 @@ def main() -> int:
         return 2
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    tempo_overrides = load_tempo_overrides(args.tempo_overrides)
     report_rows: list[dict[str, str]] = []
     for ordinal, source_path in enumerate(sources, start=1):
         output_path = args.output_dir / f"{output_stem(source_path)}.musicxml"
@@ -109,6 +132,10 @@ def main() -> int:
                     add_source_double_stops=args.double_stops,
                     normalize_short_note_rest_artifacts=not args.no_normalize_artifacts,
                 )
+            tempo_override = tempo_overrides.get(output_stem(source_path))
+            if tempo_override is not None:
+                apply_tempo_override(reduced, tempo_override)
+                reduced.write("musicxml", fp=str(output_path))
             report_rows.append(
                 {
                     "source_path": str(source_path),

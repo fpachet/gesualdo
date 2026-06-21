@@ -19,57 +19,57 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="Pd5a6199f67a1eb2e40233da0b9cad529">
+    <score-part id="P2302b26b93d526dadf571c28748aee94">
       <part-name>Violin I</part-name>
       <part-abbreviation>Vln</part-abbreviation>
-      <score-instrument id="I8d2e3e0c42171a4822dfbe565d9215e0">
+      <score-instrument id="Id51b890350c36a348f416cdd7e6f763b">
         <instrument-name>Violin</instrument-name>
         <instrument-abbreviation>Vln</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I8d2e3e0c42171a4822dfbe565d9215e0">
+      <midi-instrument id="Id51b890350c36a348f416cdd7e6f763b">
         <midi-channel>1</midi-channel>
         <midi-program>41</midi-program>
       </midi-instrument>
     </score-part>
-    <score-part id="P4e1fe7b99abc35fd479da501d4be4477">
+    <score-part id="Pef3c12c938bb64cf3249eaf941eeb78e">
       <part-name>Violin II</part-name>
       <part-abbreviation>Vln</part-abbreviation>
-      <score-instrument id="I2b45f0e8face2250b2328dddfe742c93">
+      <score-instrument id="I784d54e12c64e4cc6c77d9d7243c8a91">
         <instrument-name>Violin</instrument-name>
         <instrument-abbreviation>Vln</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I2b45f0e8face2250b2328dddfe742c93">
+      <midi-instrument id="I784d54e12c64e4cc6c77d9d7243c8a91">
         <midi-channel>2</midi-channel>
         <midi-program>41</midi-program>
       </midi-instrument>
     </score-part>
-    <score-part id="Pbeba900597ac79ed428089aac605c54b">
+    <score-part id="P9eb5e40ad261738989937fdfb68efebf">
       <part-name>Viola</part-name>
       <part-abbreviation>Vla</part-abbreviation>
-      <score-instrument id="I8ad861b0296f725569dff87f10c3bedb">
+      <score-instrument id="Ia43fda096cf33dc6804ef5a05856d1c5">
         <instrument-name>Viola</instrument-name>
         <instrument-abbreviation>Vla</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I8ad861b0296f725569dff87f10c3bedb">
+      <midi-instrument id="Ia43fda096cf33dc6804ef5a05856d1c5">
         <midi-channel>3</midi-channel>
         <midi-program>42</midi-program>
       </midi-instrument>
     </score-part>
-    <score-part id="P4addef8d1a204fa4462faa0054749e5b">
+    <score-part id="Pb9d3f09cec7ed631eafc99a521fa5db5">
       <part-name>Violoncello</part-name>
       <part-abbreviation>Vc</part-abbreviation>
-      <score-instrument id="I96da235d730fd4112d338310bba96323">
+      <score-instrument id="I04635b95de4bc2bdba129884b9bd57e5">
         <instrument-name>Violoncello</instrument-name>
         <instrument-abbreviation>Vc</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I96da235d730fd4112d338310bba96323">
+      <midi-instrument id="I04635b95de4bc2bdba129884b9bd57e5">
         <midi-channel>4</midi-channel>
         <midi-program>43</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
   <!--=========================== Part 1 ===========================-->
-  <part id="Pd5a6199f67a1eb2e40233da0b9cad529">
+  <part id="P2302b26b93d526dadf571c28748aee94">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -90,10 +90,10 @@
         <direction-type>
           <metronome parentheses="no">
             <beat-unit>quarter</beat-unit>
-            <per-minute>96</per-minute>
+            <per-minute>108</per-minute>
           </metronome>
         </direction-type>
-        <sound tempo="96" />
+        <sound tempo="108" />
       </direction>
       <direction placement="below">
         <direction-type>
@@ -3210,11 +3210,6 @@
     </measure>
     <!--========================= Measure 66 =========================-->
     <measure implicit="no" number="66">
-      <direction placement="below">
-        <direction-type>
-          <wedge number="1" spread="15" type="diminuendo" />
-        </direction-type>
-      </direction>
       <note>
         <pitch>
           <step>C</step>
@@ -3302,14 +3297,6 @@
           <beat-type>2</beat-type>
         </time>
       </attributes>
-      <direction placement="below">
-        <direction-type>
-          <dynamics default-x="-36" default-y="-80">
-            <mf />
-          </dynamics>
-        </direction-type>
-        <sound dynamics="69" />
-      </direction>
       <note>
         <pitch>
           <step>G</step>
@@ -3320,11 +3307,6 @@
         <type>quarter</type>
         <accidental>natural</accidental>
       </note>
-      <direction placement="below">
-        <direction-type>
-          <wedge number="1" spread="0" type="stop" />
-        </direction-type>
-      </direction>
       <note>
         <pitch>
           <step>C</step>
@@ -3381,7 +3363,7 @@
     </measure>
   </part>
   <!--=========================== Part 2 ===========================-->
-  <part id="P4e1fe7b99abc35fd479da501d4be4477">
+  <part id="Pef3c12c938bb64cf3249eaf941eeb78e">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -3427,7 +3409,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="2" spread="0" type="crescendo" />
+          <wedge number="1" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -3493,7 +3475,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="2" spread="15" type="stop" />
+          <wedge number="1" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -3772,7 +3754,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="3" spread="0" type="crescendo" />
+          <wedge number="2" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -3859,7 +3841,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="3" spread="15" type="stop" />
+          <wedge number="2" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -4074,7 +4056,7 @@
     <measure implicit="no" number="16">
       <direction placement="below">
         <direction-type>
-          <wedge number="4" spread="0" type="crescendo" />
+          <wedge number="3" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -4210,7 +4192,7 @@
       </direction>
       <direction placement="below">
         <direction-type>
-          <wedge number="5" spread="15" type="diminuendo" />
+          <wedge number="4" spread="15" type="diminuendo" />
         </direction-type>
       </direction>
       <note>
@@ -4225,7 +4207,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="4" spread="15" type="stop" />
+          <wedge number="3" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -4349,7 +4331,7 @@
       </direction>
       <direction placement="below">
         <direction-type>
-          <wedge number="6" spread="15" type="diminuendo" />
+          <wedge number="5" spread="15" type="diminuendo" />
         </direction-type>
       </direction>
       <note>
@@ -4365,7 +4347,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="5" spread="0" type="stop" />
+          <wedge number="4" spread="0" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -4443,7 +4425,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="6" spread="0" type="stop" />
+          <wedge number="5" spread="0" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -4462,7 +4444,7 @@
       </attributes>
       <direction placement="below">
         <direction-type>
-          <wedge number="1" spread="0" type="crescendo" />
+          <wedge number="6" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -4550,7 +4532,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="1" spread="15" type="stop" />
+          <wedge number="6" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -4701,7 +4683,7 @@
     <measure implicit="no" number="27">
       <direction placement="below">
         <direction-type>
-          <wedge number="2" spread="15" type="diminuendo" />
+          <wedge number="1" spread="15" type="diminuendo" />
         </direction-type>
       </direction>
       <note>
@@ -4846,7 +4828,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="2" spread="0" type="stop" />
+          <wedge number="1" spread="0" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -4907,7 +4889,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="3" spread="0" type="crescendo" />
+          <wedge number="2" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -4998,7 +4980,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="3" spread="15" type="stop" />
+          <wedge number="2" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -5274,7 +5256,7 @@
     <measure implicit="no" number="38">
       <direction placement="below">
         <direction-type>
-          <wedge number="4" spread="0" type="crescendo" />
+          <wedge number="3" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -5384,7 +5366,7 @@
       </direction>
       <direction placement="below">
         <direction-type>
-          <wedge number="5" spread="15" type="diminuendo" />
+          <wedge number="4" spread="15" type="diminuendo" />
         </direction-type>
       </direction>
       <note>
@@ -5399,7 +5381,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="4" spread="15" type="stop" />
+          <wedge number="3" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -5468,7 +5450,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="5" spread="0" type="stop" />
+          <wedge number="4" spread="0" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -5647,7 +5629,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="6" spread="0" type="crescendo" />
+          <wedge number="5" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -5715,7 +5697,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="6" spread="15" type="stop" />
+          <wedge number="5" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -6049,7 +6031,7 @@
     <measure implicit="no" number="54">
       <direction placement="below">
         <direction-type>
-          <wedge number="1" spread="0" type="crescendo" />
+          <wedge number="6" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -6153,7 +6135,7 @@
       </direction>
       <direction placement="below">
         <direction-type>
-          <wedge number="2" spread="15" type="diminuendo" />
+          <wedge number="1" spread="15" type="diminuendo" />
         </direction-type>
       </direction>
       <note>
@@ -6179,7 +6161,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="1" spread="15" type="stop" />
+          <wedge number="6" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -6267,7 +6249,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="2" spread="0" type="stop" />
+          <wedge number="1" spread="0" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -6493,7 +6475,7 @@
     <measure implicit="no" number="62">
       <direction placement="below">
         <direction-type>
-          <wedge number="3" spread="0" type="crescendo" />
+          <wedge number="2" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -6597,7 +6579,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="3" spread="15" type="stop" />
+          <wedge number="2" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -6794,11 +6776,6 @@
     </measure>
     <!--========================= Measure 66 =========================-->
     <measure implicit="no" number="66">
-      <direction placement="below">
-        <direction-type>
-          <wedge number="4" spread="15" type="diminuendo" />
-        </direction-type>
-      </direction>
       <note>
         <pitch>
           <step>A</step>
@@ -6907,14 +6884,6 @@
           <beat-type>2</beat-type>
         </time>
       </attributes>
-      <direction placement="below">
-        <direction-type>
-          <dynamics default-x="-36" default-y="-80">
-            <mf />
-          </dynamics>
-        </direction-type>
-        <sound dynamics="69" />
-      </direction>
       <note>
         <pitch>
           <step>C</step>
@@ -6925,11 +6894,6 @@
         <type>quarter</type>
         <accidental>sharp</accidental>
       </note>
-      <direction placement="below">
-        <direction-type>
-          <wedge number="4" spread="0" type="stop" />
-        </direction-type>
-      </direction>
       <note>
         <pitch>
           <step>E</step>
@@ -7040,7 +7004,7 @@
     </measure>
   </part>
   <!--=========================== Part 3 ===========================-->
-  <part id="Pbeba900597ac79ed428089aac605c54b">
+  <part id="P9eb5e40ad261738989937fdfb68efebf">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -7086,7 +7050,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="5" spread="0" type="crescendo" />
+          <wedge number="3" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -7130,7 +7094,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="5" spread="15" type="stop" />
+          <wedge number="3" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -7399,7 +7363,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="6" spread="0" type="crescendo" />
+          <wedge number="4" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -7494,7 +7458,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="6" spread="15" type="stop" />
+          <wedge number="4" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -7728,7 +7692,7 @@
     <measure implicit="no" number="16">
       <direction placement="below">
         <direction-type>
-          <wedge number="1" spread="0" type="crescendo" />
+          <wedge number="5" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -7847,7 +7811,7 @@
       </direction>
       <direction placement="below">
         <direction-type>
-          <wedge number="2" spread="15" type="diminuendo" />
+          <wedge number="6" spread="15" type="diminuendo" />
         </direction-type>
       </direction>
       <note>
@@ -7862,7 +7826,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="1" spread="15" type="stop" />
+          <wedge number="5" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -7989,7 +7953,7 @@
       </direction>
       <direction placement="below">
         <direction-type>
-          <wedge number="3" spread="15" type="diminuendo" />
+          <wedge number="1" spread="15" type="diminuendo" />
         </direction-type>
       </direction>
       <note>
@@ -8003,7 +7967,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="2" spread="0" type="stop" />
+          <wedge number="6" spread="0" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -8094,7 +8058,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="3" spread="0" type="stop" />
+          <wedge number="1" spread="0" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -8113,7 +8077,7 @@
       </attributes>
       <direction placement="below">
         <direction-type>
-          <wedge number="4" spread="0" type="crescendo" />
+          <wedge number="2" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -8203,7 +8167,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="4" spread="15" type="stop" />
+          <wedge number="2" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -8325,7 +8289,7 @@
     <measure implicit="no" number="27">
       <direction placement="below">
         <direction-type>
-          <wedge number="5" spread="15" type="diminuendo" />
+          <wedge number="3" spread="15" type="diminuendo" />
         </direction-type>
       </direction>
       <note>
@@ -8423,7 +8387,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="5" spread="0" type="stop" />
+          <wedge number="3" spread="0" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -8485,7 +8449,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="6" spread="0" type="crescendo" />
+          <wedge number="4" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -8578,7 +8542,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="6" spread="15" type="stop" />
+          <wedge number="4" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -8856,7 +8820,7 @@
     <measure implicit="no" number="38">
       <direction placement="below">
         <direction-type>
-          <wedge number="1" spread="0" type="crescendo" />
+          <wedge number="5" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -8976,7 +8940,7 @@
       </direction>
       <direction placement="below">
         <direction-type>
-          <wedge number="2" spread="15" type="diminuendo" />
+          <wedge number="6" spread="15" type="diminuendo" />
         </direction-type>
       </direction>
       <note>
@@ -8991,7 +8955,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="1" spread="15" type="stop" />
+          <wedge number="5" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -9073,7 +9037,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="2" spread="0" type="stop" />
+          <wedge number="6" spread="0" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -9254,7 +9218,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="3" spread="0" type="crescendo" />
+          <wedge number="1" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -9298,7 +9262,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="3" spread="15" type="stop" />
+          <wedge number="1" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -9576,7 +9540,7 @@
     <measure implicit="no" number="54">
       <direction placement="below">
         <direction-type>
-          <wedge number="4" spread="0" type="crescendo" />
+          <wedge number="2" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -9699,7 +9663,7 @@
       </direction>
       <direction placement="below">
         <direction-type>
-          <wedge number="5" spread="15" type="diminuendo" />
+          <wedge number="3" spread="15" type="diminuendo" />
         </direction-type>
       </direction>
       <note>
@@ -9725,7 +9689,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="4" spread="15" type="stop" />
+          <wedge number="2" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -9815,7 +9779,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="5" spread="0" type="stop" />
+          <wedge number="3" spread="0" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -10076,7 +10040,7 @@
     <measure implicit="no" number="62">
       <direction placement="below">
         <direction-type>
-          <wedge number="6" spread="0" type="crescendo" />
+          <wedge number="4" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -10185,7 +10149,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="6" spread="15" type="stop" />
+          <wedge number="4" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -10352,11 +10316,6 @@
     </measure>
     <!--========================= Measure 66 =========================-->
     <measure implicit="no" number="66">
-      <direction placement="below">
-        <direction-type>
-          <wedge number="1" spread="15" type="diminuendo" />
-        </direction-type>
-      </direction>
       <note>
         <pitch>
           <step>E</step>
@@ -10455,14 +10414,6 @@
           <beat-type>2</beat-type>
         </time>
       </attributes>
-      <direction placement="below">
-        <direction-type>
-          <dynamics default-x="-36" default-y="-80">
-            <mf />
-          </dynamics>
-        </direction-type>
-        <sound dynamics="69" />
-      </direction>
       <note>
         <pitch>
           <step>B</step>
@@ -10483,11 +10434,6 @@
         <duration>10080</duration>
         <type>quarter</type>
       </note>
-      <direction placement="below">
-        <direction-type>
-          <wedge number="1" spread="0" type="stop" />
-        </direction-type>
-      </direction>
       <note>
         <pitch>
           <step>C</step>
@@ -10545,7 +10491,7 @@
     </measure>
   </part>
   <!--=========================== Part 4 ===========================-->
-  <part id="P4addef8d1a204fa4462faa0054749e5b">
+  <part id="Pb9d3f09cec7ed631eafc99a521fa5db5">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -10584,7 +10530,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="2" spread="0" type="crescendo" />
+          <wedge number="5" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -10656,7 +10602,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="2" spread="15" type="stop" />
+          <wedge number="5" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -10787,7 +10733,7 @@
     <measure implicit="no" number="7">
       <direction placement="below">
         <direction-type>
-          <wedge number="3" spread="15" type="diminuendo" />
+          <wedge number="6" spread="15" type="diminuendo" />
         </direction-type>
       </direction>
       <note>
@@ -10899,7 +10845,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="3" spread="0" type="stop" />
+          <wedge number="6" spread="0" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -10925,7 +10871,7 @@
     <measure implicit="no" number="10">
       <direction placement="below">
         <direction-type>
-          <wedge number="4" spread="0" type="crescendo" />
+          <wedge number="1" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -11029,7 +10975,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="4" spread="15" type="stop" />
+          <wedge number="1" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -11200,7 +11146,7 @@
     <measure implicit="no" number="16">
       <direction placement="below">
         <direction-type>
-          <wedge number="5" spread="0" type="crescendo" />
+          <wedge number="2" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -11297,7 +11243,7 @@
       </direction>
       <direction placement="below">
         <direction-type>
-          <wedge number="6" spread="15" type="diminuendo" />
+          <wedge number="3" spread="15" type="diminuendo" />
         </direction-type>
       </direction>
       <note>
@@ -11312,7 +11258,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="5" spread="15" type="stop" />
+          <wedge number="2" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -11427,7 +11373,7 @@
       </direction>
       <direction placement="below">
         <direction-type>
-          <wedge number="1" spread="15" type="diminuendo" />
+          <wedge number="4" spread="15" type="diminuendo" />
         </direction-type>
       </direction>
       <note>
@@ -11442,7 +11388,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="6" spread="0" type="stop" />
+          <wedge number="3" spread="0" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -11496,7 +11442,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="1" spread="0" type="stop" />
+          <wedge number="4" spread="0" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -11515,7 +11461,7 @@
       </attributes>
       <direction placement="below">
         <direction-type>
-          <wedge number="2" spread="0" type="crescendo" />
+          <wedge number="5" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -11605,7 +11551,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="2" spread="15" type="stop" />
+          <wedge number="5" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -11712,7 +11658,7 @@
     <measure implicit="no" number="27">
       <direction placement="below">
         <direction-type>
-          <wedge number="3" spread="15" type="diminuendo" />
+          <wedge number="6" spread="15" type="diminuendo" />
         </direction-type>
       </direction>
       <note>
@@ -11836,7 +11782,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="3" spread="0" type="stop" />
+          <wedge number="6" spread="0" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -11887,7 +11833,7 @@
     <measure implicit="no" number="30">
       <direction placement="below">
         <direction-type>
-          <wedge number="4" spread="0" type="crescendo" />
+          <wedge number="1" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -11993,7 +11939,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="4" spread="15" type="stop" />
+          <wedge number="1" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -12209,7 +12155,7 @@
     <measure implicit="no" number="38">
       <direction placement="below">
         <direction-type>
-          <wedge number="5" spread="0" type="crescendo" />
+          <wedge number="2" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -12318,7 +12264,7 @@
       </direction>
       <direction placement="below">
         <direction-type>
-          <wedge number="6" spread="15" type="diminuendo" />
+          <wedge number="3" spread="15" type="diminuendo" />
         </direction-type>
       </direction>
       <note>
@@ -12333,7 +12279,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="5" spread="15" type="stop" />
+          <wedge number="2" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -12389,7 +12335,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="6" spread="0" type="stop" />
+          <wedge number="3" spread="0" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -12541,7 +12487,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="1" spread="0" type="crescendo" />
+          <wedge number="4" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -12612,7 +12558,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="1" spread="15" type="stop" />
+          <wedge number="4" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -12745,7 +12691,7 @@
     <measure implicit="no" number="50">
       <direction placement="below">
         <direction-type>
-          <wedge number="2" spread="15" type="diminuendo" />
+          <wedge number="5" spread="15" type="diminuendo" />
         </direction-type>
       </direction>
       <note>
@@ -12847,7 +12793,7 @@
       </direction>
       <direction placement="below">
         <direction-type>
-          <wedge number="3" spread="0" type="crescendo" />
+          <wedge number="6" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -12862,7 +12808,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="2" spread="0" type="stop" />
+          <wedge number="5" spread="0" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -12906,7 +12852,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="3" spread="15" type="stop" />
+          <wedge number="6" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -12944,7 +12890,7 @@
     <measure implicit="no" number="54">
       <direction placement="below">
         <direction-type>
-          <wedge number="4" spread="0" type="crescendo" />
+          <wedge number="1" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -13031,7 +12977,7 @@
       </direction>
       <direction placement="below">
         <direction-type>
-          <wedge number="5" spread="15" type="diminuendo" />
+          <wedge number="2" spread="15" type="diminuendo" />
         </direction-type>
       </direction>
       <note>
@@ -13046,7 +12992,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="4" spread="15" type="stop" />
+          <wedge number="1" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -13103,7 +13049,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="5" spread="0" type="stop" />
+          <wedge number="2" spread="0" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -13326,7 +13272,7 @@
     <measure implicit="no" number="62">
       <direction placement="below">
         <direction-type>
-          <wedge number="6" spread="0" type="crescendo" />
+          <wedge number="3" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -13433,7 +13379,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="6" spread="15" type="stop" />
+          <wedge number="3" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -13534,11 +13480,6 @@
     </measure>
     <!--========================= Measure 66 =========================-->
     <measure implicit="no" number="66">
-      <direction placement="below">
-        <direction-type>
-          <wedge number="1" spread="15" type="diminuendo" />
-        </direction-type>
-      </direction>
       <note>
         <pitch>
           <step>A</step>
@@ -13657,14 +13598,6 @@
           <beat-type>2</beat-type>
         </time>
       </attributes>
-      <direction placement="below">
-        <direction-type>
-          <dynamics default-x="-36" default-y="-80">
-            <mf />
-          </dynamics>
-        </direction-type>
-        <sound dynamics="69" />
-      </direction>
       <note>
         <pitch>
           <step>A</step>
@@ -13675,11 +13608,6 @@
         <type>half</type>
         <accidental>natural</accidental>
       </note>
-      <direction placement="below">
-        <direction-type>
-          <wedge number="1" spread="0" type="stop" />
-        </direction-type>
-      </direction>
       <note>
         <pitch>
           <step>D</step>

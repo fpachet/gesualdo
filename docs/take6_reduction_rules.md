@@ -67,7 +67,14 @@ longer inherit the generic Music21 metadata.
    transpositions are scored for string range, preferred register, source
    displacement, and key-signature simplicity.
 
-3. Normalize isolated MIDI duration artifacts.
+3. Apply reviewed song tempos when known.
+
+   Take 6 tempo overrides live in the independent metadata file
+   `data/take6/tempo_overrides.json`. The reducer uses these values after
+   generating each score, replacing imported/default MIDI tempos while leaving
+   unknown songs untouched until reviewed tempos are available.
+
+4. Normalize isolated MIDI duration artifacts.
 
    `normalize_short_note_rest_artifacts=True` is the default for Take 6. It
    fixes isolated suspicious note+rest pairs such as `5/12 + 7/12` when their
@@ -89,7 +96,7 @@ longer inherit the generic Music21 metadata.
    `5/12` rest. The earlier note is now shortened to the following onset, so
    the following source attack can be represented normally.
 
-4. Preserve exact offsets and durations after cleanup.
+5. Preserve exact offsets and durations after cleanup.
 
    The reducer does not rebuild the piece on a new rhythmic grid. It copies
    source offsets and durations, splitting only where notation or double-stop

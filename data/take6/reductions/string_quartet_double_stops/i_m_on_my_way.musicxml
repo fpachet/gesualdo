@@ -19,57 +19,57 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="P1f94dc74a7de98787bcf2b563b111e97">
+    <score-part id="Pc15a1616b690318571e89efb9998ef5b">
       <part-name>Violin I</part-name>
       <part-abbreviation>Vln</part-abbreviation>
-      <score-instrument id="I055a7408d6f4087d4532e780c7639590">
+      <score-instrument id="I81379a0b6c34c7eb4825e0374c6f21a4">
         <instrument-name>Violin</instrument-name>
         <instrument-abbreviation>Vln</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I055a7408d6f4087d4532e780c7639590">
+      <midi-instrument id="I81379a0b6c34c7eb4825e0374c6f21a4">
         <midi-channel>1</midi-channel>
         <midi-program>41</midi-program>
       </midi-instrument>
     </score-part>
-    <score-part id="P56e7b4c27325aaaa218a9fdb91d5481f">
+    <score-part id="P88e7588fcdae315da2cdb8871e93a559">
       <part-name>Violin II</part-name>
       <part-abbreviation>Vln</part-abbreviation>
-      <score-instrument id="I533695391309ce9352d5eacd135e05c3">
+      <score-instrument id="Ic32c6df8360b8da0fd75a89532e03b7c">
         <instrument-name>Violin</instrument-name>
         <instrument-abbreviation>Vln</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I533695391309ce9352d5eacd135e05c3">
+      <midi-instrument id="Ic32c6df8360b8da0fd75a89532e03b7c">
         <midi-channel>2</midi-channel>
         <midi-program>41</midi-program>
       </midi-instrument>
     </score-part>
-    <score-part id="Pda3b2ed5a2550fcda500eefeeb1085a1">
+    <score-part id="P2d91518fd821f05eb9551612599d7773">
       <part-name>Viola</part-name>
       <part-abbreviation>Vla</part-abbreviation>
-      <score-instrument id="I77e7cd98bd6b8871cd6be433f9274ac7">
+      <score-instrument id="Iaa524a80eaa74ba25f4a29b1575aa319">
         <instrument-name>Viola</instrument-name>
         <instrument-abbreviation>Vla</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I77e7cd98bd6b8871cd6be433f9274ac7">
+      <midi-instrument id="Iaa524a80eaa74ba25f4a29b1575aa319">
         <midi-channel>3</midi-channel>
         <midi-program>42</midi-program>
       </midi-instrument>
     </score-part>
-    <score-part id="P85d665d9a7dd66e58e72a7b170c5292b">
+    <score-part id="P0d9b4b199f1cc05be9b92c7c6f66c632">
       <part-name>Violoncello</part-name>
       <part-abbreviation>Vc</part-abbreviation>
-      <score-instrument id="Ifc8e51330d15739db3b9109addad04c4">
+      <score-instrument id="I5111a6ce2ad5703c533a4187f7b626f2">
         <instrument-name>Violoncello</instrument-name>
         <instrument-abbreviation>Vc</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="Ifc8e51330d15739db3b9109addad04c4">
+      <midi-instrument id="I5111a6ce2ad5703c533a4187f7b626f2">
         <midi-channel>4</midi-channel>
         <midi-program>43</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
   <!--=========================== Part 1 ===========================-->
-  <part id="P1f94dc74a7de98787bcf2b563b111e97">
+  <part id="Pc15a1616b690318571e89efb9998ef5b">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -6443,7 +6443,7 @@
     <measure implicit="no" number="105">
       <direction placement="below">
         <direction-type>
-          <wedge number="4" spread="15" type="diminuendo" />
+          <wedge number="4" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -6545,10 +6545,10 @@
       <direction placement="below">
         <direction-type>
           <dynamics default-x="-36" default-y="-80">
-            <p />
+            <f />
           </dynamics>
         </direction-type>
-        <sound dynamics="44" />
+        <sound dynamics="88" />
       </direction>
       <note>
         <pitch>
@@ -6562,7 +6562,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="4" spread="0" type="stop" />
+          <wedge number="4" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -6574,7 +6574,7 @@
     </measure>
   </part>
   <!--=========================== Part 2 ===========================-->
-  <part id="P56e7b4c27325aaaa218a9fdb91d5481f">
+  <part id="P88e7588fcdae315da2cdb8871e93a559">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -15191,7 +15191,7 @@
     <measure implicit="no" number="105">
       <direction placement="below">
         <direction-type>
-          <wedge number="2" spread="15" type="diminuendo" />
+          <wedge number="2" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -15316,10 +15316,10 @@
       <direction placement="below">
         <direction-type>
           <dynamics default-x="-36" default-y="-80">
-            <p />
+            <f />
           </dynamics>
         </direction-type>
-        <sound dynamics="44" />
+        <sound dynamics="88" />
       </direction>
       <note>
         <pitch>
@@ -15333,7 +15333,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="2" spread="0" type="stop" />
+          <wedge number="2" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -15345,7 +15345,7 @@
     </measure>
   </part>
   <!--=========================== Part 3 ===========================-->
-  <part id="Pda3b2ed5a2550fcda500eefeeb1085a1">
+  <part id="P2d91518fd821f05eb9551612599d7773">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -23971,7 +23971,7 @@
     <measure implicit="no" number="105">
       <direction placement="below">
         <direction-type>
-          <wedge number="6" spread="15" type="diminuendo" />
+          <wedge number="6" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -24074,10 +24074,10 @@
       <direction placement="below">
         <direction-type>
           <dynamics default-x="-36" default-y="-80">
-            <p />
+            <f />
           </dynamics>
         </direction-type>
-        <sound dynamics="44" />
+        <sound dynamics="88" />
       </direction>
       <note>
         <pitch>
@@ -24102,7 +24102,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="6" spread="0" type="stop" />
+          <wedge number="6" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>
@@ -24114,7 +24114,7 @@
     </measure>
   </part>
   <!--=========================== Part 4 ===========================-->
-  <part id="P85d665d9a7dd66e58e72a7b170c5292b">
+  <part id="P0d9b4b199f1cc05be9b92c7c6f66c632">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -31135,7 +31135,7 @@
     <measure implicit="no" number="105">
       <direction placement="below">
         <direction-type>
-          <wedge number="4" spread="15" type="diminuendo" />
+          <wedge number="4" spread="0" type="crescendo" />
         </direction-type>
       </direction>
       <note>
@@ -31238,10 +31238,10 @@
       <direction placement="below">
         <direction-type>
           <dynamics default-x="-36" default-y="-80">
-            <p />
+            <f />
           </dynamics>
         </direction-type>
-        <sound dynamics="44" />
+        <sound dynamics="88" />
       </direction>
       <note>
         <pitch>
@@ -31255,7 +31255,7 @@
       </note>
       <direction placement="below">
         <direction-type>
-          <wedge number="4" spread="0" type="stop" />
+          <wedge number="4" spread="15" type="stop" />
         </direction-type>
       </direction>
       <note>

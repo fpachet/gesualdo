@@ -12,6 +12,7 @@ from gesualdo_reduction.reduction import (
     PIANO_REDUCTION,
     ReductionConfig,
     SourceEvent,
+    _editorial_dynamic_points,
     _merge_adjacent_generated_harmony_events,
     build_ensemble_score,
     build_bar_map,
@@ -57,6 +58,13 @@ def assert_measures_are_exact(score, bars):
         for measure, bar in zip(part.getElementsByClass(stream.Measure), bars, strict=True):
             total = sum((ql_to_fraction(el.quarterLength) for el in measure.notesAndRests), Fraction(0, 1))
             assert total == bar.duration
+
+
+def test_editorial_dynamic_points_avoid_final_diminuendo():
+    points = _editorial_dynamic_points([0.2, 0.9, 0.4, 0.1], phrase_bars=2)
+
+    assert points[-1].bar_index == 3
+    assert points[-1].level > points[-2].level
 
 
 def test_cleanup_score_hides_redundant_naturals_and_adds_final_barlines():
