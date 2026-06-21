@@ -188,6 +188,8 @@ The implementation should be auditable:
 - keep notes in instrumental range and keep double-stops conservative;
 - compare before/after issue counts with the part-coherence audit;
 - write a changed-note report explaining every octave move.
+- run the same clean-review notation cleanup after octave optimization, so
+  generated dynamics and hairpins do not reappear in the review PDFs.
 
 ## Phase 7: Endings And Completeness
 
@@ -216,8 +218,8 @@ rather than silently masking the problem.
    notation artifacts.
 9. Done: prototype pitch-class-preserving octave optimization on Take 6
    `A Quiet Place`.
-10. Next: review the `A Quiet Place` optimized PDF musically before applying
-   octave optimization corpus-wide.
+10. Next: review the clean `A Quiet Place` optimized PDF musically before
+   applying octave optimization corpus-wide.
 11. Next: add enharmonic spelling audit and source-spelling preservation.
 12. Next: iterate on spelling, clefs, and suspicious jumps using director annotations.
 

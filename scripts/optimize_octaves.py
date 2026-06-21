@@ -10,6 +10,7 @@ from pathlib import Path
 
 from music21 import chord, converter, note, stream
 
+from gesualdo_reduction.notation_cleanup import NotationCleanupReport, cleanup_musicxml
 from gesualdo_reduction.octave_optimization import OctaveOptimizationConfig, optimize_musicxml_octaves
 
 import audit_part_coherence
@@ -117,14 +118,24 @@ def write_comparison(path: Path, before_rows: list[dict[str, str]], after_rows: 
     _write_rows(path, ["kind", "before", "after", "delta"], rows)
 
 
+def write_cleanup_report(path: Path, report: NotationCleanupReport) -> None:
+    _write_rows(path, list(report.as_row()), [report.as_row()])
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--change-report", type=Path, required=True)
     parser.add_argument("--comparison-report", type=Path, required=True)
+    parser.add_argument("--cleanup-report", type=Path)
     parser.add_argument("--before-audit", type=Path)
     parser.add_argument("--after-audit", type=Path)
+    parser.add_argument(
+        "--keep-dynamics",
+        action="store_true",
+        help="Keep generated dynamics and hairpins instead of producing the clean review score.",
+    )
     parser.add_argument("--max-octave-shift", type=int, default=1)
     parser.add_argument("--max-changes", type=int)
     parser.add_argument("--displacement-weight", type=float, default=12.0)
@@ -143,6 +154,11 @@ def main(argv: list[str] | None = None) -> int:
         register_weight=args.register_weight,
     )
     changes = optimize_musicxml_octaves(args.input, args.output, config=config)
+    cleanup_report = None
+    if not args.keep_dynamics:
+        cleanup_report = cleanup_musicxml(args.output, args.output, clean_dynamics=True)
+        if args.cleanup_report:
+            write_cleanup_report(args.cleanup_report, cleanup_report)
     _write_rows(
         args.change_report,
         ["part", "measure", "offset", "old_pitches", "new_pitches", "duration", "reason"],
@@ -161,6 +177,8 @@ def main(argv: list[str] | None = None) -> int:
         _write_rows(args.after_audit, list(after_rows[0]) if after_rows else [], after_rows)
 
     print(f"Wrote optimized score: {args.output}")
+    if cleanup_report is not None:
+        print(f"Cleaned optimized score: removed {cleanup_report.removed_dynamics} dynamics and {cleanup_report.removed_hairpins} hairpins")
     print(f"Wrote {len(changes)} octave changes: {args.change_report}")
     print(f"Wrote audit comparison: {args.comparison_report}")
     return 0
