@@ -1,5 +1,5 @@
 const RAW_BASE = "https://raw.githubusercontent.com/fpachet/gesualdo/main/";
-const ASSET_VERSION = "2026-06-07-cpdl-audio";
+const ASSET_VERSION = "2026-06-21-review-pdfs-take6";
 const STORAGE_KEY = "gesualdo-quartet-review-v1";
 const VEROVIO_SCRIPT_URL = "https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js";
 const SCORE_RENDER_OPTIONS = {
@@ -16,10 +16,12 @@ const SCORE_RENDER_OPTIONS = {
 const SOURCE_LABELS = {
   kdf: "Kunst der Fuge",
   cpdl: "CPDL",
+  take6: "Take 6",
 };
 const TARGET_LABELS = {
   string_quartet: "String quartet",
   string_quartet_plus_viole: "Quartet + viole",
+  string_quartet_double_stops: "Quartet double stops",
 };
 const DATASETS = [
   {
@@ -48,6 +50,13 @@ const DATASETS = [
     voiceCount: 6,
     target: "string_quartet",
     report: "data/cpdl/6-voices/reductions/string_quartet/report.tsv",
+    hasAudio: true,
+  },
+  {
+    source: "take6",
+    voiceCount: 6,
+    target: "string_quartet_double_stops",
+    report: "data/take6/reductions/string_quartet_double_stops/report.tsv",
     hasAudio: true,
   },
 ];
@@ -223,6 +232,18 @@ function cpdlPdfPath(musicxmlPath, target) {
     .replace(/\.musicxml$/, ".pdf");
 }
 
+function take6Mp3Path(musicxmlPath) {
+  return musicxmlPath
+    .replace("/reductions/string_quartet_double_stops/", "/renders/string_quartet_double_stops_mp3/")
+    .replace(/\.musicxml$/, ".mp3");
+}
+
+function take6PdfPath(musicxmlPath) {
+  return musicxmlPath
+    .replace("/reductions/string_quartet_double_stops/", "/renders/string_quartet_double_stops_pdf/")
+    .replace(/\.musicxml$/, ".pdf");
+}
+
 function normalizeKdfRow(row, dataset, order) {
   const musicxml = row.output;
   const piece = {
@@ -278,6 +299,39 @@ function normalizeCpdlRow(row, dataset, order) {
   return piece;
 }
 
+function normalizeTake6Row(row, dataset, order) {
+  const musicxml = row.output_path;
+  const title = basename(musicxml)
+    .replace(/\.musicxml$/, "")
+    .replace(/^\d+_/, "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const piece = {
+    sourceKey: dataset.source,
+    sourceLabel: sourceLabel(dataset.source),
+    voiceCount: dataset.voiceCount,
+    target: dataset.target,
+    targetLabel: targetLabel(dataset.target),
+    group: "double_stops",
+    groupLabel: "Double stops",
+    title,
+    filename: basename(row.source_path),
+    source: row.source_path,
+    sourceFormat: "mid",
+    durationQuarters: null,
+    semitones: numericValue(row.global_transposition),
+    score: null,
+    musicxml,
+    pdf: take6PdfPath(musicxml),
+    mp3: dataset.hasAudio ? take6Mp3Path(musicxml) : "",
+    measures: "",
+    reducedParts: 4,
+    order,
+  };
+  piece.id = pieceId(piece);
+  return piece;
+}
+
 async function loadDataset(dataset, startOrder) {
   const response = await fetch(encodedAssetUrl(dataset.report));
   if (!response.ok) {
@@ -287,7 +341,9 @@ async function loadDataset(dataset, startOrder) {
   return rows.map((row, index) => (
     dataset.source === "kdf"
       ? normalizeKdfRow(row, dataset, startOrder + index)
-      : normalizeCpdlRow(row, dataset, startOrder + index)
+      : dataset.source === "take6"
+        ? normalizeTake6Row(row, dataset, startOrder + index)
+        : normalizeCpdlRow(row, dataset, startOrder + index)
   ));
 }
 
