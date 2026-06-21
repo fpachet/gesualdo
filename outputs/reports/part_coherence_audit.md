@@ -12,10 +12,10 @@ Checks:
 
 | Kind | Count |
 | --- | ---: |
-| accidental_on_tie_continuation | 1958 |
+| accidental_on_tie_continuation | 1957 |
 | dangling_tie | 2452 |
-| register_jump | 8393 |
-| sparse_fragment | 120 |
+| register_jump | 8392 |
+| sparse_fragment | 119 |
 | sparse_window | 55 |
 
 ## Parse Issues
@@ -58,19 +58,19 @@ Checks:
 | kdf_string_quartet | accidental_on_tie_continuation | 297 |
 | kdf_string_quartet | dangling_tie | 402 |
 | kdf_string_quartet | register_jump | 1339 |
-| take6_string_quartet_double_stops | accidental_on_tie_continuation | 226 |
+| take6_string_quartet_double_stops | accidental_on_tie_continuation | 225 |
 | take6_string_quartet_double_stops | dangling_tie | 124 |
-| take6_string_quartet_double_stops | register_jump | 359 |
-| take6_string_quartet_double_stops | sparse_fragment | 2 |
+| take6_string_quartet_double_stops | register_jump | 358 |
+| take6_string_quartet_double_stops | sparse_fragment | 1 |
 
 ## Counts By Part
 
 | Part | Kind | Count |
 | --- | --- | ---: |
-| Viola | accidental_on_tie_continuation | 631 |
-| Viola | dangling_tie | 937 |
+| Viola | accidental_on_tie_continuation | 630 |
+| Viola | dangling_tie | 938 |
 | Viola | register_jump | 1667 |
-| Viola | sparse_fragment | 18 |
+| Viola | sparse_fragment | 17 |
 | Viola | sparse_window | 11 |
 | Viole d'amour | accidental_on_tie_continuation | 49 |
 | Viole d'amour | dangling_tie | 46 |
@@ -78,17 +78,17 @@ Checks:
 | Viole d'amour | sparse_fragment | 10 |
 | Viole d'amour | sparse_window | 3 |
 | Violin I | accidental_on_tie_continuation | 322 |
-| Violin I | dangling_tie | 260 |
-| Violin I | register_jump | 2050 |
+| Violin I | dangling_tie | 259 |
+| Violin I | register_jump | 2049 |
 | Violin I | sparse_fragment | 25 |
 | Violin I | sparse_window | 6 |
 | Violin II | accidental_on_tie_continuation | 693 |
-| Violin II | dangling_tie | 986 |
+| Violin II | dangling_tie | 988 |
 | Violin II | register_jump | 1430 |
 | Violin II | sparse_fragment | 17 |
 | Violin II | sparse_window | 10 |
 | Violoncello | accidental_on_tie_continuation | 263 |
-| Violoncello | dangling_tie | 223 |
+| Violoncello | dangling_tie | 221 |
 | Violoncello | register_jump | 3007 |
 | Violoncello | sparse_fragment | 50 |
 | Violoncello | sparse_window | 25 |

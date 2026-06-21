@@ -645,6 +645,19 @@ def normalize_short_note_rest_artifacts(events: Sequence[SourceEvent]) -> list[S
         following_event = ordered[index + 2] if index + 2 < len(ordered) else None
         if (
             next_event is not None
+            and event.part_index == next_event.part_index
+            and not event.is_rest
+            and event.pitch_midi is not None
+            and not next_event.is_rest
+            and next_event.pitch_midi is not None
+            and event.start < next_event.start < event.end
+            and event.end - next_event.start <= _ARTIFACT_MAX_SNAP_DELTA
+        ):
+            normalized.append(replace(event, duration=next_event.start - event.start))
+            index += 1
+            continue
+        if (
+            next_event is not None
             and following_event is not None
             and event.part_index == next_event.part_index == following_event.part_index
             and not event.is_rest
@@ -2821,11 +2834,12 @@ class SixVoiceQuartetCompressionPolicy(AssignmentPolicy):
         middle_events = tuple(
             event
             for source_index in ordered_indices[1:-1]
-            for event in extract_events(
+            for event in _extract_context_events(
                 context.source_parts[source_index],
                 source_index,
                 include_rests=False,
                 chord_policy="all",
+                config=config,
             )
         )
 

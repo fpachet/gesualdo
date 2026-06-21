@@ -82,6 +82,13 @@ longer inherit the generic Music21 metadata.
    voice contained `1/3 + 1/3 + 1/12 rest + 3/4`; the reduction now prints the
    opening as continuous source notes instead of exposing the micro-rest.
 
+   The same normalizer trims tiny note-to-note overlaps of at most `1/12`
+   quarter note inside one source voice. This was added for `He Never Sleeps`,
+   measure 27, where a `1/3` source note overlapped the following chord by
+   `1/12`, causing the quartet to print a strange `1/3` note followed by a
+   `5/12` rest. The earlier note is now shortened to the following onset, so
+   the following source attack can be represented normally.
+
 4. Preserve exact offsets and durations after cleanup.
 
    The reducer does not rebuild the piece on a new rhythmic grid. It copies

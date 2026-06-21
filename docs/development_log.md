@@ -117,6 +117,12 @@ gaps of at most `1/12` quarter note into the following source note. This keeps
 the melodic content and endpoint intact while removing the unreadable micro-rest
 from the quartet part.
 
+The same normalizer was then extended for `He Never Sleeps`, measure 27. There,
+an inner source note overlapped the following chord by `1/12` quarter note,
+which blocked the following source attack and left a strange `1/3` note plus
+`5/12` rest in Violin II. Tiny same-voice note overlaps are now trimmed to the
+later onset before source selection, yielding ordinary readable subdivisions.
+
 Implemented:
 
 - Added pitch-class-preserving octave optimization in
