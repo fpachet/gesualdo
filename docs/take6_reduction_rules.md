@@ -90,10 +90,15 @@ longer inherit the generic Music21 metadata.
    The same transposition machinery as the general reducer is used. Candidate
    transpositions are scored for string range, preferred register, source
    displacement, and key-signature simplicity. The optional
-   `data/take6/transposition_overrides.json` file can be used for reviewed
-   per-song exceptions, but `Come Unto Me` currently keeps the automatic `-3`
-   transposition: this preserves the one-flat character while the cello
-   sweet-spot pass supplies the bass register.
+   `data/take6/transposition_overrides.json` file records reviewed per-song
+   exceptions. `Come Unto Me` now uses a reviewed `-8` transposition: this
+   zero-accidental candidate keeps all quartet parts playable while giving the
+   song a darker string color than the automatic higher placement.
+   This review also exposed a broader tuning issue: global transposition should
+   be judged on the final octave-folded string texture, not only on closeness to
+   the source pitch level. The current scorer includes octave fitting, but
+   reviewed Take 6 material can still need a darker candidate when the automatic
+   choice leaves too much material in the upper string register.
 
 3. Apply reviewed song tempos when known.
 

@@ -211,11 +211,12 @@ conservatively playable. This keeps the same pitch classes and rhythms but gives
 the cello its normal color. In `Come Unto Me`, the active cello part now has no
 G3-or-higher material instead of the F4 maximum left after the earlier C5 fix.
 
-An experimental lower global transposition for `Come Unto Me` was tried next,
-but it made the whole quartet lose too much of the song's bright character. The
-final decision was to keep the automatic `-3` transposition and let the cello
-sweet-spot pass supply the bass role. This keeps the one-flat key and the upper
-strings' register while giving the cello a bass range of `G2` to `F-sharp3`.
+Lower global transpositions for `Come Unto Me` were then auditioned again after
+the cello sweet-spot fix. The reviewed choice is now `-8`, stored in
+`data/take6/transposition_overrides.json`. This zero-accidental candidate starts
+the top line on C rather than F, keeps every note and double-stop within the
+current playability model, and gives the piece a darker quartet color than the
+automatic `-3` placement.
 
 The same review made the generated Take 6 dynamics look especially misleading:
 printed marks such as `pp`, `p`, `mf`, and long wedges implied an interpretive

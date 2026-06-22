@@ -154,6 +154,9 @@ main implemented responses are:
 - Cello sweet-spot protection in `Come Unto Me`, where high borrowed duplicate
   C5 material was removed from the cello without changing the global
   transposition.
+- Reviewed `Come Unto Me` global transposition override to `-8`, a
+  zero-accidental darker-register candidate that passes the same range,
+  double-stop, and MusicXML measure-completeness checks.
 - General Take 6 cello sweet-spot octave lowering, where cello pitches at G3 or
   above are transposed down an octave when range and double-stop playability
   allow it.
