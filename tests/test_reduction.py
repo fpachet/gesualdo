@@ -289,7 +289,7 @@ def test_cleanup_score_hides_accidentals_on_tie_continuations():
     part.insert(0, measure)
     score.insert(0, part)
 
-    report = cleanup_score(score)
+    report = cleanup_score(score, beat_readability=False)
 
     assert report.suppressed_tie_continuation_accidentals == 1
     assert second.pitch.accidental.displayStatus is False
@@ -340,6 +340,84 @@ def test_cleanup_score_adds_cello_high_clef_without_flicker():
     assert report.cello_clef_changes_added == 2
     assert any(isinstance(item, clef.TrebleClef) for item in second_measure.getElementsByClass(clef.Clef))
     assert any(isinstance(item, clef.BassClef) for item in third_measure.getElementsByClass(clef.Clef))
+
+
+def test_cleanup_score_normalizes_tied_release_residue_to_beat():
+    score = stream.Score()
+    part = stream.Part()
+    part.partName = "Violin I"
+    part.insert(0, meter.TimeSignature("4/4"))
+    measure = stream.Measure(number=1)
+    first = note.Note("G4", quarterLength=2)
+    first.tie = tie.Tie("start")
+    second = note.Note("G4", quarterLength=0.75)
+    second.tie = tie.Tie("stop")
+    measure.insert(0, first)
+    measure.insert(2, second)
+    measure.insert(2.75, note.Rest(quarterLength=1))
+    measure.insert(3.75, note.Rest(quarterLength=0.25))
+    part.append(measure)
+    score.insert(0, part)
+
+    report = cleanup_score(score)
+
+    assert report.beat_readability_changes == 3
+    items = list(measure.notesAndRests)
+    assert [(ql_to_fraction(item.offset), ql_to_fraction(item.quarterLength)) for item in items] == [
+        (Fraction(0, 1), Fraction(3, 1)),
+        (Fraction(3, 1), Fraction(1, 1)),
+    ]
+    assert items[0].tie is None
+
+
+def test_cleanup_score_splits_rests_that_cross_beat_boundaries():
+    score = stream.Score()
+    part = stream.Part()
+    part.partName = "Cello"
+    part.insert(0, meter.TimeSignature("4/4"))
+    measure = stream.Measure(number=1)
+    measure.insert(0, note.Rest(quarterLength=1))
+    measure.insert(1, note.Note("C3", quarterLength=0.5))
+    measure.insert(1.5, note.Rest(quarterLength=1))
+    measure.insert(2.5, note.Note("D3", quarterLength=1.5))
+    part.append(measure)
+    score.insert(0, part)
+
+    report = cleanup_score(score)
+
+    assert report.beat_readability_changes == 1
+    items = [(ql_to_fraction(item.offset), ql_to_fraction(item.quarterLength), item.isRest) for item in measure.notesAndRests]
+    assert items == [
+        (Fraction(0, 1), Fraction(1, 1), True),
+        (Fraction(1, 1), Fraction(1, 2), False),
+        (Fraction(3, 2), Fraction(1, 2), True),
+        (Fraction(2, 1), Fraction(1, 2), True),
+        (Fraction(5, 2), Fraction(3, 2), False),
+    ]
+
+
+def test_cleanup_score_adds_viola_treble_clef_for_high_passage():
+    score = stream.Score()
+    viola = stream.Part()
+    viola.partName = "Viola"
+    viola.insert(0, clef.AltoClef())
+    first_measure = stream.Measure(number=1)
+    first_measure.insert(0, clef.AltoClef())
+    first_measure.insert(0, note.Note("C4", quarterLength=4))
+    second_measure = stream.Measure(number=2)
+    second_measure.insert(0, note.Note("A4", quarterLength=4))
+    third_measure = stream.Measure(number=3)
+    third_measure.insert(0, note.Note("C4", quarterLength=4))
+    viola.append(first_measure)
+    viola.append(second_measure)
+    viola.append(third_measure)
+    score.insert(0, viola)
+
+    report = cleanup_score(score)
+
+    assert report.viola_clef_changes_added == 2
+    assert any(isinstance(item, clef.TrebleClef) for item in second_measure.getElementsByClass(clef.Clef))
+    assert any(isinstance(item, clef.AltoClef) for item in third_measure.getElementsByClass(clef.Clef))
 
 
 def test_global_transposition_can_prefer_cleaner_key_within_guard():

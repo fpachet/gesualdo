@@ -203,8 +203,10 @@ def write_audit(root: Path, job: RenderJob, rows: list[dict[str, str]]) -> None:
         "suppressed_naturals",
         "removed_dynamics",
         "removed_hairpins",
+        "beat_readability_changes",
         "final_barlines_added",
         "cello_clef_changes_added",
+        "viola_clef_changes_added",
         "suppressed_tie_continuation_accidentals",
         "normalized_dangling_ties",
         "pdf_midi_fallbacks",
@@ -213,7 +215,10 @@ def write_audit(root: Path, job: RenderJob, rows: list[dict[str, str]]) -> None:
     with audit_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t")
         writer.writeheader()
-        writer.writerows(rows)
+        for row in rows:
+            normalized = dict(row)
+            normalized["error"] = normalized.get("error") or "-"
+            writer.writerow(normalized)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

@@ -238,6 +238,34 @@ Viola still contained triplet/sixth-note residue. That case is now covered by
 the piece-specific grid fallback described above; the regenerated score has no
 denominator-3, denominator-6, or denominator-12 note/rest durations remaining.
 
+A later quartet-director pass on the selected Take 6 review PDF identified a
+more general engraving/readability issue: some notes and rests were not grouped
+around the beat, long notes sometimes ended with a stray sixteenth rest, and
+some fast/dense bars were hard to parse visually. The cleanup response is
+deliberately conservative. The notation pass now merges tied same-pitch
+fragments, merges consecutive rests, and absorbs or shifts tiny final release
+rests to a nearby beat boundary when that does not change the sounding pitch
+content. This directly fixes the "long note plus 16th rest" cases such as
+`Hark Herald`, measure 21, where all four parts now print a three-beat note
+followed by a one-beat rest instead of a tied fragment, quarter rest, and
+sixteenth rest.
+
+The same pass also adds a viola treble-clef option for sustained high viola
+writing, following the director's note that viola parts are commonly written in
+treble clef from around open A upward. The rule avoids one-note flicker: it
+requires at least one quarter note of A4-or-higher material before switching to
+treble, and returns to alto only after lower material.
+
+To keep this review auditable, `scripts/audit_beat_readability.py` now scans
+the selected Take 6 review set for four notation risks: final tiny rests, rests
+that cross beat boundaries, dense bars, and high viola passages that still lack
+treble clef. After the cleanup, the mechanical categories targeted by the
+director are resolved for the selected four-piece PDF: no final tiny rests, no
+beat-crossing rests, and no viola treble-clef candidates remain. Five dense
+bars are still reported because automatically removing notes there would change
+the musical reduction rather than just the engraving: `Come Unto Me` measures
+24 and 29, and `He Never Sleeps` measure 23.
+
 Implemented:
 
 - Added pitch-class-preserving octave optimization in

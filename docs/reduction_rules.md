@@ -293,6 +293,15 @@ only the short version.
    keeps pitch classes and harmonic coverage while avoiding a cello part that
    lives unnecessarily in tenor register.
 
+8. Treat beat readability as a review-stage constraint.
+
+   Take 6 review outputs now run an additional beat-readability cleanup that
+   merges tied same-pitch slivers, consecutive rests, and tiny final release
+   rests when the sounding pitch content is unchanged. The same pass may switch
+   sustained high viola passages to treble clef. Dense bars with many attacks
+   are audited but not automatically thinned, because removing notes would be a
+   musical reduction decision rather than an engraving correction.
+
 ## Rhythm, Durations, and Ties
 
 1. Preserve source offsets and durations whenever possible.

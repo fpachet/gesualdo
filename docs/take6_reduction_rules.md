@@ -192,6 +192,41 @@ longer inherit the generic Music21 metadata.
    prints the passage as ordinary `D5` quarter, repeated `B3` quarter/eighth,
    and `D5` eighth material.
 
+11. Clean beat-grouping artifacts in review MusicXML/PDF output.
+
+   The clean notation pass now handles source-derived notation that is
+   technically complete but hard for string players to read. It merges adjacent
+   same-pitch tied fragments, merges consecutive rests, and absorbs or shifts a
+   tiny final release rest to the nearest beat boundary when the sounding pitch
+   content is unchanged. This is an engraving/readability rule, not a new
+   reduction pass: it must not invent notes, remove attacks, or alter harmonic
+   coverage.
+
+   This rule was added after the quartet director marked selected Take 6 pages
+   where the written rhythm did not respect the beat and where long notes ended
+   with only a sixteenth rest. `Hark Herald`, measure 21 is the model case: the
+   selected parts now print a three-beat note plus a one-beat rest instead of a
+   tied note fragment followed by a quarter rest and a sixteenth rest.
+
+12. Use treble clef for sustained high viola passages.
+
+   Viola remains in alto clef by default. When a measure contains at least one
+   quarter note of material at A4 or above, the review cleanup may switch the
+   viola to treble clef; it returns to alto only after lower material. This
+   follows the director's note that high viola writing is commonly printed in
+   treble clef and avoids repeated ledger-line passages without introducing
+   one-note clef flicker.
+
+13. Audit dense bars separately from mechanical cleanup.
+
+   `scripts/audit_beat_readability.py` scans the selected Take 6 review set for
+   final tiny rests, rests that cross beat boundaries, high viola clef
+   candidates, and dense bars with many attacks or many sixteenth-or-shorter
+   attacks. The rest and clef categories are suitable for automatic notation
+   cleanup. Dense bars are only reported: thinning them would change source
+   preservation and harmonic coverage, so those examples remain
+   director/listening review targets rather than automatic edits.
+
 ## Structural Voice Mapping
 
 1. Preserve outer source voices as anchors.
@@ -480,7 +515,8 @@ source-based, and playable under the current conservative model.
    Repeated musical problems are converted into small tests when possible:
    missing melodic pickups, tiny preservation fragments, micro-rest cleanup,
    overlap cleanup, short double-stop rejection, mixed time-signature mapping,
-   and borrowed-line continuity all have focused checks or export validation.
+   borrowed-line continuity, beat-readability cleanup, and viola treble-clef
+   insertion all have focused checks or export validation.
 
 6. Presentation traceability is part of the artifact.
 
@@ -488,6 +524,8 @@ source-based, and playable under the current conservative model.
    story is summarized in `docs/reduction_process_overview.md`; exported PDF
    cleanup counts are recorded in
    `data/take6/renders/string_quartet_double_stops_pdf/review_pdf_report.tsv`.
+   The selected-piece beat-readability audit is written to
+   `outputs/reports/beat_readability_audit.tsv`.
 
 ## Known Limits
 

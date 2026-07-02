@@ -77,7 +77,8 @@ The work has two complementary goals:
    splices, missing exposed pickups, short isolated double-stops, source
    micro-rests, one-note overlaps, MusicXML tuplet import warnings, piece-level
    rhythm residues, mixed time-signature bar-map errors, and interrupted
-   borrowed source lines.
+   borrowed source lines. The latest review pass also added beat-oriented
+   note/rest cleanup and viola treble-clef changes for sustained high passages.
 
 ## Musical Rule Families
 
@@ -113,8 +114,9 @@ The work has two complementary goals:
 
    The system preserves source rhythm, but it also cleans narrow MIDI import
    artifacts that produce unreadable fragments: tiny note/rest gaps, tiny
-   same-voice overlaps, and clipped preservation fragments shorter than a
-   triplet eighth.
+   same-voice overlaps, clipped preservation fragments shorter than a triplet
+   eighth, tied same-pitch slivers, consecutive rests, and tiny release rests
+   that obscure the beat without adding musical information.
 
 6. String playability.
 
@@ -164,6 +166,14 @@ main implemented responses are:
   from tiny slivers and a micro-rest to ordinary string-readable durations.
 - Piece-specific quarter/eighth-grid cleanup in `Come Unto Me`, where bar 26
   no longer shows triplet/sixth-note residue in the string parts.
+- Beat-readability cleanup for the selected Take 6 review PDF: tied same-pitch
+  fragments and consecutive rests are merged, tiny final release rests are
+  absorbed or moved to a beat boundary when source pitch content is unchanged,
+  rests crossing beat boundaries are split, and sustained high viola passages
+  switch to treble clef.
+- A new beat-readability audit records the remaining dense bars separately from
+  mechanical notation fixes, so "too many notes" examples can be reviewed as
+  musical reduction choices rather than hidden in engraving cleanup.
 
 ## Validation And Audit Trail
 
@@ -244,6 +254,8 @@ implementation, then as regenerated review material.
 - The `Come Unto Me` cello tessitura correction in measure 7.
 - The `Come Unto Me` grid-rhythm simplification in measure 26.
 - The `Come Unto Me` rhythm simplification in measure 32.
+- The selected Take 6 beat-readability audit showing final-tiny-rest and viola
+  clef issues cleared, with dense bars still listed for musical review.
 - A TSV or Markdown audit excerpt showing how improvements are counted.
 - The current Take 6 review set and known tempo metadata.
 
@@ -284,3 +296,5 @@ The main open presentation points are:
   dynamics after the clean review stage.
 - Continue turning repeated director annotations into explicit rules, tests,
   and audit checks.
+- Decide, with the director, whether the remaining dense Take 6 bars should be
+  thinned musically or left as deliberate close-harmony activity.

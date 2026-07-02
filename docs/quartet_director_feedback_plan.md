@@ -201,6 +201,30 @@ The implementation should be auditable:
 - run the same clean-review notation cleanup after octave optimization, so
   generated dynamics and hairpins do not reappear in the review PDFs.
 
+## Phase 6C: Beat Readability, Rests, And Viola Clef
+
+The latest selected Take 6 review comments focused less on pitch choice and
+more on readability:
+
+- notes and rests should respect the beat instead of being grouped randomly;
+- long notes should not end with unexplained sixteenth rests;
+- some marked bars are too dense or rhythmically unclear to parse quickly;
+- the viola may use treble clef from around open A upward when needed.
+
+The immediate automatic response is limited to notation-safe cleanup:
+
+- merge tied same-pitch fragments into one printed note;
+- merge consecutive rests;
+- absorb or shift tiny final release rests to a beat boundary when pitch
+  content and measure duration are unchanged;
+- add viola treble clef for sustained A4-or-higher material, with hysteresis so
+  clefs do not flicker for isolated notes.
+
+Dense bars are not automatically simplified yet. They are reported by
+`scripts/audit_beat_readability.py` so they can be reviewed musically: thinning
+them may improve readability, but it can also remove source voices or harmonic
+color.
+
 ## Phase 7: Endings And Completeness
 
 Ensure every exported score has a musically clear ending.
@@ -228,10 +252,13 @@ rather than silently masking the problem.
    notation artifacts.
 9. Done: prototype pitch-class-preserving octave optimization on Take 6
    `A Quiet Place`.
-10. Next: review the clean `A Quiet Place` optimized PDF musically before
+10. Done: add beat-readability cleanup and viola treble-clef insertion for the
+   selected Take 6 review set.
+11. Next: review the clean `A Quiet Place` optimized PDF musically before
    applying octave optimization corpus-wide.
-11. Next: add enharmonic spelling audit and source-spelling preservation.
-12. Next: iterate on spelling, clefs, and suspicious jumps using director annotations.
+12. Next: add enharmonic spelling audit and source-spelling preservation.
+13. Next: iterate on spelling, dense bars, clefs, and suspicious jumps using
+   director annotations.
 
 ## Open Questions
 
