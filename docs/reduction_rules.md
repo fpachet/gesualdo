@@ -13,6 +13,15 @@ improvise freely. Most notes in the quartet are copied from real source notes
 in the madrigal. A smaller optional layer may add explicitly marked editorial
 harmony.
 
+The system is nevertheless an AI system in the useful sense of complex
+constraint solving. It must choose among antagonistic musical requirements:
+preserving important contrapuntal lines, keeping characteristic dissonances and
+chromatic motions, respecting instrument ranges and sweet spots, avoiding
+unreadable notation, and producing a quartet score that can actually be played.
+The final scores are therefore not automatic transcriptions. They are the
+result of a guided process combining musical judgment, algorithms, notation
+cleanup, and listening.
+
 ## General Principles
 
 1. Preserve the madrigal before improving the quartet texture.
@@ -39,6 +48,40 @@ harmony.
    Empty strings are acceptable when the source texture is sparse or when
    filling them would create weak doublings, isolated fragments, or misleading
    harmony.
+
+5. Treat dissonance and chromatic motion as structural material.
+
+   Gesualdo's identity often lives in semitone motion, false relations,
+   suspensions, cross-relations, and registral collisions. The reducer should
+   not smooth these away in the name of abstract completeness. When there is a
+   choice, a source note that carries a characteristic chromatic or dissonant
+   event can be more valuable than a note that merely fills the chord.
+
+6. Prefer playable instrumental rhetoric over literal fullness.
+
+   Four strings cannot reproduce five or six voices continuously. A convincing
+   reduction may leave a part resting, borrow a line temporarily, or choose a
+   clearer octave placement rather than forcing every source event into the
+   texture.
+
+## Constraint Model
+
+The reducer balances several rule families at once:
+
+1. Source fidelity: preserve attacks, durations, pitch classes, and voice
+   provenance.
+2. Harmonic coverage: keep the pitch classes that define the current sonority.
+3. Contrapuntal continuity: avoid breaking a line into isolated fragments.
+4. Instrumental fit: respect range, preferred register, and quartet balance.
+5. Notation readability: avoid rhythms, ties, accidentals, or clefs that make
+   the score harder to rehearse than the music requires.
+6. Editorial restraint: add generated harmony only when the option is enabled
+   and the musical reason is explicit.
+
+These constraints can disagree. A note may preserve a source voice but create
+an awkward leap, improve a chord but interrupt a line, or fit a range but sit
+poorly on the instrument. The algorithm's job is to make such tradeoffs
+explicit and repeatable so they can be reviewed musically.
 
 ## Process Summary
 
@@ -69,6 +112,12 @@ validation.
    Long notes matter more than short notes in the transposition score, because
    sustained structural tones expose range problems more strongly than passing
    tones.
+
+   Preferred register is treated as a first form of instrumental sweet-spot
+   modeling. A note can be technically in range and still be a poor default
+   placement if it pushes the cello too high, leaves the viola in constant
+   ledger lines, or makes the violins carry material in an unnecessarily harsh
+   register.
 
 3. Prefer simpler printed key signatures among near-equivalent choices.
 
@@ -121,6 +170,33 @@ validation.
 
    The assignment balances register fit, melodic continuity from the previous
    note in the target part, octave displacement, and voice-order stability.
+
+## Instrument Ranges and Sweet Spots
+
+1. Range is a hard constraint; sweet spot is a cost.
+
+   Notes outside the practical instrument range are rejected. Notes inside the
+   range are still evaluated for whether they sit naturally on the target
+   instrument.
+
+2. Octave movement preserves pitch class but changes instrumental meaning.
+
+   The reducer may move source notes by octave to make them playable. This is
+   not considered a harmonic change, but it is still an editorial choice
+   because it changes color, spacing, and line shape.
+
+3. The cello should not become a spare tenor instrument by default.
+
+   Cello assignments are judged against the bass function and the instrument's
+   normal color. High cello writing is allowed when it preserves the true lower
+   source line or a musically exposed gesture, but not merely because the cello
+   happens to be idle.
+
+4. Viola readability is part of the reduction.
+
+   Sustained high viola writing may require treble clef in review output. This
+   is an engraving decision, but it reflects the same principle: a good
+   reduction must be readable by the players for whom it is written.
 
 ## Borrowing Idle Outer Parts
 
@@ -334,6 +410,28 @@ only the short version.
    Source notes carry source-event IDs. Editorial notes are marked as generated
    harmony events. Notes without either provenance are rejected by validation.
 
+## Review and Notation Cleanup
+
+1. The clean review score is part of the method.
+
+   MusicXML that is technically valid can still be hard to read. Review PDFs
+   therefore run cleanup passes for redundant accidentals, tied-continuation
+   accidentals, dangling ties or slurs, final barlines, clef changes, and
+   other notation artifacts.
+
+2. Automatic cleanup must not hide musical decisions.
+
+   Engraving cleanup may merge tied same-pitch fragments, simplify rests, or
+   improve clefs when the sounding music is unchanged. It should not remove
+   attacks, thin dense bars, or invent contrapuntal material without becoming a
+   named reduction rule.
+
+3. Director comments become rules only when generalizable.
+
+   A repeated problem should be stated as a musical rule, tested on examples or
+   export validation, and recorded in the rule documentation. One isolated
+   preference can remain a manual editorial note.
+
 ## Editorial Dynamics
 
 1. Dynamics are an optional notation layer.
@@ -370,7 +468,13 @@ only the short version.
    understand bowing, string choice, timbre, or phrase-level instrumental
    rhetoric.
 
-4. The best rule is still listening.
+4. The AI system explains tradeoffs; it does not eliminate judgment.
+
+   The reducer can detect conflicts, rank alternatives, and make decisions
+   repeatable. It cannot decide alone whether a particular loss of a middle
+   voice is musically acceptable in performance.
+
+5. The best rule is still listening.
 
    The comparison renders are part of the method: suspicious bars should be
    inspected in both notation and audio, then turned into explicit rules only

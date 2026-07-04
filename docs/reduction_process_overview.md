@@ -14,6 +14,18 @@ music by default. Most written notes are copied from real source events, then
 placed into Violin I, Violin II, Viola, and Cello with range, register,
 continuity, harmonic coverage, and readability constraints.
 
+This is an AI system in the sense of complex symbolic problem solving. The
+problem is not only to remove notes. The system has to choose between competing
+constraints: preserving important lines, keeping characteristic dissonances and
+chromatic motions, respecting instrument ranges and sweet spots, avoiding
+unreadable notation, and producing something a quartet can actually rehearse.
+
+The project therefore uses AI without relying on generative imitation, training
+data, or stylistic copying. The source material is already known; the task is
+to transform it into a different instrumental medium. The system makes
+reduction decisions explicit, tests alternatives, detects issues, and helps
+balance antagonistic musical constraints.
+
 The work has two complementary goals:
 
 1. Preserve the source: rhythm, attacks, durations, pitch classes, voice
@@ -120,10 +132,13 @@ The work has two complementary goals:
 
 6. String playability.
 
-   Optional Take 6 double-stops are source-based and conservative. They must
-   fit range, interval, approximate adjacent-string position, and a minimum
-   overlap duration. Very short isolated double-stops are rejected even if the
-   interval is theoretically playable.
+   Register is evaluated as more than abstract range. The reducer also tries
+   to keep instruments in useful tessituras, avoid treating the cello as spare
+   high-register capacity, and prefer octave placements that sound plausible on
+   the target instrument. Optional Take 6 double-stops are source-based and
+   conservative. They must fit range, interval, approximate adjacent-string
+   position, and a minimum overlap duration. Very short isolated double-stops
+   are rejected even if the interval is theoretically playable.
 
 7. Notation and import compatibility.
 
@@ -208,7 +223,14 @@ implementation, then as regenerated review material.
    baseline decisions are global transposition, outer-voice anchoring, middle
    voice compression, range fitting, and optional editorial layers.
 
-3. Take 6 special case.
+3. AI as constraint solving.
+
+   Present the system as an explicit search among competing musical and
+   instrumental requirements. It is not automatic transcription and not
+   generative recomposition: it is a guided process combining musical
+   judgment, algorithms, notation cleanup, and listening.
+
+4. Take 6 special case.
 
    Present Take 6 as a harder close-harmony case: six active voices often
    contain more color than four monophonic string parts can carry. The key
@@ -216,27 +238,27 @@ implementation, then as regenerated review material.
    and selected playable double-stops instead of applying generic triadic
    completion.
 
-4. Professional feedback loop.
+5. Professional feedback loop.
 
    Show how quartet-director comments became engineering requirements:
    awkward jumps became part-coherence audits, confusing hairpins became clean
    review PDFs, accidentals on tied notes became notation cleanup, and
    interrupted fragments became continuity rules.
 
-5. Iterative improvements.
+6. Iterative improvements.
 
    Use concrete examples: `A Quiet Place` for octave optimization,
    `He Never Sleeps` for missing pickup and rhythm-artifact cleanup,
    `Come Unto Me` and `If We Ever` for MuseScore import compatibility, and
    `Hark Herald` for mixed meter and cello-line continuity.
 
-6. Validation.
+7. Validation.
 
    Close the technical story with tests, MusicXML measure completeness,
    MuseScore raw import/export checks, cleanup TSV reports, and before/after
    audit comparisons.
 
-7. Musical status and next work.
+8. Musical status and next work.
 
    End with the active review set, remaining enharmonic-spelling work, the
    question of applying octave optimization corpus-wide, and the possible later

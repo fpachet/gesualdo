@@ -15,6 +15,14 @@ quartet reducer is that dense vertical color is treated as primary material:
 thirds, sevenths, altered tones, and added tones are often more important than
 roots and fifths.
 
+The system is an AI system in the practical sense of complex constraint
+solving. It must decide which information survives when six close-harmony
+voices exceed the capacity of four string parts. The competing constraints are
+especially sharp here: preserve the lead and bass frame, keep guide tones and
+altered colors, respect ranges and instrument sweet spots, avoid unreadable
+rhythmic scars, and produce a playable quartet score without generating
+replacement jazz harmony.
+
 ## Presentation Summary
 
 The Take 6 problem is not simply "six voices into four instruments." It is a
@@ -28,12 +36,36 @@ The current answer is:
 3. Prefer guide tones and color tones in dense sonorities.
 4. Use source-based double-stops only when they are playable and musically
    useful.
-5. Avoid unreadable notation fragments, short isolated double-stops, and
+5. Keep each instrument in a plausible register unless a real musical line
+   requires otherwise.
+6. Avoid unreadable notation fragments, short isolated double-stops, and
    interrupted borrowed lines.
-6. Validate the result as both music and MusicXML/MuseScore material.
+7. Validate the result as both music and MusicXML/MuseScore material.
 
 The rules below record the successive refinements that came from score
 inspection and quartet-director feedback.
+
+## Constraint Model
+
+The Take 6 reducer balances these priorities:
+
+1. Outer frame: keep the top line and bass line stable whenever possible.
+2. Vertical color: preserve thirds, sevenths, altered tones, ninths, and
+   thirteenths before redundant roots or fifths.
+3. Source traceability: prefer real source notes over generated replacements.
+4. Voice continuity: continue a source line when that continuity is audible.
+5. Quartet playability: respect range, sweet spot, double-stop constraints,
+   and part balance.
+6. Engraving readability: avoid tiny fragments, misleading tuplets, awkward
+   rests, and clef problems.
+7. Reviewability: keep every decision inspectable in MusicXML, PDF, audio, and
+   audit reports.
+
+These priorities often conflict. For example, a duplicate pitch class may be
+less important vertically but essential for continuing a borrowed line; a
+double-stop may recover a color tone but make the page unreadable; a global
+transposition may improve range while giving the song the wrong string color.
+The rule set exists to make those tradeoffs explicit.
 
 ## Entry Points
 
@@ -99,6 +131,10 @@ longer inherit the generic Music21 metadata.
    the source pitch level. The current scorer includes octave fitting, but
    reviewed Take 6 material can still need a darker candidate when the automatic
    choice leaves too much material in the upper string register.
+
+   Transposition is therefore not only a range fix. It is also a quartet-color
+   decision. A technically playable candidate can still be rejected if it keeps
+   the cello or viola outside a convincing sweet spot for too much of the song.
 
 3. Apply reviewed song tempos when known.
 
@@ -350,6 +386,13 @@ longer inherit the generic Music21 metadata.
    reaches G3 or higher in the active reduction, instead of the earlier F4/C5
    register.
 
+9. Do not treat sweet-spot correction as reharmonization.
+
+   Octave lowering keeps pitch class, rhythm, and provenance. It is a
+   placement correction for the quartet, not a new harmony or a new bass line.
+   If the octave move would damage a source line, break a double-stop, or leave
+   the instrument range, it is rejected.
+
 ## Optional Source Double-Stops
 
 This layer is enabled with `add_source_double_stops=True` or the CLI
@@ -527,6 +570,14 @@ source-based, and playable under the current conservative model.
    The selected-piece beat-readability audit is written to
    `outputs/reports/beat_readability_audit.tsv`.
 
+7. AI decisions must remain explainable.
+
+   A Take 6 reduction is not accepted because the system produced a score. It
+   is accepted when the score can be explained: why the missing pitch classes
+   were chosen, why a guide tone survived, why a double-stop was added or
+   rejected, why a rhythm was cleaned, and why a particular transposition or
+   octave placement was used.
+
 ## Known Limits
 
 1. The dense-chord rule is local.
@@ -551,3 +602,9 @@ source-based, and playable under the current conservative model.
 
    The reducer reasons mostly in MIDI pitch and pitch class. Some enharmonic
    spelling choices may still need review in MuseScore.
+
+5. The rule set still depends on musical listening.
+
+   The system exposes and tests its decisions, but it does not replace
+   rehearsal judgment. Dense bars, unusual voicings, and phrase-level color may
+   still require manual review even when all mechanical checks pass.
