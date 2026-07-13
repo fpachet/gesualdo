@@ -1,5 +1,5 @@
 const RAW_BASE = "https://raw.githubusercontent.com/fpachet/gesualdo/main/";
-const ASSET_VERSION = "2026-06-21-take6-full-double-stops";
+const ASSET_VERSION = "2026-07-13-beach-boys-our-prayer";
 const STORAGE_KEY = "gesualdo-quartet-review-v1";
 const VEROVIO_SCRIPT_URL = "https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js";
 const SCORE_RENDER_OPTIONS = {
@@ -17,6 +17,7 @@ const SOURCE_LABELS = {
   kdf: "Kunst der Fuge",
   cpdl: "CPDL",
   take6: "Take 6",
+  beach_boys: "The Beach Boys",
 };
 const TARGET_LABELS = {
   string_quartet: "String quartet",
@@ -57,6 +58,13 @@ const DATASETS = [
     voiceCount: 6,
     target: "string_quartet_double_stops",
     report: "data/take6/reductions/string_quartet_double_stops/report.tsv",
+    hasAudio: true,
+  },
+  {
+    source: "beach_boys",
+    voiceCount: 4,
+    target: "string_quartet",
+    report: "data/beach boys/reductions/string_quartet/report.tsv",
     hasAudio: true,
   },
 ];
@@ -332,6 +340,34 @@ function normalizeTake6Row(row, dataset, order) {
   return piece;
 }
 
+function normalizeBeachBoysRow(row, dataset, order) {
+  const musicxml = row.output_path;
+  const piece = {
+    sourceKey: dataset.source,
+    sourceLabel: sourceLabel(dataset.source),
+    voiceCount: dataset.voiceCount,
+    target: dataset.target,
+    targetLabel: targetLabel(dataset.target),
+    group: "beach_boys",
+    groupLabel: "Beach Boys",
+    title: row.title,
+    filename: basename(row.source_path),
+    source: row.source_path,
+    sourceFormat: row.source_format,
+    durationQuarters: numericValue(row.duration_quarters),
+    semitones: numericValue(row.global_transposition),
+    score: null,
+    musicxml,
+    pdf: kdfPdfPath(musicxml),
+    mp3: dataset.hasAudio ? kdfMp3Path(musicxml) : "",
+    measures: row.measures_per_part,
+    reducedParts: 4,
+    order,
+  };
+  piece.id = pieceId(piece);
+  return piece;
+}
+
 async function loadDataset(dataset, startOrder) {
   const response = await fetch(encodedAssetUrl(dataset.report));
   if (!response.ok) {
@@ -343,6 +379,8 @@ async function loadDataset(dataset, startOrder) {
       ? normalizeKdfRow(row, dataset, startOrder + index)
       : dataset.source === "take6"
         ? normalizeTake6Row(row, dataset, startOrder + index)
+        : dataset.source === "beach_boys"
+          ? normalizeBeachBoysRow(row, dataset, startOrder + index)
         : normalizeCpdlRow(row, dataset, startOrder + index)
   ));
 }
