@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>YAML Reduction Knowledge Atlas</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f3ea;
+      --ink: #202426;
+      --muted: #69706f;
+      --panel: #fffaf1;
+      --line: #d6cfc0;
+      --teal: #0d6f6f;
+      --blue: #4d658f;
+      --red: #9b3f42;
+      --gold: #a87521;
+      --green: #4a7650;
+      --shadow: 0 18px 40px rgba(45, 38, 27, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(13, 111, 111, 0.12), transparent 34rem),
+        radial-gradient(circle at 84% 14%, rgba(168, 117, 33, 0.16), transparent 28rem),
+        var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    a { color: inherit; }
+    .page { max-width: 1480px; margin: 0 auto; padding: 28px; }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    .kicker { color: var(--teal); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 12px; }
+    h1 {
+      margin: 4px 0 0;
+      font-size: clamp(32px, 4.5vw, 72px);
+      line-height: 0.98;
+      letter-spacing: -0.03em;
+      max-width: 980px;
+    }
+    .subtitle { max-width: 720px; color: var(--muted); font-size: clamp(16px, 1.5vw, 20px); margin: 14px 0 0; }
+    .badge {
+      border: 1px solid var(--line);
+      background: rgba(255, 250, 241, 0.72);
+      border-radius: 999px;
+      padding: 9px 12px;
+      color: var(--muted);
+      white-space: nowrap;
+      font-size: 13px;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(120px, 1fr));
+      gap: 12px;
+      margin: 22px 0;
+    }
+    .metric {
+      min-height: 116px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 250, 241, 0.86);
+      box-shadow: var(--shadow);
+    }
+    .metric strong { display: block; font-size: clamp(28px, 3vw, 46px); line-height: 1; margin-bottom: 8px; }
+    .metric span { color: var(--muted); font-size: 13px; display: block; }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(420px, 1.05fr) minmax(360px, .95fr);
+      gap: 18px;
+      align-items: start;
+    }
+    .panel {
+      border: 1px solid var(--line);
+      background: rgba(255, 250, 241, 0.86);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+    .panel h2 { margin: 0 0 12px; font-size: 18px; }
+    .atlas-map {
+      position: relative;
+      min-height: 520px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: linear-gradient(135deg, rgba(13,111,111,.08), rgba(168,117,33,.08));
+    }
+    .ring {
+      position: absolute;
+      border: 1px solid rgba(32,36,38,.14);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .ring.one { width: 72%; aspect-ratio: 1; }
+    .ring.two { width: 52%; aspect-ratio: 1; }
+    .ring.three { width: 31%; aspect-ratio: 1; }
+    .core {
+      position: relative;
+      width: 190px;
+      height: 190px;
+      border-radius: 50%;
+      background: var(--ink);
+      color: var(--panel);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 22px;
+      box-shadow: 0 22px 50px rgba(32,36,38,.24);
+      z-index: 2;
+    }
+    .core strong { display: block; font-size: 48px; line-height: 1; }
+    .scope-node {
+      position: absolute;
+      width: 118px;
+      min-height: 58px;
+      transform: translate(-50%, -50%);
+      border: 1px solid rgba(32,36,38,.2);
+      background: rgba(255, 250, 241, 0.94);
+      padding: 8px 10px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(45,38,27,.1);
+    }
+    .scope-node b { display: block; font-size: 20px; }
+    .scope-node span { color: var(--muted); font-size: 12px; }
+    .scope-node.major { border-color: var(--teal); }
+    .file-bars { display: grid; gap: 10px; margin-top: 12px; }
+    .bar-row { display: grid; grid-template-columns: 150px 1fr 34px; gap: 10px; align-items: center; font-size: 13px; }
+    .bar-track { height: 12px; border: 1px solid var(--line); background: rgba(32,36,38,.05); }
+    .bar-fill { height: 100%; background: linear-gradient(90deg, var(--teal), var(--gold)); }
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 180px 160px;
+      gap: 10px;
+      margin: 18px 0 12px;
+    }
+    input, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      padding: 11px 12px;
+      font: inherit;
+      border-radius: 0;
+    }
+    .rule-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .rule-card {
+      border: 1px solid var(--line);
+      background: rgba(255, 250, 241, 0.88);
+      padding: 12px;
+      min-height: 148px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+    .rule-card h3 { margin: 0; font-size: 15px; line-height: 1.2; }
+    .rule-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+    .pill { display: inline-flex; border: 1px solid var(--line); padding: 3px 6px; font-size: 11px; color: var(--muted); }
+    .pill.priority-hard, .pill.priority-very_high { color: var(--red); border-color: rgba(155,63,66,.45); }
+    .pill.priority-high { color: var(--teal); border-color: rgba(13,111,111,.45); }
+    .rule-card p { margin: 0; color: var(--muted); font-size: 12px; }
+    .precision { margin-top: auto; display: flex; gap: 8px; color: var(--muted); font-size: 12px; }
+    .deep-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .deep-card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 14px;
+      min-height: 310px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .deep-card h3 { margin: 0; font-size: 17px; }
+    .deep-card .action { color: var(--teal); font-size: 12px; font-weight: 700; word-break: break-word; }
+    .leaf-list { display: grid; gap: 6px; margin-top: auto; }
+    .leaf { display: grid; gap: 2px; padding-top: 6px; border-top: 1px solid var(--line); }
+    .leaf code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; color: var(--blue); word-break: break-word; }
+    .leaf b { font-size: 12px; }
+    .corpus-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .corpus {
+      border-left: 4px solid var(--teal);
+      background: rgba(255,250,241,.88);
+      padding: 12px;
+      border-top: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      min-height: 120px;
+    }
+    .corpus b { display: block; margin-bottom: 6px; }
+    .corpus span { display: block; color: var(--muted); font-size: 12px; }
+    .footer-note { color: var(--muted); font-size: 12px; margin-top: 16px; }
+    @media (max-width: 1180px) {
+      .metrics { grid-template-columns: repeat(3, 1fr); }
+      .layout { grid-template-columns: 1fr; }
+      .rule-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .deep-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .corpus-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 760px) {
+      .page { padding: 16px; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .controls { grid-template-columns: 1fr; }
+      .rule-grid, .deep-grid, .corpus-strip { grid-template-columns: 1fr; }
+      .atlas-map { min-height: 680px; }
+      .scope-node { width: 104px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .controls { display: none; }
+      .page { max-width: none; padding: 12mm; }
+      .panel, .metric, .rule-card, .deep-card, .corpus { box-shadow: none; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="topbar">
+      <div>
+        <div class="kicker">Reduction knowledge atlas</div>
+        <h1>Forty-four explicit rules for turning voices into quartet notation.</h1>
+        <p class="subtitle">A presentation view of the YAML knowledge base: what it knows, how precise it is, and where the clean-room reducer can test itself.</p>
+      </div>
+      <div class="badge" id="sourceBadge"></div>
+    </section>
+
+    <section class="metrics" id="metrics"></section>
+
+    <section class="layout">
+      <div class="panel">
+        <h2>Rule Family Map</h2>
+        <div class="atlas-map" id="atlasMap" aria-label="Rule scopes arranged around the reduction knowledge core">
+          <div class="ring one"></div>
+          <div class="ring two"></div>
+          <div class="ring three"></div>
+          <div class="core"><div><strong id="coreCount"></strong><span>encoded reduction rules</span></div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Knowledge Distribution</h2>
+        <div class="file-bars" id="fileBars"></div>
+        <div class="footer-note">Shared quartet knowledge provides the substrate; Gesualdo and Take 6 add idiom-specific policies; evaluation metadata defines the reconstruction targets.</div>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:18px;">
+      <h2>Five Rules Worth Showing On Slides</h2>
+      <div class="deep-grid" id="deepGrid"></div>
+    </section>
+
+    <section class="panel" style="margin-top:18px;">
+      <h2>Rule Cards</h2>
+      <div class="controls">
+        <input id="searchBox" type="search" placeholder="Search rules, scopes, actions">
+        <select id="scopeFilter" aria-label="Filter by scope"><option value="">All scopes</option></select>
+        <select id="fileFilter" aria-label="Filter by file"><option value="">All files</option></select>
+      </div>
+      <div class="rule-grid" id="ruleGrid"></div>
+    </section>
+
+    <section class="panel" style="margin-top:18px;">
+      <h2>Evaluation Ground</h2>
+      <div class="corpus-strip" id="corpora"></div>
+    </section>
+  </main>
+
+  <script>
+    const DATA = {"metrics":{"ruleCount":44,"fileCount":4,"scopeCount":23,"numericCount":217,"booleanCount":156,"codeRefs":0,"exampleCount":11,"corpusCount":5,"pilotCount":4,"reviewArtifactCount":4,"auditReportCount":4},"rules":[{"id":"require_expected_gesualdo_source_voice_count","title":"Require expected Gesualdo source voice count","scope":"source_parsing","scopeLabel":"Source parsing","priority":"hard","action":"require_source_voice_count","file":"rules/gesualdo.yaml","fileKey":"gesualdo","rationale":"CPDL pages can contain alternate downloads or extra staves; the reducer should only reduce sources that parse to the intended voice count.","numericCount":2,"booleanCount":0,"parameterLeaves":[{"path":"allowed_counts[0]","value":"5"},{"path":"allowed_counts[1]","value":"6"},{"path":"six_voice_sections[0]","value":"Sacred works for six voices"},{"path":"six_voice_sections[1]","value":"Secular works for six voices"},{"path":"five_voice_sections[0]","value":"Sacred works for five voices"},{"path":"five_voice_sections[1]","value":"Secular works for five voices"},{"path":"preferred_format_order[0]","value":"mxl"},{"path":"preferred_format_order[1]","value":"musicxml"},{"path":"preferred_format_order[2]","value":"xml"}],"evidence":{"docs":1,"reports":2,"examples":0,"code":0}},{"id":"preserve_source_rhythm_and_pitch_class","title":"Preserve source rhythm and pitch class","scope":"source_event_model","scopeLabel":"Source events","priority":"hard","action":"preserve_attacks_durations_and_pitch_classes","file":"rules/gesualdo.yaml","fileKey":"gesualdo","rationale":"Gesualdo reductions should be transformations of the source polyphony, not recompositions of its rhythm or harmonic content.","numericCount":0,"booleanCount":5,"parameterLeaves":[{"path":"preserve_durations","value":"true"},{"path":"preserve_attacks","value":"true"},{"path":"preserve_pitch_classes","value":"true"},{"path":"allow_octave_displacement","value":"true"},{"path":"allow_barline_split_with_tie","value":"true"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"preserve_outer_source_voices","title":"Preserve outer source voices","scope":"outer_voice_assignment","scopeLabel":"Outer voices","priority":"very_high","action":"map_extreme_source_voices_to_extreme_quartet_parts","file":"rules/gesualdo.yaml","fileKey":"gesualdo","rationale":"Gesualdo's outer lines carry structural identity and stabilize the listener while inner contrapuntal material is compressed.","numericCount":0,"booleanCount":2,"parameterLeaves":[{"path":"rank_method","value":"median_sounding_pitch"},{"path":"lowest_source_voice_target","value":"cello"},{"path":"highest_source_voice_target","value":"violin_1"},{"path":"keep_monophonic_outer_targets","value":"true"},{"path":"allow_range_octave_displacement","value":"true"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"compress_five_voice_inner_material","title":"Compress five-voice inner material","scope":"inner_voice_compression","scopeLabel":"Compression","priority":"high","action":"select_inner_source_events_for_available_targets","file":"rules/gesualdo.yaml","fileKey":"gesualdo","rationale":"A five-voice madrigal cannot be copied literally into four strings, so the middle texture is selected locally while outer anchors remain stable.","numericCount":6,"booleanCount":3,"parameterLeaves":[{"path":"assignment_cost.single_event_register_split_midi","value":"60"},{"path":"assignment_cost.register_fit_weight","value":"0.1"},{"path":"assignment_cost.initial_order_weight","value":"3.0"},{"path":"assignment_cost.voice_continuity_weight","value":"10.0"},{"path":"assignment_cost.range_displacement_weight","value":"1.0"},{"path":"assignment_cost.single_event_two_target_rule","value":"choose upper target at or above split, lower target below split when no last pitches exist"},{"path":"candidate_sort_order[0]","value":"new_onset_before_tie_continuation"},{"path":"candidate_sort_order[1]","value":"larger_spread_from_outer_anchors"},{"path":"candidate_sort_order[2]","value":"longer_duration"}],"evidence":{"docs":1,"reports":1,"examples":0,"code":0}},{"id":"compress_six_voice_inner_material","title":"Compress six-voice inner material","scope":"inner_voice_compression","scopeLabel":"Compression","priority":"high","action":"compress_six_source_voices_to_quartet","file":"rules/gesualdo.yaml","fileKey":"gesualdo","rationale":"Six-voice Gesualdo material needs an explicit six-to-four policy so omitted inner strands are a reviewable choice rather than an accidental side effect.","numericCount":7,"booleanCount":3,"parameterLeaves":[{"path":"assignment_cost.single_event_register_split_midi","value":"60"},{"path":"assignment_cost.register_fit_weight","value":"0.1"},{"path":"assignment_cost.initial_order_weight","value":"3.0"},{"path":"assignment_cost.voice_continuity_weight","value":"10.0"},{"path":"assignment_cost.range_displacement_weight","value":"1.0"},{"path":"assignment_cost.single_event_two_target_rule","value":"choose upper target at or above split, lower target below split when no last pitches exist"},{"path":"pinned_outer_voices","value":"true"},{"path":"candidate_sort_order[0]","value":"new_onset_before_tie_continuation"},{"path":"candidate_sort_order[1]","value":"larger_spread_from_outer_anchors"}],"evidence":{"docs":1,"reports":1,"examples":0,"code":0}},{"id":"increase_weight_for_uncovered_pitch_classes","title":"Preserve active pitch classes","scope":"pitch_class_coverage","scopeLabel":"Pitch classes","priority":"high","action":"increase_weight_for_uncovered_pitch_classes","file":"rules/gesualdo.yaml","fileKey":"gesualdo","rationale":"Distinct source pitch classes define local sonority; duplicates are less important unless they preserve a line or instrumental weight.","numericCount":0,"booleanCount":1,"parameterLeaves":[{"path":"duplicate_pitch_class_penalty.rule","value":"primary pass skips candidates whose pitch class is already covered"},{"path":"duplicate_pitch_class_penalty.status","value":"implicit_hard_filter_in_primary_selection"},{"path":"prefer_new_pitch_class_over_duplicate","value":"true"},{"path":"duplicate_pitch_class_penalty.exceptions[0]","value":"source_line_continuity"},{"path":"duplicate_pitch_class_penalty.exceptions[1]","value":"supporting_doubling"},{"path":"duplicate_pitch_class_penalty.exceptions[2]","value":"optional_enrichment"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"preserve_characteristic_chromatic_events","title":"Preserve chromatic and dissonant events","scope":"chromatic_motion","scopeLabel":"Chromatic motion","priority":"high","action":"preserve_source_chromatic_events_indirectly","file":"rules/gesualdo.yaml","fileKey":"gesualdo","rationale":"Current Gesualdo chromatic preservation is achieved mainly by preserving real source events and avoiding editorial choices that hide later chromatic source notes; explicit false-relation, cross-relation, suspension, and generic dissonance detectors are not implemented in the current reducer.","numericCount":0,"booleanCount":10,"parameterLeaves":[{"path":"implemented_mechanisms.longer_duration_breaks_ties_after_onset_and_spread","value":"true"},{"path":"implementation_status","value":"indirect_no_explicit_false_relation_or_suspension_detector"},{"path":"protected_case.example_pattern","value":"rest, G-sharp, A against longer E support"},{"path":"future_detector_specification_needed[0]","value":"false_or_cross_relation_window"},{"path":"future_detector_specification_needed[1]","value":"suspension_preparation_dissonance_resolution_pattern"},{"path":"future_detector_specification_needed[2]","value":"accented_dissonance_classifier"},{"path":"not_implemented_as_detectors.suspension_detector","value":"false"},{"path":"not_implemented_as_detectors.cross_relation_detector","value":"false"},{"path":"not_implemented_as_detectors.false_relation_detector","value":"false"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"avoid_smoothing_dissonance","title":"Avoid smoothing dissonances","scope":"dissonance_preservation","scopeLabel":"Dissonance","priority":"high","action":"preserve_source_dissonance_when_detectable","file":"rules/gesualdo.yaml","fileKey":"gesualdo","rationale":"The current reducer avoids smoothing mostly by making source events primary and editorial material optional/tagged; it does not yet classify all dissonances explicitly.","numericCount":0,"booleanCount":3,"parameterLeaves":[{"path":"implementation_status","value":"source_priority_not_explicit_dissonance_detection"},{"path":"editorial_layers_are_optional","value":"true"},{"path":"generated_replacement_allowed","value":"false"},{"path":"prefer_source_note_over_smooth_filler","value":"true"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"allow_idle_outer_borrowing_for_coverage","title":"Allow idle outer parts to borrow inner material","scope":"borrowing","scopeLabel":"Borrowing","priority":"medium","action":"allow_idle_outer_target_to_borrow_inner_source_line","file":"rules/gesualdo.yaml","fileKey":"gesualdo","rationale":"A resting outer string may preserve a real inner source line when doing so improves coverage without breaking the outer anchor role.","numericCount":1,"booleanCount":4,"parameterLeaves":[{"path":"bottom_target_register_guard.reject_borrowed_non_anchor_events_above_midi","value":"60"},{"path":"bottom_target_register_guard.allow_true_bottom_anchor_events_above_threshold_after_octave_fitting","value":"true"},{"path":"require_range_fit","value":"true"},{"path":"allowed_targets[0]","value":"violin_1"},{"path":"allowed_targets[1]","value":"cello"},{"path":"require_target_idle","value":"true"},{"path":"prefer_continuous_source_line","value":"true"},{"path":"bottom_target_register_guard.import_rule","value":"avoid_high_borrowed_bottom_register"},{"path":"bottom_target_register_guard.applies_to_target","value":"cello"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"penalize_isolated_fragments","title":"Penalize isolated fragments","scope":"fragment_pruning","scopeLabel":"Fragments","priority":"medium","action":"penalize_isolated_fragments","file":"rules/gesualdo.yaml","fileKey":"gesualdo","rationale":"The production reducer prunes isolated borrowed events with a one-quarter-neighbor rule; the audit layer separately flags sparse islands using duration, attack-count, and long-silence thresholds.","numericCount":7,"booleanCount":2,"parameterLeaves":[{"path":"audit_sparse_fragment_definition.max_fragment_note_duration_quarters","value":"1.5"},{"path":"production_pruning.applies_to","value":"borrowed events in targets with initial anchored source material"},{"path":"borrowed_neighbor_max_gap_quarters","value":"1.0"},{"path":"prefer_continuity_over_single_attacks","value":"true"},{"path":"monophonic_fragment_merge_max_gap_quarters","value":"0.08333333333333333"},{"path":"production_pruning.borrowed_event_definition","value":"event source id is not among initial anchored source ids for that target"},{"path":"audit_sparse_fragment_definition.long_rest_bars","value":"2.0"},{"path":"production_pruning.otherwise_drop_borrowed_event","value":"true"},{"path":"audit_sparse_fragment_definition.severity_high_when","value":"long silence occurs both before and after the island"}],"evidence":{"docs":1,"reports":1,"examples":0,"code":0}},{"id":"allow_source_voice_restoration","title":"Allow source-voice restoration","scope":"source_voice_restoration","scopeLabel":"Restoration","priority":"optional","action":"allow_source_voice_restoration","file":"rules/gesualdo.yaml","fileKey":"gesualdo","rationale":"Optional enrichment can restore real source voices when the plain quartet reduction is too sparse, but restored notes must still be source-traceable.","numericCount":1,"booleanCount":5,"parameterLeaves":[{"path":"bottom_target_register_guard.reject_borrowed_non_anchor_events_above_midi","value":"60"},{"path":"bottom_target_register_guard.allow_true_bottom_anchor_events_above_threshold_after_octave_fitting","value":"true"},{"path":"mode_flag","value":"preserve_active_voice_count"},{"path":"enabled_in_cpdl_five_voice_batch","value":"true"},{"path":"avoid_bare_octave_duplicate_pickup","value":"true"},{"path":"bottom_target_register_guard.import_rule","value":"avoid_high_borrowed_bottom_register"},{"path":"bottom_target_register_guard.decision_order[0]","value":"prefer restoring uncovered active source pitch classes"},{"path":"bottom_target_register_guard.decision_order[1]","value":"reject illegal high borrowed cello candidates"},{"path":"bottom_target_register_guard.decision_order[2]","value":"use continuity and register costs among remaining candidates"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"allow_editorial_support_harmony","title":"Allow editorial support harmony","scope":"editorial_generation","scopeLabel":"Editorial layers","priority":"optional","action":"allow_editorial_support_harmony","file":"rules/gesualdo.yaml","fileKey":"gesualdo","rationale":"Editorial support can fill idle strings, but it must be explicit and subordinate to source preservation.","numericCount":5,"booleanCount":3,"parameterLeaves":[{"path":"candidate_cost.continuity_cost","value":"abs(candidate - previous_pitch) / 12"},{"path":"candidate_cost.displacement_cost","value":"abs(candidate - source_pitch) / 24"},{"path":"minimum_support_duration_quarters","value":"0.5"},{"path":"candidate_cost.exact_duplicate_cost","value":"1.5"},{"path":"candidate_cost.register_cost_weight","value":"1.0"},{"path":"candidate_cost.duration_reward_cap_quarters","value":"4.0"},{"path":"mode_flag","value":"add_editorial_harmony"},{"path":"target_active_parts","value":"4"},{"path":"require_generated_tag","value":"true"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"allow_editorial_missing_third_completion","title":"Allow editorial missing-third completion","scope":"editorial_generation","scopeLabel":"Editorial layers","priority":"optional","action":"allow_editorial_missing_third_completion","file":"rules/gesualdo.yaml","fileKey":"gesualdo","rationale":"A narrow missing-third layer can make root-fifth shells less empty while staying distinguishable from source-derived material.","numericCount":1,"booleanCount":3,"parameterLeaves":[{"path":"placement_cost[0]","value":"register_fit_score"},{"path":"placement_cost[1]","value":"continuity_distance_over_12"},{"path":"placement_cost[2]","value":"distance_from_active_anchor_center_over_24"},{"path":"trigger","value":"root_fifth_shell_without_third"},{"path":"mode_flag","value":"add_editorial_thirds"},{"path":"lookahead_quarters","value":"12.0"},{"path":"require_generated_tag","value":"true"},{"path":"fallback_third_quality","value":"major"},{"path":"enabled_in_cpdl_five_voice_batch","value":"true"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"use_director_review_as_constraint_discovery","title":"Use director review as constraint discovery","scope":"evaluation","scopeLabel":"Evaluation","priority":"medium","action":"promote_repeated_review_feedback_to_rules","file":"rules/gesualdo.yaml","fileKey":"gesualdo","rationale":"Repeated director comments become durable knowledge only when they can be stated as a rule and audited across the corpus.","numericCount":0,"booleanCount":1,"parameterLeaves":[{"path":"audit_outputs[0]","value":"outputs/reports/part_coherence_audit.tsv"},{"path":"audit_outputs[1]","value":"outputs/reports/beat_readability_audit.tsv"},{"path":"review_artifacts[0]","value":"output/pdf/quartet_director/gesualdo_5_voice_string_quartet_reductions.pdf"},{"path":"review_artifacts[1]","value":"output/pdf/quartet_director/gesualdo_6_voice_string_quartet_reductions.pdf"},{"path":"require_repeatable_check_before_promotion","value":"true"}],"evidence":{"docs":2,"reports":1,"examples":0,"code":0}},{"id":"require_four_quartet_parts","title":"Require four quartet parts","scope":"validation","scopeLabel":"Validation","priority":"hard","action":"require_target_parts","file":"rules/shared_quartet.yaml","fileKey":"shared_quartet","rationale":"The output is a string quartet reduction, so later assignment, validation, and review checks assume exactly these four target parts.","numericCount":0,"booleanCount":1,"parameterLeaves":[{"path":"parts[0]","value":"violin_1"},{"path":"parts[1]","value":"violin_2"},{"path":"parts[2]","value":"viola"},{"path":"parts[3]","value":"cello"},{"path":"order_is_canonical","value":"true"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"define_instrument_ranges","title":"Define instrument ranges","scope":"instrument_range","scopeLabel":"Ranges","priority":"hard","action":"require_pitch_within_target_range_after_octave_fitting","file":"rules/shared_quartet.yaml","fileKey":"shared_quartet","rationale":"Source pitches may be moved by octave, but emitted pitches must remain playable for the assigned quartet instrument.","numericCount":8,"booleanCount":2,"parameterLeaves":[{"path":"midi_ranges.cello[0]","value":"36"},{"path":"midi_ranges.cello[1]","value":"72"},{"path":"midi_ranges.viola[0]","value":"48"},{"path":"midi_ranges.viola[1]","value":"88"},{"path":"midi_ranges.violin_1[0]","value":"55"},{"path":"midi_ranges.violin_1[1]","value":"100"},{"path":"midi_ranges.violin_2[0]","value":"55"},{"path":"midi_ranges.violin_2[1]","value":"88"},{"path":"preserve_pitch_class","value":"true"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"define_preferred_registers","title":"Define preferred registers","scope":"instrument_sweet_spot","scopeLabel":"Sweet spots","priority":"high","action":"increase_cost_outside_preferred_register","file":"rules/shared_quartet.yaml","fileKey":"shared_quartet","rationale":"A pitch can be technically in range but still sit poorly on the instrument; preferred registers make this cost explicit.","numericCount":10,"booleanCount":1,"parameterLeaves":[{"path":"preferred_register_fit_cost.octave_displacement_weight","value":"2.0"},{"path":"preferred_register_fit_cost.pitch_sweetspot_cost.total","value":"register_cost + center_cost"},{"path":"preferred_register_fit_cost.pitch_sweetspot_cost.center_cost","value":"abs(pitch - preferred_center) / preferred_span"},{"path":"preferred_register_fit_cost.previous_pitch_continuity_weight","value":"1.0"},{"path":"preferred_register_fit_cost.pitch_sweetspot_cost.inside_register_cost","value":"center_cost * 0.5"},{"path":"preferred_register_fit_cost.pitch_sweetspot_cost.outside_register_cost","value":"distance_outside_preferred_register"},{"path":"range_is_hard_limit","value":"true"},{"path":"register_fit_score.purpose","value":"local target assignment register cost"},{"path":"preferred_registers.cello[0]","value":"36"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"avoid_high_borrowed_bottom_register","title":"Avoid high borrowed bottom register","scope":"borrowing","scopeLabel":"Borrowing","priority":"high","action":"reject_high_borrowed_bottom_events","file":"rules/shared_quartet.yaml","fileKey":"shared_quartet","rationale":"A resting or borrowable cello may carry real source material, but borrowed upper or middle material above the cello preferred register damages bass function and usually adds less information than it costs in color and readability.","numericCount":2,"booleanCount":13,"parameterLeaves":[{"path":"preferred_register_ceiling.midi","value":"60"},{"path":"duplicate_pitch_class_subrule.duplicate_pitch_class_ceiling_midi","value":"60"},{"path":"reject_when.event_pitch_midi_greater_than_preferred_register_ceiling","value":"true"},{"path":"target_role","value":"bottom"},{"path":"preferred_register_ceiling.note","value":"C4"},{"path":"preferred_register_ceiling.source","value":"target preferred register high boundary"},{"path":"preferred_register_ceiling.target","value":"cello"},{"path":"reject_when.target_role_is_bottom","value":"true"},{"path":"selection_stage.applies_before_final_fragment_pruning","value":"true"}],"evidence":{"docs":1,"reports":0,"examples":1,"code":0}},{"id":"require_source_event_or_editorial_tag","title":"Preserve source provenance","scope":"provenance","scopeLabel":"Provenance","priority":"hard","action":"require_source_event_or_editorial_tag","file":"rules/shared_quartet.yaml","fileKey":"shared_quartet","rationale":"Reviewable reductions must distinguish real source-derived notes from generated editorial support material.","numericCount":0,"booleanCount":1,"parameterLeaves":[{"path":"generated_field","value":"generated"},{"path":"source_fields[0]","value":"source_id"},{"path":"source_fields[1]","value":"source_part_index"},{"path":"source_fields[2]","value":"source_event_index"},{"path":"source_fields[3]","value":"source_pitch_midi"},{"path":"editorial_tags_required","value":"true"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"preserve_source_timing_identity","title":"Preserve source timing identity","scope":"source_event_model","scopeLabel":"Source events","priority":"hard","action":"preserve_attacks_durations_and_pitch_classes","file":"rules/shared_quartet.yaml","fileKey":"shared_quartet","rationale":"The reducer transforms instrumentation, not the source rhythm or harmonic pitch-class content, unless a specific cleanup rule says otherwise.","numericCount":0,"booleanCount":5,"parameterLeaves":[{"path":"preserve_durations","value":"true"},{"path":"preserve_pitch_classes","value":"true"},{"path":"preserve_attack_offsets","value":"true"},{"path":"allow_octave_displacement","value":"true"},{"path":"allow_barline_split_with_tie","value":"true"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"complete_measures_with_rests","title":"Complete measures with rests","scope":"validation","scopeLabel":"Validation","priority":"hard","action":"fill_unassigned_measure_time_with_rests","file":"rules/shared_quartet.yaml","fileKey":"shared_quartet","rationale":"Exported parts must be exactly measured so MusicXML import and PDF review do not inherit rhythmic gaps or overfull bars.","numericCount":1,"booleanCount":2,"parameterLeaves":[{"path":"validate_measure_duration","value":"true"},{"path":"max_denominator","value":"4096"},{"path":"split_events_at_barlines","value":"true"}],"evidence":{"docs":1,"reports":1,"examples":0,"code":0}},{"id":"validate_no_overlaps_or_overfull_measures","title":"Reject overlaps and overfull measures","scope":"validation","scopeLabel":"Validation","priority":"hard","action":"validate_no_overlaps_or_overfull_measures","file":"rules/shared_quartet.yaml","fileKey":"shared_quartet","rationale":"Overlaps and overfull measures are structural errors rather than aesthetic tradeoffs, because they break downstream MusicXML review.","numericCount":0,"booleanCount":3,"parameterLeaves":[{"path":"report_parse_issues","value":"true"},{"path":"reject_overfull_bars","value":"true"},{"path":"reject_overlapping_source_events_per_target","value":"true"}],"evidence":{"docs":1,"reports":1,"examples":0,"code":0}},{"id":"choose_two_stage_global_transposition","title":"Choose two-stage global transposition","scope":"global_transposition","scopeLabel":"Transposition","priority":"high","action":"choose_two_stage_global_transposition","file":"rules/shared_quartet.yaml","fileKey":"shared_quartet","rationale":"Global transposition is selected in two stages: first optimize bounded range/register and quartet-color fit using pitch-class-preserving octave folding, stronger source-displacement regularization, instrument-weighted register costs, and a high-positive color penalty, with key signatures excluded; then optionally replace with a cleaner key only among candidates whose normalized first-stage score remains musically near the best candidate.","numericCount":45,"booleanCount":7,"parameterLeaves":[{"path":"stage_1.voice_weight","value":"sum(duration of pitched source events)"},{"path":"stage_1.unfit_pitch_cost","value":"10000.0"},{"path":"stage_1.target_pitch_cost","value":"bounded_pitch_sweetspot_cost + octave_displacement_cost * 0.75"},{"path":"stage_1.pitch_sweetspot_cost.shape","value":"bounded_piecewise_linear"},{"path":"stage_1.folded_pitch_selection_cost","value":"minimize octave_displacement_cost first, then bounded_pitch_sweetspot_cost"},{"path":"stage_1.octave_displacement_cost.cap","value":"1.5"},{"path":"stage_1.octave_displacement_cost.weight","value":"0.75"},{"path":"stage_1.instrument_register_weights.cello","value":"1.5"},{"path":"stage_1.instrument_register_weights.viola","value":"1.25"}],"evidence":{"docs":1,"reports":1,"examples":0,"code":0}},{"id":"prefer_simple_key_signature_when_tessitura_tied","title":"Apply stage-two cleaner-key guardrail","scope":"global_transposition","scopeLabel":"Transposition","priority":"medium","action":"apply_stage_two_cleaner_key_guardrail","file":"rules/shared_quartet.yaml","fileKey":"shared_quartet","rationale":"The cleaner-key rule is a second-stage guardrail. It never changes the first-stage range/register/color score and may only replace the best first-stage candidate when the candidate is score-near on the bounded musical-color scale and substantially reduces printed key burden.","numericCount":3,"booleanCount":1,"parameterLeaves":[{"path":"tessitura_tolerance","value":"0.35"},{"path":"burden_metric","value":"duration_weighted_average_abs_sharps"},{"path":"nearby_optimal_means","value":"absolute delta on normalized bounded stage_1 score <= tessitura_tolerance"},{"path":"eligible_candidate_set","value":"all candidates within stage_1 score tolerance, not only semitone-near candidates"},{"path":"participates_in_stage_1_score","value":"false"},{"path":"nearby_optimal_does_not_mean[0]","value":"semitone window"},{"path":"nearby_optimal_does_not_mean[1]","value":"percentage of old unbounded tessitura score"},{"path":"nearby_optimal_does_not_mean[2]","value":"key burden proximity"},{"path":"minimum_absolute_key_burden_improvement","value":"2.0"}],"evidence":{"docs":1,"reports":1,"examples":0,"code":0}},{"id":"prefer_pitch_class_preserving_octaves","title":"Prefer pitch-class-preserving octave movement","scope":"register_placement","scopeLabel":"Register","priority":"high","action":"choose_octave_fit_preserving_pitch_class","file":"rules/shared_quartet.yaml","fileKey":"shared_quartet","rationale":"Octave movement is allowed to make a line playable, but it is not treated as neutral because register carries musical identity and string color.","numericCount":6,"booleanCount":1,"parameterLeaves":[{"path":"register_weight","value":"1.0"},{"path":"transition_weight","value":"1.0"},{"path":"displacement_weight","value":"12.0"},{"path":"long_note_change_weight","value":"2.0"},{"path":"leap_free_interval","value":"7"},{"path":"protect_bass_anchor","value":"true"},{"path":"max_octave_shift_for_optimizer","value":"1"}],"evidence":{"docs":1,"reports":1,"examples":1,"code":0}},{"id":"cleanup_review_notation","title":"Clean notation for review","scope":"notation_cleanup","scopeLabel":"Notation cleanup","priority":"high","action":"cleanup_review_notation","file":"rules/shared_quartet.yaml","fileKey":"shared_quartet","rationale":"Review scores should expose musical decisions, not distracting MusicXML or engraving artifacts.","numericCount":11,"booleanCount":27,"parameterLeaves":[{"path":"clef_predicates.cello.return_to_bass_when_measure_max_midi_lte","value":"55"},{"path":"clef_predicates.viola.return_to_alto_when_measure_max_midi_lte","value":"65"},{"path":"clef_predicates.cello.switch_to_tenor_when_duration_at_or_above_midi_60_gte_quarters","value":"2.0"},{"path":"clef_predicates.cello.switch_to_treble_when_duration_at_or_above_midi_67_gte_quarters","value":"2.0"},{"path":"clef_predicates.viola.switch_to_treble_when_duration_at_or_above_midi_69_gte_quarters","value":"1.0"},{"path":"release_residue_tolerance_quarters","value":"0.25"},{"path":"beat_readability_predicates.merge_adjacent_items_when.resulting_duration_preserves_sounding_content","value":"true"},{"path":"beat_readability_predicates.release_residue_absorption.absorb_entire_rest_when.rest_duration_lte_quarters","value":"0.25"},{"path":"beat_readability_predicates.release_residue_absorption.absorb_entire_rest_when.previous_duration_gte_quarters","value":"1.0"}],"evidence":{"docs":1,"reports":1,"examples":0,"code":0}},{"id":"normalize_musescore_time_modification_import","title":"Normalize MuseScore time-modification import","scope":"musescore_compatibility","scopeLabel":"MuseScore","priority":"high","action":"strip_time_modifications_after_musicxml_write","file":"rules/shared_quartet.yaml","fileKey":"shared_quartet","rationale":"MuseScore can over-count some music21-written nested tuplets when durations and time-modification tags are both present.","numericCount":0,"booleanCount":2,"parameterLeaves":[{"path":"preserve_duration_values","value":"true"},{"path":"preserve_tuplet_notation_brackets","value":"true"}],"evidence":{"docs":1,"reports":1,"examples":0,"code":0}},{"id":"emit_editorial_dynamics_when_enabled","title":"Emit editorial dynamics only when enabled","scope":"editorial_generation","scopeLabel":"Editorial layers","priority":"optional","action":"generate_bar_level_editorial_dynamics","file":"rules/shared_quartet.yaml","fileKey":"shared_quartet","rationale":"Dynamics are editorial performance suggestions, not source facts, so they must remain optional and clearly separable from note reduction.","numericCount":6,"booleanCount":1,"parameterLeaves":[{"path":"energy_weights.attack_density","value":"0.3"},{"path":"energy_weights.registral_span","value":"0.15"},{"path":"energy_weights.average_register","value":"0.2"},{"path":"energy_weights.active_part_count","value":"0.35"},{"path":"levels[0]","value":"p"},{"path":"levels[1]","value":"mp"},{"path":"levels[2]","value":"mf"},{"path":"levels[3]","value":"f"},{"path":"phrase_bars","value":"4"}],"evidence":{"docs":1,"reports":0,"examples":1,"code":0}},{"id":"require_exactly_six_take6_source_parts","title":"Require exactly six Take 6 source parts","scope":"source_parsing","scopeLabel":"Source parsing","priority":"hard","action":"require_source_voice_count","file":"rules/take6.yaml","fileKey":"take6","rationale":"The Take 6 policy is a special six-voice close-harmony compression path, not a fallback for arbitrary source textures.","numericCount":1,"booleanCount":1,"parameterLeaves":[{"path":"source_glob","value":"data/take6/*.mid"},{"path":"required_count","value":"6"},{"path":"reject_other_counts","value":"true"}],"evidence":{"docs":1,"reports":1,"examples":0,"code":0}},{"id":"preserve_soprano_bass_frame","title":"Preserve soprano and bass frame","scope":"outer_voice_assignment","scopeLabel":"Outer voices","priority":"very_high","action":"map_extreme_source_voices_to_extreme_quartet_parts","file":"rules/take6.yaml","fileKey":"take6","rationale":"Take 6 reductions need a stable lead/bass frame so compressed inner color remains attached to the recognizable arrangement.","numericCount":1,"booleanCount":1,"parameterLeaves":[{"path":"lower_high_cello_threshold","value":"55"},{"path":"rank_method","value":"median_sounding_pitch"},{"path":"allow_octave_displacement","value":"true"},{"path":"lowest_source_voice_target","value":"cello"},{"path":"highest_source_voice_target","value":"violin_1"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"prefer_close_harmony_color_tones","title":"Prefer close-harmony color tones","scope":"harmonic_role_priority","scopeLabel":"Harmony color","priority":"very_high","action":"increase_weight_for_harmonic_roles","file":"rules/take6.yaml","fileKey":"take6","rationale":"Take 6 identity often lies in thirds, sevenths, altered tones, ninths, and thirteenths rather than root/fifth completeness.","numericCount":17,"booleanCount":0,"parameterLeaves":[{"path":"numeric_weights.dense_sonority_threshold_pitch_classes","value":"4"},{"path":"numeric_weights.dense_sonority_bonus","value":"1.0"},{"path":"numeric_weights.interval_above_bass.fifth","value":"2.0"},{"path":"numeric_weights.interval_above_bass.ninth","value":"6.0"},{"path":"numeric_weights.interval_above_bass.major_third","value":"9.0"},{"path":"numeric_weights.interval_above_bass.minor_third","value":"9.0"},{"path":"numeric_weights.interval_above_bass.major_seventh","value":"7.5"},{"path":"numeric_weights.interval_above_bass.minor_seventh","value":"8.0"},{"path":"numeric_weights.interval_above_bass.root_or_octave","value":"1.0"}],"evidence":{"docs":1,"reports":1,"examples":0,"code":0}},{"id":"penalize_redundant_roots_and_fifths","title":"Penalize redundant roots and fifths","scope":"harmonic_role_priority","scopeLabel":"Harmony color","priority":"high","action":"penalize_duplicate_roots_and_fifths","file":"rules/take6.yaml","fileKey":"take6","rationale":"When six close-harmony voices exceed quartet capacity, redundant roots and fifths usually carry less identity than guide tones and added colors.","numericCount":5,"booleanCount":3,"parameterLeaves":[{"path":"allow_if_needed_for_line_continuity","value":"true"},{"path":"target_capacity_without_double_stops","value":"4"},{"path":"duplicate_color_tone_penalty.no_bass_context","value":"1.0"},{"path":"allow_if_long_source_doubling_with_double_stops","value":"true"},{"path":"duplicate_color_tone_penalty.duplicate_other_interval","value":"0.5"},{"path":"apply_when_active_pitch_classes_exceed_target_capacity","value":"true"},{"path":"duplicate_color_tone_penalty.duplicate_third_or_seventh","value":"3.0"},{"path":"duplicate_color_tone_penalty.duplicate_altered_or_added_color_tone","value":"2.0"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"prohibit_default_generated_jazz_reharmonization","title":"Prohibit default generated jazz reharmonization","scope":"editorial_generation","scopeLabel":"Editorial layers","priority":"hard","action":"prohibit_generated_reharmonization_by_default","file":"rules/take6.yaml","fileKey":"take6","rationale":"The Take 6 reducer should preserve and compress existing close harmony, not invent replacement jazz harmony.","numericCount":0,"booleanCount":4,"parameterLeaves":[{"path":"add_editorial_thirds_default","value":"false"},{"path":"add_editorial_harmony_default","value":"false"},{"path":"source_notes_required_by_default","value":"true"},{"path":"generated_jazz_substitutions_allowed","value":"false"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"continue_source_lines_before_redundant_doubling","title":"Continue source lines before redundant doubling","scope":"continuity_repair","scopeLabel":"Continuity","priority":"high","action":"increase_weight_for_continuing_source_line","file":"rules/take6.yaml","fileKey":"take6","rationale":"A duplicated pitch class can be more valuable than a fresh harmonic role when it keeps a previously exposed source line coherent.","numericCount":1,"booleanCount":2,"parameterLeaves":[{"path":"max_borrowed_bottom_duplicate_pitch","value":"60"},{"path":"allow_duplicate_pitch_class_for_continuity","value":"true"},{"path":"prefer_existing_line_over_new_redundant_third","value":"true"}],"evidence":{"docs":1,"reports":0,"examples":1,"code":0}},{"id":"allow_source_based_double_stops","title":"Allow source-based double-stops","scope":"double_stops","scopeLabel":"Double-stops","priority":"optional","action":"allow_source_based_double_stops","file":"rules/take6.yaml","fileKey":"take6","rationale":"Double-stops can recover omitted source colors, but they must remain playable, source-derived, and not turn the page into unreadable fragments.","numericCount":38,"booleanCount":16,"parameterLeaves":[{"path":"string_tunings_midi.cello[0]","value":"36"},{"path":"string_tunings_midi.cello[1]","value":"43"},{"path":"string_tunings_midi.cello[2]","value":"50"},{"path":"string_tunings_midi.cello[3]","value":"57"},{"path":"string_tunings_midi.viola[0]","value":"48"},{"path":"string_tunings_midi.viola[1]","value":"55"},{"path":"string_tunings_midi.viola[2]","value":"62"},{"path":"string_tunings_midi.viola[3]","value":"69"},{"path":"string_tunings_midi.violin_1[0]","value":"55"}],"evidence":{"docs":1,"reports":1,"examples":0,"code":0}},{"id":"preserve_long_source_doublings_with_double_stops","title":"Preserve long source doublings with double-stops","scope":"double_stops","scopeLabel":"Double-stops","priority":"medium","action":"allow_long_source_doubling_double_stop","file":"rules/take6.yaml","fileKey":"take6","rationale":"Sustained six-voice Take 6 sonorities can lose weight if every duplicate source pitch is removed; long playable doublings may be retained.","numericCount":1,"booleanCount":6,"parameterLeaves":[{"path":"duration_threshold.note","value":"Minimum held duration for preserving source doublings as double-stops."},{"path":"duration_threshold.status","value":"specified"},{"path":"duration_threshold.value_quarters","value":"2.0"},{"path":"minimum_source_notes_formula","value":"target_count + 1"},{"path":"require_double_stops_enabled","value":"true"},{"path":"allow_duplicate_pitch_classes","value":"true"},{"path":"require_long_homorhythmic_attack","value":"true"},{"path":"require_all_source_events_same_end","value":"true"},{"path":"require_all_source_events_same_start","value":"true"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"trim_tiny_preservation_fragments","title":"Trim tiny preservation fragments","scope":"fragment_pruning","scopeLabel":"Fragments","priority":"high","action":"trim_or_drop_tiny_preservation_fragments","file":"rules/take6.yaml","fileKey":"take6","rationale":"Very short trimmed fragments can create unreadable rhythmic scars in the quartet score, especially after MIDI import.","numericCount":1,"booleanCount":2,"parameterLeaves":[{"path":"min_preserved_trimmed_duration_quarters","value":"0.3333333333333333"},{"path":"avoid_duple_triplet_splice","value":"true"},{"path":"preserve_source_end_when_adjusting","value":"true"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"normalize_short_note_rest_artifacts","title":"Normalize short note/rest MIDI artifacts","scope":"notation_cleanup","scopeLabel":"Notation cleanup","priority":"high","action":"normalize_short_note_rest_artifacts","file":"rules/take6.yaml","fileKey":"take6","rationale":"Narrow MIDI artifacts should not appear as spurious micro-rests or overlaps in the printed quartet score.","numericCount":15,"booleanCount":3,"parameterLeaves":[{"path":"preserve_total_duration","value":"true"},{"path":"snap_durations_quarters[0]","value":"0.25"},{"path":"snap_durations_quarters[1]","value":"0.3333333333333333"},{"path":"snap_durations_quarters[2]","value":"0.5"},{"path":"snap_durations_quarters[3]","value":"0.6666666666666666"},{"path":"snap_durations_quarters[4]","value":"0.75"},{"path":"max_tiny_gap_quarters","value":"0.08333333333333333"},{"path":"default_enabled_for_take6","value":"true"},{"path":"max_tiny_overlap_quarters","value":"0.08333333333333333"}],"evidence":{"docs":1,"reports":1,"examples":1,"code":0}},{"id":"normalize_piece_level_musescore_grid_rhythm","title":"Normalize piece-level MuseScore grid rhythm","scope":"musescore_compatibility","scopeLabel":"MuseScore","priority":"high","action":"normalize_musescore_grid_rhythm_for_known_cases","file":"rules/take6.yaml","fileKey":"take6","rationale":"Some Take 6 pieces have piece-level grid residues that need targeted cleanup after reduction and tempo override application.","numericCount":9,"booleanCount":0,"parameterLeaves":[{"path":"grid_duration_quarters","value":"0.25"},{"path":"piece_ids[0]","value":"if_we_ever"},{"path":"piece_ids[1]","value":"come_unto_me"},{"path":"safe_denominators[0]","value":"1"},{"path":"safe_denominators[1]","value":"2"},{"path":"safe_denominators[2]","value":"4"},{"path":"safe_denominators[3]","value":"8"},{"path":"safe_denominators[4]","value":"16"},{"path":"safe_denominators[5]","value":"32"}],"evidence":{"docs":1,"reports":1,"examples":1,"code":0}},{"id":"lower_high_cello_register","title":"Lower high cello register when playable","scope":"register_placement","scopeLabel":"Register","priority":"high","action":"lower_high_cello_register_when_playable","file":"rules/take6.yaml","fileKey":"take6","rationale":"The automatic Take 6 compression can leave cello material too high for the desired quartet color; lowering by octave fixes color without reharmonizing.","numericCount":1,"booleanCount":3,"parameterLeaves":[{"path":"threshold_midi","value":"55"},{"path":"preserve_pitch_class","value":"true"},{"path":"handle_chord_upper_pitch","value":"true"},{"path":"only_when_result_in_range","value":"true"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"apply_reviewed_take6_transposition_overrides","title":"Apply reviewed Take 6 transposition overrides","scope":"global_transposition","scopeLabel":"Transposition","priority":"high","action":"apply_piece_specific_transposition_override","file":"rules/take6.yaml","fileKey":"take6","rationale":"Some Take 6 pieces need reviewed quartet-color choices that the automatic transposition scorer does not yet capture fully.","numericCount":1,"booleanCount":1,"parameterLeaves":[{"path":"override_file","value":"data/take6/transposition_overrides.json"},{"path":"fallback_to_automatic_scoring","value":"true"},{"path":"current_overrides.come_unto_me","value":"-8"}],"evidence":{"docs":1,"reports":1,"examples":1,"code":0}},{"id":"apply_reviewed_take6_tempo_overrides","title":"Apply reviewed Take 6 tempo overrides","scope":"evaluation","scopeLabel":"Evaluation","priority":"medium","action":"apply_piece_specific_tempo_override","file":"rules/take6.yaml","fileKey":"take6","rationale":"Tempo affects review playback and generated renders, so reviewed song tempos are stored separately from the reduction rules.","numericCount":4,"booleanCount":0,"parameterLeaves":[{"path":"override_file","value":"data/take6/tempo_overrides.json"},{"path":"unknown_piece_behavior","value":"leave_imported_tempo"},{"path":"current_overrides.if_we_ever","value":"117"},{"path":"current_overrides.hark_herald","value":"108"},{"path":"current_overrides.a_quiet_place","value":"68"},{"path":"current_overrides.he_never_sleeps","value":"75"}],"evidence":{"docs":1,"reports":1,"examples":0,"code":0}},{"id":"disable_editorial_dynamics_for_take6","title":"Disable editorial dynamics for Take 6","scope":"editorial_generation","scopeLabel":"Editorial layers","priority":"high","action":"disable_editorial_dynamics","file":"rules/take6.yaml","fileKey":"take6","rationale":"Generated dynamics and hairpins implied an interpretation not present in the Take 6 source material, so the Take 6 entry point omits them.","numericCount":0,"booleanCount":2,"parameterLeaves":[{"path":"add_editorial_dynamics","value":"false"},{"path":"remove_generated_hairpins","value":"true"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}},{"id":"use_take6_review_cases_as_regression_corpus","title":"Use Take 6 review cases as regression corpus","scope":"evaluation","scopeLabel":"Evaluation","priority":"medium","action":"require_named_review_cases_in_pilot_subset","file":"rules/take6.yaml","fileKey":"take6","rationale":"Named reviews have been abstracted into thresholds and predicates: minimum overlap, long-homorhythmic duration, adjacent source motion, borrowed-line continuity, cello duplicate ceiling, and reviewed transposition/register color.","numericCount":0,"booleanCount":0,"parameterLeaves":[{"path":"review_artifact","value":"output/pdf/quartet_director/take6_string_quartet_double_stops_reductions.pdf"},{"path":"preferred_piece_ids[0]","value":"a_quiet_place"},{"path":"preferred_piece_ids[1]","value":"he_never_sleeps"},{"path":"preferred_piece_ids[2]","value":"hark_herald"},{"path":"preferred_piece_ids[3]","value":"come_unto_me"},{"path":"review_derived_abstractions.hark_herald_measures_2_3","value":"allow duplicate pitch class when it continues an already borrowed source line"}],"evidence":{"docs":1,"reports":1,"examples":4,"code":0}}],"focusRules":[{"id":"choose_two_stage_global_transposition","title":"Choose two-stage global transposition","scope":"global_transposition","scopeLabel":"Transposition","priority":"high","action":"choose_two_stage_global_transposition","file":"rules/shared_quartet.yaml","fileKey":"shared_quartet","rationale":"Global transposition is selected in two stages: first optimize bounded range/register and quartet-color fit using pitch-class-preserving octave folding, stronger source-displacement regularization, instrument-weighted register costs, and a high-positive color penalty, with key signatures excluded; then optionally replace with a cleaner key only among candidates whose normalized first-stage score remains musically near the best candidate.","numericCount":45,"booleanCount":7,"parameterLeaves":[{"path":"stage_1.voice_weight","value":"sum(duration of pitched source events)"},{"path":"stage_1.unfit_pitch_cost","value":"10000.0"},{"path":"stage_1.target_pitch_cost","value":"bounded_pitch_sweetspot_cost + octave_displacement_cost * 0.75"},{"path":"stage_1.pitch_sweetspot_cost.shape","value":"bounded_piecewise_linear"},{"path":"stage_1.folded_pitch_selection_cost","value":"minimize octave_displacement_cost first, then bounded_pitch_sweetspot_cost"},{"path":"stage_1.octave_displacement_cost.cap","value":"1.5"},{"path":"stage_1.octave_displacement_cost.weight","value":"0.75"},{"path":"stage_1.instrument_register_weights.cello","value":"1.5"},{"path":"stage_1.instrument_register_weights.viola","value":"1.25"}],"evidence":{"docs":1,"reports":1,"examples":0,"code":0}},{"id":"avoid_high_borrowed_bottom_register","title":"Avoid high borrowed bottom register","scope":"borrowing","scopeLabel":"Borrowing","priority":"high","action":"reject_high_borrowed_bottom_events","file":"rules/shared_quartet.yaml","fileKey":"shared_quartet","rationale":"A resting or borrowable cello may carry real source material, but borrowed upper or middle material above the cello preferred register damages bass function and usually adds less information than it costs in color and readability.","numericCount":2,"booleanCount":13,"parameterLeaves":[{"path":"preferred_register_ceiling.midi","value":"60"},{"path":"duplicate_pitch_class_subrule.duplicate_pitch_class_ceiling_midi","value":"60"},{"path":"reject_when.event_pitch_midi_greater_than_preferred_register_ceiling","value":"true"},{"path":"target_role","value":"bottom"},{"path":"preferred_register_ceiling.note","value":"C4"},{"path":"preferred_register_ceiling.source","value":"target preferred register high boundary"},{"path":"preferred_register_ceiling.target","value":"cello"},{"path":"reject_when.target_role_is_bottom","value":"true"},{"path":"selection_stage.applies_before_final_fragment_pruning","value":"true"}],"evidence":{"docs":1,"reports":0,"examples":1,"code":0}},{"id":"allow_source_based_double_stops","title":"Allow source-based double-stops","scope":"double_stops","scopeLabel":"Double-stops","priority":"optional","action":"allow_source_based_double_stops","file":"rules/take6.yaml","fileKey":"take6","rationale":"Double-stops can recover omitted source colors, but they must remain playable, source-derived, and not turn the page into unreadable fragments.","numericCount":38,"booleanCount":16,"parameterLeaves":[{"path":"string_tunings_midi.cello[0]","value":"36"},{"path":"string_tunings_midi.cello[1]","value":"43"},{"path":"string_tunings_midi.cello[2]","value":"50"},{"path":"string_tunings_midi.cello[3]","value":"57"},{"path":"string_tunings_midi.viola[0]","value":"48"},{"path":"string_tunings_midi.viola[1]","value":"55"},{"path":"string_tunings_midi.viola[2]","value":"62"},{"path":"string_tunings_midi.viola[3]","value":"69"},{"path":"string_tunings_midi.violin_1[0]","value":"55"}],"evidence":{"docs":1,"reports":1,"examples":0,"code":0}},{"id":"cleanup_review_notation","title":"Clean notation for review","scope":"notation_cleanup","scopeLabel":"Notation cleanup","priority":"high","action":"cleanup_review_notation","file":"rules/shared_quartet.yaml","fileKey":"shared_quartet","rationale":"Review scores should expose musical decisions, not distracting MusicXML or engraving artifacts.","numericCount":11,"booleanCount":27,"parameterLeaves":[{"path":"clef_predicates.cello.return_to_bass_when_measure_max_midi_lte","value":"55"},{"path":"clef_predicates.viola.return_to_alto_when_measure_max_midi_lte","value":"65"},{"path":"clef_predicates.cello.switch_to_tenor_when_duration_at_or_above_midi_60_gte_quarters","value":"2.0"},{"path":"clef_predicates.cello.switch_to_treble_when_duration_at_or_above_midi_67_gte_quarters","value":"2.0"},{"path":"clef_predicates.viola.switch_to_treble_when_duration_at_or_above_midi_69_gte_quarters","value":"1.0"},{"path":"release_residue_tolerance_quarters","value":"0.25"},{"path":"beat_readability_predicates.merge_adjacent_items_when.resulting_duration_preserves_sounding_content","value":"true"},{"path":"beat_readability_predicates.release_residue_absorption.absorb_entire_rest_when.rest_duration_lte_quarters","value":"0.25"},{"path":"beat_readability_predicates.release_residue_absorption.absorb_entire_rest_when.previous_duration_gte_quarters","value":"1.0"}],"evidence":{"docs":1,"reports":1,"examples":0,"code":0}},{"id":"preserve_characteristic_chromatic_events","title":"Preserve chromatic and dissonant events","scope":"chromatic_motion","scopeLabel":"Chromatic motion","priority":"high","action":"preserve_source_chromatic_events_indirectly","file":"rules/gesualdo.yaml","fileKey":"gesualdo","rationale":"Current Gesualdo chromatic preservation is achieved mainly by preserving real source events and avoiding editorial choices that hide later chromatic source notes; explicit false-relation, cross-relation, suspension, and generic dissonance detectors are not implemented in the current reducer.","numericCount":0,"booleanCount":10,"parameterLeaves":[{"path":"implemented_mechanisms.longer_duration_breaks_ties_after_onset_and_spread","value":"true"},{"path":"implementation_status","value":"indirect_no_explicit_false_relation_or_suspension_detector"},{"path":"protected_case.example_pattern","value":"rest, G-sharp, A against longer E support"},{"path":"future_detector_specification_needed[0]","value":"false_or_cross_relation_window"},{"path":"future_detector_specification_needed[1]","value":"suspension_preparation_dissonance_resolution_pattern"},{"path":"future_detector_specification_needed[2]","value":"accented_dissonance_classifier"},{"path":"not_implemented_as_detectors.suspension_detector","value":"false"},{"path":"not_implemented_as_detectors.cross_relation_detector","value":"false"},{"path":"not_implemented_as_detectors.false_relation_detector","value":"false"}],"evidence":{"docs":1,"reports":0,"examples":0,"code":0}}],"fileCounts":[{"file":"rules/gesualdo.yaml","count":14},{"file":"rules/shared_quartet.yaml","count":14},{"file":"rules/take6.yaml","count":16}],"scopeCounts":[{"scope":"editorial_generation","label":"Editorial layers","count":5},{"scope":"evaluation","label":"Evaluation","count":3},{"scope":"global_transposition","label":"Transposition","count":3},{"scope":"validation","label":"Validation","count":3},{"scope":"borrowing","label":"Borrowing","count":2},{"scope":"double_stops","label":"Double-stops","count":2},{"scope":"fragment_pruning","label":"Fragments","count":2},{"scope":"harmonic_role_priority","label":"Harmony color","count":2},{"scope":"inner_voice_compression","label":"Compression","count":2},{"scope":"musescore_compatibility","label":"MuseScore","count":2},{"scope":"notation_cleanup","label":"Notation cleanup","count":2},{"scope":"outer_voice_assignment","label":"Outer voices","count":2},{"scope":"register_placement","label":"Register","count":2},{"scope":"source_event_model","label":"Source events","count":2},{"scope":"source_parsing","label":"Source parsing","count":2},{"scope":"chromatic_motion","label":"Chromatic motion","count":1},{"scope":"continuity_repair","label":"Continuity","count":1},{"scope":"dissonance_preservation","label":"Dissonance","count":1},{"scope":"instrument_range","label":"Ranges","count":1},{"scope":"instrument_sweet_spot","label":"Sweet spots","count":1},{"scope":"pitch_class_coverage","label":"Pitch classes","count":1},{"scope":"provenance","label":"Provenance","count":1},{"scope":"source_voice_restoration","label":"Restoration","count":1}],"priorityCounts":[{"priority":"hard","count":10},{"priority":"high","count":19},{"priority":"medium","count":7},{"priority":"optional","count":5},{"priority":"very_high","count":3}],"corpora":[{"id":"gesualdo_cpdl_5_voice","source_manifest":"data/cpdl/manifest.tsv","source_voice_count":5,"source_sections":["Sacred works for five voices","Secular works for five voices"],"baseline_output_dir":"data/cpdl/5-voices/reductions/string_quartet","report":"data/cpdl/5-voices/reductions/string_quartet/report.tsv","render_report":"data/cpdl/5-voices/renders/string_quartet_pdf/review_pdf_report.tsv","target":"string_quartet","rule_file":"rules/gesualdo.yaml","notes":"Main CPDL five-voice Gesualdo baseline."},{"id":"gesualdo_cpdl_6_voice","source_manifest":"data/cpdl/manifest.tsv","source_voice_count":6,"source_sections":["Sacred works for six voices","Secular works for six voices"],"baseline_output_dir":"data/cpdl/6-voices/reductions/string_quartet","report":"data/cpdl/6-voices/reductions/string_quartet/report.tsv","render_report":"data/cpdl/6-voices/renders/string_quartet_pdf/review_pdf_report.tsv","target":"string_quartet","rule_file":"rules/gesualdo.yaml","notes":"Explicit six-voice-to-quartet Gesualdo baseline."},{"id":"gesualdo_kdf_book4_book6","source_manifest":"data/kdf/manifest.tsv","source_voice_count":5,"baseline_output_dir":"data/kdf/book4/reductions/string_quartet","additional_baseline_output_dirs":["data/kdf/book6/reductions/string_quartet"],"report":"data/kdf/reductions/string_quartet_report.tsv","render_report":"data/kdf/book4/renders/string_quartet_pdf/review_pdf_report.tsv","target":"string_quartet","rule_file":"rules/gesualdo.yaml","notes":"Kunst der Fuge Gesualdo book IV/VI baseline used in earlier review batches."},{"id":"take6_double_stops","source_glob":"data/take6/*.mid","source_voice_count":6,"baseline_output_dir":"data/take6/reductions/string_quartet_double_stops","report":"data/take6/reductions/string_quartet_double_stops/report.tsv","render_report":"data/take6/renders/string_quartet_double_stops_pdf/review_pdf_report.tsv","target":"string_quartet","rule_file":"rules/take6.yaml","notes":"Preferred Take 6 six-voice-to-quartet MusicXML batch with source-derived double-stops."},{"id":"beach_boys_four_voice_comparison","source_glob":"data/beach boys/*.mxl","source_voice_count":4,"baseline_output_dir":"data/beach boys/reductions/string_quartet","additional_baseline_files":["data/beach boys/reductions/string_quartet/our_prayer_low_cello.musicxml"],"report":"data/beach boys/reductions/string_quartet/report.tsv","render_report":"data/beach boys/renders/string_quartet_pdf","target":"string_quartet","rule_file":"rules/shared_quartet.yaml","notes":"Four-voice Our Prayer comparison/prologue material. This is evaluation and concert baseline data, not a separate encoded reducer idiom."}],"pilots":[{"id":"pilot_gesualdo_5_voice","corpus":"gesualdo_cpdl_5_voice","max_pieces":2,"selection_reason":"Fast sanity check for five-voice source parsing, enrichment, and quartet validation."},{"id":"pilot_gesualdo_6_voice","corpus":"gesualdo_cpdl_6_voice","max_pieces":1,"selection_reason":"Fast sanity check for explicit six-to-four compression."},{"id":"pilot_take6","corpus":"take6_double_stops","preferred_piece_ids":["a_quiet_place","he_never_sleeps","hark_herald","come_unto_me"],"selection_reason":"Covers octave color, micro-rest cleanup, borrowed-line continuity, and reviewed transposition."},{"id":"pilot_beach_boys_four_voice","corpus":"beach_boys_four_voice_comparison","preferred_piece_ids":["our_prayer","our_prayer_low_cello"],"selection_reason":"Checks the direct four-voice-to-quartet comparison and the concert low-cello variant without introducing a new idiom rule file."}],"reviewArtifacts":[{"id":"gesualdo_5_voice_director_pdf","path":"output/pdf/quartet_director/gesualdo_5_voice_string_quartet_reductions.pdf","corpus":"gesualdo_cpdl_5_voice"},{"id":"gesualdo_6_voice_director_pdf","path":"output/pdf/quartet_director/gesualdo_6_voice_string_quartet_reductions.pdf","corpus":"gesualdo_cpdl_6_voice"},{"id":"take6_director_pdf","path":"output/pdf/quartet_director/take6_string_quartet_double_stops_reductions.pdf","corpus":"take6_double_stops"},{"id":"beach_boys_concert_prologue_pdf","path":"data/beach boys/renders/string_quartet_pdf/our_prayer_low_cello.pdf","corpus":"beach_boys_four_voice_comparison"}],"auditReports":[{"id":"part_coherence","path":"outputs/reports/part_coherence_audit.tsv","applies_to":["gesualdo_cpdl_5_voice","gesualdo_cpdl_6_voice","take6_double_stops"]},{"id":"beat_readability","path":"outputs/reports/beat_readability_audit.tsv","applies_to":["take6_double_stops"]},{"id":"transposition_key_signature","path":"outputs/reports/transposition_key_signature_audit.tsv","applies_to":["gesualdo_cpdl_5_voice","gesualdo_cpdl_6_voice"]},{"id":"octave_optimization","path":"outputs/batch_octave_optimization/summary.tsv","applies_to":["gesualdo_cpdl_5_voice","gesualdo_kdf_book4_book6"]}],"sourceDocs":["data/cpdl/5-voices/reductions/string_quartet/report.tsv","data/cpdl/6-voices/reductions/string_quartet/report.tsv","data/take6/reductions/string_quartet_double_stops/report.tsv","data/take6/tempo_overrides.json","data/take6/transposition_overrides.json","docs/cpdl_six_voice_reduction_plan.md","docs/quartet_director_feedback_plan.md","docs/reduction_process_overview.md","docs/reduction_rules.md","docs/take6_reduction_rules.md"],"imports":["shared_quartet.yaml"],"updatedFrom":"docs/yaml_rule_summary.md"};
+
+    const byId = (id) => document.getElementById(id);
+    const escapeHtml = (value) => String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+
+    function renderMetrics() {
+      const metrics = [
+        [DATA.metrics.ruleCount, "explicit reduction rules"],
+        [DATA.metrics.scopeCount, "musical and technical scopes"],
+        [DATA.metrics.numericCount, "numeric thresholds and weights"],
+        [DATA.metrics.booleanCount, "symbolic yes/no predicates"],
+        [DATA.metrics.corpusCount, "evaluation corpora"],
+        [DATA.metrics.codeRefs, "code citations in rule evidence"]
+      ];
+      byId("metrics").innerHTML = metrics.map(([value, label]) => `
+        <article class="metric"><strong>${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span></article>
+      `).join("");
+      byId("coreCount").textContent = DATA.metrics.ruleCount;
+      byId("sourceBadge").textContent = `${DATA.metrics.fileCount} YAML files - ${DATA.metrics.reviewArtifactCount} review artifacts - ${DATA.metrics.auditReportCount} audit reports`;
+    }
+
+    function renderMap() {
+      const map = byId("atlasMap");
+      const scopes = DATA.scopeCounts;
+      const width = map.clientWidth || 700;
+      const height = map.clientHeight || 520;
+      const radiusX = width * 0.38;
+      const radiusY = height * 0.37;
+      scopes.forEach((scope, index) => {
+        const angle = (-Math.PI / 2) + (index / scopes.length) * Math.PI * 2;
+        const x = 50 + Math.cos(angle) * (radiusX / width) * 100;
+        const y = 50 + Math.sin(angle) * (radiusY / height) * 100;
+        const node = document.createElement("div");
+        node.className = `scope-node ${scope.count > 1 ? "major" : ""}`;
+        node.style.left = `${x}%`;
+        node.style.top = `${y}%`;
+        node.innerHTML = `<b>${scope.count}</b><span>${escapeHtml(scope.label)}</span>`;
+        map.appendChild(node);
+      });
+    }
+
+    function renderBars() {
+      const max = Math.max(...DATA.fileCounts.map(item => item.count));
+      byId("fileBars").innerHTML = DATA.fileCounts.map(item => `
+        <div class="bar-row">
+          <span>${escapeHtml(item.file.replace("rules/", ""))}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(item.count / max * 100)}%"></div></div>
+          <b>${item.count}</b>
+        </div>
+      `).join("");
+    }
+
+    function renderDeepDives() {
+      byId("deepGrid").innerHTML = DATA.focusRules.map(rule => {
+        const leaves = rule.parameterLeaves.slice(0, 6).map(leaf => `
+          <div class="leaf"><code>${escapeHtml(leaf.path)}</code><b>${escapeHtml(leaf.value)}</b></div>
+        `).join("");
+        return `
+          <article class="deep-card">
+            <div class="rule-meta">
+              <span class="pill">${escapeHtml(rule.file.replace("rules/", ""))}</span>
+              <span class="pill priority-${escapeHtml(rule.priority)}">${escapeHtml(rule.priority)}</span>
+            </div>
+            <h3>${escapeHtml(rule.title)}</h3>
+            <div class="action">${escapeHtml(rule.action)}</div>
+            <p>${escapeHtml(rule.rationale).slice(0, 250)}${rule.rationale.length > 250 ? "..." : ""}</p>
+            <div class="leaf-list">${leaves}</div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function populateFilters() {
+      const scopeFilter = byId("scopeFilter");
+      DATA.scopeCounts
+        .slice()
+        .sort((left, right) => left.label.localeCompare(right.label))
+        .forEach(scope => {
+          const option = document.createElement("option");
+          option.value = scope.scope;
+          option.textContent = scope.label;
+          scopeFilter.appendChild(option);
+        });
+      const fileFilter = byId("fileFilter");
+      DATA.fileCounts.forEach(file => {
+        const option = document.createElement("option");
+        option.value = file.file;
+        option.textContent = file.file.replace("rules/", "");
+        fileFilter.appendChild(option);
+      });
+    }
+
+    function ruleMatches(rule) {
+      const query = byId("searchBox").value.trim().toLowerCase();
+      const scope = byId("scopeFilter").value;
+      const file = byId("fileFilter").value;
+      const haystack = [rule.id, rule.title, rule.scopeLabel, rule.action, rule.rationale].join(" ").toLowerCase();
+      return (!query || haystack.includes(query)) && (!scope || rule.scope === scope) && (!file || rule.file === file);
+    }
+
+    function renderRules() {
+      const visible = DATA.rules.filter(ruleMatches);
+      byId("ruleGrid").innerHTML = visible.map(rule => `
+        <article class="rule-card">
+          <div class="rule-meta">
+            <span class="pill">${escapeHtml(rule.scopeLabel)}</span>
+            <span class="pill priority-${escapeHtml(rule.priority)}">${escapeHtml(rule.priority)}</span>
+          </div>
+          <h3>${escapeHtml(rule.title)}</h3>
+          <p>${escapeHtml(rule.action)}</p>
+          <div class="precision">
+            <span>${rule.numericCount} numbers</span>
+            <span>${rule.booleanCount} predicates</span>
+            <span>${rule.evidence.examples} examples</span>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function renderCorpora() {
+      byId("corpora").innerHTML = DATA.corpora.map(corpus => `
+        <article class="corpus">
+          <b>${escapeHtml(corpus.id)}</b>
+          <span>${escapeHtml(corpus.source_voice_count)} source voices - ${escapeHtml(corpus.target)}</span>
+          <span>${escapeHtml(corpus.baseline_output_dir)}</span>
+          <span>${escapeHtml(corpus.notes || "")}</span>
+        </article>
+      `).join("");
+    }
+
+    function init() {
+      renderMetrics();
+      renderMap();
+      renderBars();
+      renderDeepDives();
+      populateFilters();
+      renderRules();
+      renderCorpora();
+      ["searchBox", "scopeFilter", "fileFilter"].forEach(id => byId(id).addEventListener("input", renderRules));
+    }
+
+    init();
+  </script>
+</body>
+</html>

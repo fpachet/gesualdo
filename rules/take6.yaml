@@ -1,0 +1,601 @@
+version: 1
+name: take6
+description: 'Rule set for reducing Take 6-style six-voice close harmony to string quartet, preserving soprano/bass frame and dense vertical color without default reharmonization.
+
+  '
+target_ensemble: string_quartet
+source_idiom: take6_close_harmony
+imports:
+- shared_quartet.yaml
+metadata:
+  generated_from_project: gesualdo
+  generated_date: '2026-07-04'
+  extraction_status: draft
+  source_files_inspected:
+  - docs/take6_reduction_rules.md
+  - docs/reduction_process_overview.md
+  - data/take6/reductions/string_quartet_double_stops/report.tsv
+  - data/take6/transposition_overrides.json
+  - data/take6/tempo_overrides.json
+passes:
+- id: parse_six_voice_source
+  description: Require exactly six source parts.
+- id: apply_reviewed_metadata
+  description: Apply reviewed per-song transposition and tempo overrides when present.
+- id: choose_take6_transposition
+  description: Choose global transposition with quartet color and reviewed exceptions.
+- id: preserve_soprano_bass_frame
+  description: Pin lead and bass source voices to Violin I and Cello.
+- id: select_close_harmony_colors
+  description: Prefer guide tones and color tones in dense sonorities.
+- id: add_source_double_stops
+  description: Add conservative source-derived double-stops when enabled.
+- id: cleanup_take6_rhythm
+  description: Normalize known MIDI/MuseScore rhythm artifacts.
+priorities:
+  hard_constraints:
+  - require_exactly_six_take6_source_parts
+  - prohibit_default_generated_jazz_reharmonization
+  optimization_pressures:
+  - preserve_soprano_bass_frame
+  - prefer_close_harmony_color_tones
+  - continue_source_lines_before_redundant_doubling
+  optional_enrichments:
+  - allow_source_based_double_stops
+rules:
+- id: require_exactly_six_take6_source_parts
+  title: Require exactly six Take 6 source parts
+  scope: source_parsing
+  priority: hard
+  action: require_source_voice_count
+  parameters:
+    required_count: 6
+    reject_other_counts: true
+    source_glob: data/take6/*.mid
+  rationale: 'The Take 6 policy is a special six-voice close-harmony compression path, not a fallback for arbitrary source textures.
+
+    '
+  evidence:
+    docs:
+    - path: docs/take6_reduction_rules.md
+      note: States that Take 6 reductions expect exactly six source parts.
+    code: []
+    reports:
+    - path: data/take6/reductions/string_quartet_double_stops/report.tsv
+      note: Take 6 batch report with source part counts.
+    examples: []
+  exceptions: []
+  applies_to:
+    idioms:
+    - take6
+    source_voice_counts:
+    - 6
+    targets:
+    - string_quartet
+  pass: parse_six_voice_source
+- id: preserve_soprano_bass_frame
+  title: Preserve soprano and bass frame
+  scope: outer_voice_assignment
+  priority: very_high
+  action: map_extreme_source_voices_to_extreme_quartet_parts
+  parameters:
+    highest_source_voice_target: violin_1
+    lowest_source_voice_target: cello
+    rank_method: median_sounding_pitch
+    allow_octave_displacement: true
+    lower_high_cello_threshold: 55
+  rationale: 'Take 6 reductions need a stable lead/bass frame so compressed inner color remains attached to the recognizable arrangement.
+
+    '
+  evidence:
+    docs:
+    - path: docs/take6_reduction_rules.md
+      note: Names soprano/bass frame preservation as a primary priority.
+    code: []
+    reports: []
+    examples: []
+  exceptions:
+  - id: cello_register_correction
+    description: High cello events may be lowered when the result remains playable.
+- id: prefer_close_harmony_color_tones
+  title: Prefer close-harmony color tones
+  scope: harmonic_role_priority
+  priority: very_high
+  action: increase_weight_for_harmonic_roles
+  parameters:
+    role_priority:
+      third: very_high
+      seventh: very_high
+      altered_tone: high
+      ninth: high
+      thirteenth: high
+      root: low
+      fifth: low
+    bass_relative_intervals:
+      guide_tones:
+      - minor_third
+      - major_third
+      - minor_seventh
+      - major_seventh
+      color_tones:
+      - flat_ninth
+      - ninth
+      - sharp_ninth
+      - sharp_eleventh
+      - flat_thirteenth
+      - thirteenth
+    numeric_weights:
+      interval_above_bass:
+        minor_third: 9.0
+        major_third: 9.0
+        minor_seventh: 8.0
+        major_seventh: 7.5
+        tritone_or_sharp_eleventh: 7.0
+        flat_ninth_or_sharp_root_color: 6.5
+        ninth: 6.0
+        sharp_five_or_flat_thirteenth: 5.5
+        sixth_or_thirteenth: 5.0
+        eleventh_or_suspended_fourth: 4.0
+        fifth: 2.0
+        root_or_octave: 1.0
+        unlisted_interval_default: 3.0
+      dense_sonority_root_or_fifth_penalty: -4.0
+      dense_sonority_bonus: 1.0
+      chromatic_or_tritone_adjacency_bonus: 0.75
+      dense_sonority_threshold_pitch_classes: 4
+  rationale: 'Take 6 identity often lies in thirds, sevenths, altered tones, ninths, and thirteenths rather than root/fifth completeness.
+
+    '
+  evidence:
+    docs:
+    - path: docs/take6_reduction_rules.md
+      note: Detailed close-harmony color-tone rule set.
+    code: []
+    reports:
+    - path: data/take6/reductions/string_quartet_double_stops/report.tsv
+      note: Preferred Take 6 batch.
+    examples: []
+  exceptions:
+  - id: line_continuity_duplicate
+    description: 'A duplicated pitch class may be preserved when it continues an already audible source line.
+
+      '
+  pass: select_close_harmony_colors
+- id: penalize_redundant_roots_and_fifths
+  title: Penalize redundant roots and fifths
+  scope: harmonic_role_priority
+  priority: high
+  action: penalize_duplicate_roots_and_fifths
+  parameters:
+    apply_when_active_pitch_classes_exceed_target_capacity: true
+    target_capacity_without_double_stops: 4
+    allow_if_needed_for_line_continuity: true
+    allow_if_long_source_doubling_with_double_stops: true
+    duplicate_color_tone_penalty:
+      no_bass_context: 1.0
+      duplicate_third_or_seventh: 3.0
+      duplicate_altered_or_added_color_tone: 2.0
+      duplicate_other_interval: 0.5
+  rationale: 'When six close-harmony voices exceed quartet capacity, redundant roots and fifths usually carry less identity than guide tones and added colors.
+
+    '
+  evidence:
+    docs:
+    - path: docs/take6_reduction_rules.md
+      note: Contrasts color tones with redundant roots and fifths.
+    code: []
+    reports: []
+    examples: []
+  exceptions: []
+- id: prohibit_default_generated_jazz_reharmonization
+  title: Prohibit default generated jazz reharmonization
+  scope: editorial_generation
+  priority: hard
+  action: prohibit_generated_reharmonization_by_default
+  parameters:
+    add_editorial_harmony_default: false
+    add_editorial_thirds_default: false
+    source_notes_required_by_default: true
+    generated_jazz_substitutions_allowed: false
+  rationale: 'The Take 6 reducer should preserve and compress existing close harmony, not invent replacement jazz harmony.
+
+    '
+  evidence:
+    docs:
+    - path: docs/take6_reduction_rules.md
+      note: States that the reducer does not invent jazz harmony by default.
+    code: []
+    reports: []
+    examples: []
+  exceptions: []
+- id: continue_source_lines_before_redundant_doubling
+  title: Continue source lines before redundant doubling
+  scope: continuity_repair
+  priority: high
+  action: increase_weight_for_continuing_source_line
+  parameters:
+    allow_duplicate_pitch_class_for_continuity: true
+    max_borrowed_bottom_duplicate_pitch: 60
+    prefer_existing_line_over_new_redundant_third: true
+  rationale: 'A duplicated pitch class can be more valuable than a fresh harmonic role when it keeps a previously exposed source line coherent.
+
+    '
+  evidence:
+    docs:
+    - path: docs/reduction_process_overview.md
+      note: Mentions Hark Herald measures 2-3 as borrowed-line continuity evidence.
+    code: []
+    reports: []
+    examples:
+    - piece_id: hark_herald
+      note: Documented source-line continuity review case.
+  exceptions: []
+- id: allow_source_based_double_stops
+  title: Allow source-based double-stops
+  scope: double_stops
+  priority: optional
+  action: allow_source_based_double_stops
+  parameters:
+    mode_flag: add_source_double_stops
+    enabled_by_default_in_batch_script: true
+    source_only: true
+    require_playable_string_interval: true
+    prefer_missing_pitch_classes: true
+    preserve_long_source_doublings: true
+    avoid_short_source_doublings: true
+    avoid_short_isolated_color_attacks: true
+    string_tunings_midi:
+      violin_1:
+      - 55
+      - 62
+      - 69
+      - 76
+      violin_2:
+      - 55
+      - 62
+      - 69
+      - 76
+      viola:
+      - 48
+      - 55
+      - 62
+      - 69
+      cello:
+      - 36
+      - 43
+      - 50
+      - 57
+    conservative_allowed_intervals_semitones:
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 12
+    - 15
+    - 16
+    maximum_stopped_distance_from_open_string_semitones: 24
+    adjacent_string_requirement: true
+    same_position_or_open_string_tolerance_semitones: 5
+    minimum_overlap_duration_quarters: 0.5
+    simple_split_denominators:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 6
+    - 8
+    missing_pitch_class_candidate_order:
+    - higher_jazz_color_tone_score
+    - new_onset_before_tie_continuation
+    - longer_duration
+    - stable_source_id
+    host_selection_order:
+    - fewest_target_attacks_at_double_stop_end
+    - avoid_cello_when_other_targets_equal
+    - lower_register_fit_score
+    - shorter_host_tail_after_overlap
+    - smaller_octave_displacement_from_source_candidate
+    - earlier_target_order
+    duplicate_candidate_requirements_when_not_long_homorhythmic:
+      pitch_class_already_covered: true
+      source_part_not_already_represented: true
+      must_be_new_onset: true
+      minimum_duration_quarters: 0.5
+      must_have_adjacent_source_motion: true
+      adjacent_source_motion_max_gap_quarters: 0.5
+      one_duplicate_per_source_part: true
+    long_homorhythmic_duplicate_requirements:
+      minimum_source_notes: target_count + 1
+      all_active_source_events_start_at_same_offset: true
+      all_active_source_events_end_at_same_offset: true
+      minimum_duration_quarters: 2.0
+      one_duplicate_per_pitch_class: true
+  rationale: 'Double-stops can recover omitted source colors, but they must remain playable, source-derived, and not turn the page into unreadable fragments.
+
+    '
+  evidence:
+    docs:
+    - path: docs/take6_reduction_rules.md
+      note: Documents conservative source double-stops.
+    code: []
+    reports:
+    - path: data/take6/reductions/string_quartet_double_stops/report.tsv
+      note: Preferred double-stop output batch.
+    examples: []
+  exceptions:
+  - id: unplayable_double_stop
+    description: Reject the added note if the interval or register is not playable.
+  - id: short_isolated_attack
+    description: Reject short isolated color attacks that harm readability.
+  pass: add_source_double_stops
+- id: preserve_long_source_doublings_with_double_stops
+  title: Preserve long source doublings with double-stops
+  scope: double_stops
+  priority: medium
+  action: allow_long_source_doubling_double_stop
+  parameters:
+    require_double_stops_enabled: true
+    require_long_homorhythmic_attack: true
+    duration_threshold:
+      value_quarters: 2.0
+      status: specified
+      note: Minimum held duration for preserving source doublings as double-stops.
+    minimum_source_notes_formula: target_count + 1
+    require_all_source_events_same_start: true
+    require_all_source_events_same_end: true
+    allow_duplicate_pitch_classes: true
+    deduplicate_added_duplicate_pitch_classes: true
+  rationale: 'Sustained six-voice Take 6 sonorities can lose weight if every duplicate source pitch is removed; long playable doublings may be retained.
+
+    '
+  evidence:
+    docs:
+    - path: docs/reduction_rules.md
+      note: Take 6 summary allows playable source octave doublings on long homorhythmic attacks.
+    code: []
+    reports: []
+    examples: []
+  exceptions: []
+- id: trim_tiny_preservation_fragments
+  title: Trim tiny preservation fragments
+  scope: fragment_pruning
+  priority: high
+  action: trim_or_drop_tiny_preservation_fragments
+  parameters:
+    min_preserved_trimmed_duration_quarters: 0.3333333333333333
+    avoid_duple_triplet_splice: true
+    preserve_source_end_when_adjusting: true
+  rationale: 'Very short trimmed fragments can create unreadable rhythmic scars in the quartet score, especially after MIDI import.
+
+    '
+  evidence:
+    docs:
+    - path: docs/take6_reduction_rules.md
+      note: Documents tiny fragment cleanup.
+    code: []
+    reports: []
+    examples: []
+  exceptions: []
+- id: normalize_short_note_rest_artifacts
+  title: Normalize short note/rest MIDI artifacts
+  scope: notation_cleanup
+  priority: high
+  action: normalize_short_note_rest_artifacts
+  parameters:
+    default_enabled_for_take6: true
+    max_tiny_gap_quarters: 0.08333333333333333
+    max_tiny_overlap_quarters: 0.08333333333333333
+    snap_isolated_note_rest_pairs: true
+    preserve_total_duration: true
+    artifact_note_rest_total_quarters: 1.0
+    allowed_simple_denominators:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 6
+    - 8
+    snap_durations_quarters:
+    - 0.25
+    - 0.3333333333333333
+    - 0.5
+    - 0.6666666666666666
+    - 0.75
+    maximum_snap_delta_quarters: 0.08333333333333333
+  rationale: 'Narrow MIDI artifacts should not appear as spurious micro-rests or overlaps in the printed quartet score.
+
+    '
+  evidence:
+    docs:
+    - path: docs/take6_reduction_rules.md
+      note: Documents He Never Sleeps micro-rest and overlap cleanup.
+    code: []
+    reports:
+    - path: outputs/reports/beat_readability_audit.tsv
+      note: Beat readability audit data.
+    examples:
+    - piece_id: he_never_sleeps
+      note: Documented micro-rest and overlap cleanup case.
+  exceptions: []
+  pass: cleanup_take6_rhythm
+- id: normalize_piece_level_musescore_grid_rhythm
+  title: Normalize piece-level MuseScore grid rhythm
+  scope: musescore_compatibility
+  priority: high
+  action: normalize_musescore_grid_rhythm_for_known_cases
+  parameters:
+    piece_ids:
+    - if_we_ever
+    - come_unto_me
+    batch_script_stems:
+    - if_we_ever
+    - come_unto_me
+    grid_duration_quarters: 0.25
+    maximum_grid_delta_quarters: 0.3333333333333333
+    safe_denominators:
+    - 1
+    - 2
+    - 4
+    - 8
+    - 16
+    - 32
+    - 64
+  rationale: 'Some Take 6 pieces have piece-level grid residues that need targeted cleanup after reduction and tempo override application.
+
+    '
+  evidence:
+    docs:
+    - path: docs/take6_reduction_rules.md
+      note: Documents piece-specific rhythm cleanup cases.
+    code: []
+    reports:
+    - path: data/take6/renders/string_quartet_double_stops_pdf/review_pdf_report.tsv
+      note: PDF review metrics after cleanup.
+    examples:
+    - piece_id: come_unto_me
+      note: Piece-specific grid cleanup and reviewed transposition.
+  exceptions: []
+- id: lower_high_cello_register
+  title: Lower high cello register when playable
+  scope: register_placement
+  priority: high
+  action: lower_high_cello_register_when_playable
+  parameters:
+    threshold_midi: 55
+    preserve_pitch_class: true
+    only_when_result_in_range: true
+    handle_chord_upper_pitch: true
+  rationale: 'The automatic Take 6 compression can leave cello material too high for the desired quartet color; lowering by octave fixes color without reharmonizing.
+
+    '
+  evidence:
+    docs:
+    - path: docs/take6_reduction_rules.md
+      note: Documents cello register correction.
+    code: []
+    reports: []
+    examples: []
+  exceptions: []
+- id: apply_reviewed_take6_transposition_overrides
+  title: Apply reviewed Take 6 transposition overrides
+  scope: global_transposition
+  priority: high
+  action: apply_piece_specific_transposition_override
+  parameters:
+    override_file: data/take6/transposition_overrides.json
+    current_overrides:
+      come_unto_me: -8
+    fallback_to_automatic_scoring: true
+  rationale: 'Some Take 6 pieces need reviewed quartet-color choices that the automatic transposition scorer does not yet capture fully.
+
+    '
+  evidence:
+    docs:
+    - path: docs/take6_reduction_rules.md
+      note: Explains the Come Unto Me reviewed -8 transposition.
+    code: []
+    reports:
+    - path: data/take6/transposition_overrides.json
+      note: Reviewed override data.
+    examples:
+    - piece_id: come_unto_me
+      note: Reviewed darker zero-accidental transposition.
+  exceptions: []
+  pass: apply_reviewed_metadata
+- id: apply_reviewed_take6_tempo_overrides
+  title: Apply reviewed Take 6 tempo overrides
+  scope: evaluation
+  priority: medium
+  action: apply_piece_specific_tempo_override
+  parameters:
+    override_file: data/take6/tempo_overrides.json
+    current_overrides:
+      a_quiet_place: 68
+      hark_herald: 108
+      he_never_sleeps: 75
+      if_we_ever: 117
+    unknown_piece_behavior: leave_imported_tempo
+  rationale: 'Tempo affects review playback and generated renders, so reviewed song tempos are stored separately from the reduction rules.
+
+    '
+  evidence:
+    docs:
+    - path: docs/take6_reduction_rules.md
+      note: Documents reviewed tempo overrides.
+    code: []
+    reports:
+    - path: data/take6/tempo_overrides.json
+      note: Reviewed tempo data.
+    examples: []
+  exceptions: []
+- id: disable_editorial_dynamics_for_take6
+  title: Disable editorial dynamics for Take 6
+  scope: editorial_generation
+  priority: high
+  action: disable_editorial_dynamics
+  parameters:
+    add_editorial_dynamics: false
+    remove_generated_hairpins: true
+  rationale: 'Generated dynamics and hairpins implied an interpretation not present in the Take 6 source material, so the Take 6 entry point omits them.
+
+    '
+  evidence:
+    docs:
+    - path: docs/take6_reduction_rules.md
+      note: Documents disabling generated dynamics for Take 6.
+    code: []
+    reports: []
+    examples: []
+  exceptions: []
+- id: use_take6_review_cases_as_regression_corpus
+  title: Use Take 6 review cases as regression corpus
+  scope: evaluation
+  priority: medium
+  action: require_named_review_cases_in_pilot_subset
+  parameters:
+    preferred_piece_ids:
+    - a_quiet_place
+    - he_never_sleeps
+    - hark_herald
+    - come_unto_me
+    review_artifact: output/pdf/quartet_director/take6_string_quartet_double_stops_reductions.pdf
+    review_derived_abstractions:
+      he_never_sleeps_measure_27: reject one-off quarter-note double-stop clutter by requiring at least half-quarter overlap and adjacent melodic support for non-long duplicate candidates
+      come_unto_me: use reviewed darker transposition and avoid high borrowed duplicate material in cello above MIDI 60
+      hark_herald_measures_2_3: allow duplicate pitch class when it continues an already borrowed source line
+      a_quiet_place: treat octave placement and register color as a reviewable pitch-class-preserving optimization problem
+  rationale: 'Named reviews have been abstracted into thresholds and predicates: minimum overlap, long-homorhythmic duration, adjacent source motion, borrowed-line continuity, cello duplicate ceiling, and reviewed transposition/register color.'
+  evidence:
+    docs:
+    - path: docs/take6_reduction_rules.md
+      note: Names piece-specific review cases.
+    code: []
+    reports:
+    - path: data/take6/reductions/string_quartet_double_stops/report.tsv
+      note: Preferred Take 6 MusicXML baseline report.
+    examples:
+    - piece_id: a_quiet_place
+      note: Octave/register prototype.
+    - piece_id: he_never_sleeps
+      note: Micro-rest and overlap cleanup.
+    - piece_id: hark_herald
+      note: Borrowed-line continuity.
+    - piece_id: come_unto_me
+      note: Reviewed transposition override.
+  exceptions: []
+validation:
+  required_checks:
+  - exactly_six_source_parts
+  - part_count_is_four
+  - source_provenance_present
+  - no_generated_reharmonization_by_default
+  - no_editorial_dynamics
+  - double_stops_source_based_when_enabled
+  expected_metrics:
+  - global_transposition
+  - source_parts
+  - rendered_pdf_cleanup_counts
+  - beat_readability_flags

@@ -1,0 +1,621 @@
+version: 1
+name: shared_quartet
+description: 'Shared operational constraints for reducing vocal or vocal-style sources to a four-part string quartet target.
+
+  '
+target_ensemble: string_quartet
+source_idiom: shared_vocal_polyphony
+imports: []
+metadata:
+  generated_from_project: gesualdo
+  generated_date: '2026-07-04'
+  extraction_status: draft
+  source_files_inspected:
+  - docs/reduction_rules.md
+  - docs/reduction_process_overview.md
+passes:
+- id: parse_source_events
+  description: Parse source parts into timed note/rest events with stable provenance.
+- id: choose_global_transposition
+  description: Choose a score-level transposition before part assignment.
+- id: assign_target_parts
+  description: Assign source events to quartet parts while respecting range and continuity.
+- id: complete_measures
+  description: Split events at barlines, fill rests, and reject overfull or overlapping measures.
+- id: cleanup_notation
+  description: Prepare MusicXML for review and MuseScore import.
+priorities:
+  hard_constraints:
+  - require_four_quartet_parts
+  - require_source_event_or_editorial_tag
+  - validate_no_overlaps_or_overfull_measures
+  - complete_measures_with_rests
+  optimization_pressures:
+  - prefer_target_sweet_spots
+  - prefer_pitch_class_preserving_octaves
+  - avoid_high_borrowed_bottom_register
+  optional_enrichments:
+  - emit_editorial_dynamics_when_enabled
+rules:
+- id: require_four_quartet_parts
+  title: Require four quartet parts
+  scope: validation
+  priority: hard
+  action: require_target_parts
+  parameters:
+    parts:
+    - violin_1
+    - violin_2
+    - viola
+    - cello
+    order_is_canonical: true
+  rationale: 'The output is a string quartet reduction, so later assignment, validation, and review checks assume exactly these four target parts.
+
+    '
+  evidence:
+    docs:
+    - path: docs/reduction_rules.md
+      note: Defines the quartet target as Violin I, Violin II, Viola, and Cello.
+    code: []
+    reports: []
+    examples: []
+  exceptions: []
+- id: define_instrument_ranges
+  title: Define instrument ranges
+  scope: instrument_range
+  priority: hard
+  action: require_pitch_within_target_range_after_octave_fitting
+  parameters:
+    midi_ranges:
+      violin_1:
+      - 55
+      - 100
+      violin_2:
+      - 55
+      - 88
+      viola:
+      - 48
+      - 88
+      cello:
+      - 36
+      - 72
+    allow_octave_displacement: true
+    preserve_pitch_class: true
+  rationale: 'Source pitches may be moved by octave, but emitted pitches must remain playable for the assigned quartet instrument.
+
+    '
+  evidence:
+    docs:
+    - path: docs/reduction_rules.md
+      note: Range and register are core constraints.
+    code: []
+    reports: []
+    examples: []
+  exceptions: []
+- id: define_preferred_registers
+  title: Define preferred registers
+  scope: instrument_sweet_spot
+  priority: high
+  action: increase_cost_outside_preferred_register
+  parameters:
+    preferred_registers:
+      violin_1:
+      - 67
+      - 96
+      violin_2:
+      - 60
+      - 88
+      viola:
+      - 48
+      - 72
+      cello:
+      - 36
+      - 60
+    range_is_hard_limit: true
+    register_fit_score:
+      inside_preferred_register: abs(pitch - preferred_center) / 100
+      outside_preferred_register: distance_to_nearest_preferred_boundary + 1
+      purpose: local target assignment register cost
+    preferred_register_fit_cost:
+      pitch_sweetspot_cost:
+        center_cost: abs(pitch - preferred_center) / preferred_span
+        inside_register_cost: center_cost * 0.5
+        outside_register_cost: distance_outside_preferred_register
+        total: register_cost + center_cost
+      octave_displacement_weight: 2.0
+      previous_pitch_continuity_weight: 1.0
+  rationale: 'A pitch can be technically in range but still sit poorly on the instrument; preferred registers make this cost explicit.
+
+    '
+  evidence:
+    docs:
+    - path: docs/reduction_rules.md
+      note: Discusses preferred register as instrumental sweet-spot modeling.
+    code: []
+    reports: []
+    examples: []
+  exceptions: []
+- id: avoid_high_borrowed_bottom_register
+  title: Avoid high borrowed bottom register
+  scope: borrowing
+  priority: high
+  action: reject_high_borrowed_bottom_events
+  parameters:
+    target_role: bottom
+    borrowed_event_definition:
+      target_has_anchor_source_parts: true
+      borrowed_when_event_source_part_not_in_target_anchor_source_parts: true
+      anchor_source_parts_are_initial_target_source_parts: true
+    preferred_register_ceiling:
+      target: cello
+      midi: 60
+      note: C4
+      source: target preferred register high boundary
+    reject_when:
+      target_role_is_bottom: true
+      event_is_borrowed_from_non_anchor_source_part: true
+      event_pitch_midi_greater_than_preferred_register_ceiling: true
+    allow_when:
+      event_belongs_to_bottom_target_anchor_source_part: true
+      event_after_octave_fitting_is_within_instrument_range: true
+    duplicate_pitch_class_subrule:
+      reject_high_borrowed_duplicate_pitch_classes: true
+      duplicate_pitch_class_ceiling_midi: 60
+      applies_even_when_duplicate_would_improve_voice_count: true
+    selection_stage:
+      applies_during_primary_and_supporting_event_assignment: true
+      applies_before_final_fragment_pruning: true
+      does_not_lower_or_revoice_the_candidate: true
+    implementation_note_for_clean_room:
+      symbolic_test: "A bottom-target candidate is illegal if it comes from a source part that was not assigned as the bottom anchor and its fitted pitch is above MIDI 60."
+      musical_goal: "Use cello for bass function and real low-line continuity, not as spare high-register capacity for upper or middle voices."
+  rationale: A resting or borrowable cello may carry real source material, but borrowed upper or middle material above the cello preferred register damages bass function and usually adds less information than it costs in color and readability.
+  evidence:
+    docs:
+    - path: docs/reduction_rules.md
+      note: States that outer/bottom source identity and cello sweet spot are structural reduction constraints.
+    code: []
+    reports: []
+    examples:
+    - piece_id: synthetic_gesualdo_voice_preservation
+      note: A borrowed alto C5 should not be assigned to cello when the true bass anchor is a lower source line.
+  exceptions:
+  - id: true_bottom_anchor_material
+    description: The actual lowest source voice may still be placed in cello and octave-fitted according to range/register rules.
+- id: require_source_event_or_editorial_tag
+  title: Preserve source provenance
+  scope: provenance
+  priority: hard
+  action: require_source_event_or_editorial_tag
+  parameters:
+    source_fields:
+    - source_id
+    - source_part_index
+    - source_event_index
+    - source_pitch_midi
+    generated_field: generated
+    editorial_tags_required: true
+  rationale: 'Reviewable reductions must distinguish real source-derived notes from generated editorial support material.
+
+    '
+  evidence:
+    docs:
+    - path: docs/reduction_rules.md
+      note: Requires source and editorial material to remain distinguishable.
+    code: []
+    reports: []
+    examples: []
+  exceptions: []
+- id: preserve_source_timing_identity
+  title: Preserve source timing identity
+  scope: source_event_model
+  priority: hard
+  action: preserve_attacks_durations_and_pitch_classes
+  parameters:
+    preserve_attack_offsets: true
+    preserve_durations: true
+    preserve_pitch_classes: true
+    allow_barline_split_with_tie: true
+    allow_octave_displacement: true
+  rationale: 'The reducer transforms instrumentation, not the source rhythm or harmonic pitch-class content, unless a specific cleanup rule says otherwise.
+
+    '
+  evidence:
+    docs:
+    - path: docs/reduction_rules.md
+      note: 'General principle: preserve rhythm, attacks, durations, and pitch classes.'
+    code: []
+    reports: []
+    examples: []
+  exceptions:
+  - id: narrow_midi_artifact_cleanup
+    description: 'Tiny MIDI import artifacts may be normalized by explicit cleanup rules.
+
+      '
+- id: complete_measures_with_rests
+  title: Complete measures with rests
+  scope: validation
+  priority: hard
+  action: fill_unassigned_measure_time_with_rests
+  parameters:
+    split_events_at_barlines: true
+    validate_measure_duration: true
+    max_denominator: 4096
+  rationale: 'Exported parts must be exactly measured so MusicXML import and PDF review do not inherit rhythmic gaps or overfull bars.
+
+    '
+  evidence:
+    docs:
+    - path: docs/reduction_process_overview.md
+      note: Review pipeline validates notation and export material.
+    code: []
+    reports:
+    - path: outputs/reports/part_coherence_audit.tsv
+      note: Audit output for part/measure coherence.
+    examples: []
+  exceptions: []
+- id: validate_no_overlaps_or_overfull_measures
+  title: Reject overlaps and overfull measures
+  scope: validation
+  priority: hard
+  action: validate_no_overlaps_or_overfull_measures
+  parameters:
+    reject_overlapping_source_events_per_target: true
+    reject_overfull_bars: true
+    report_parse_issues: true
+  rationale: 'Overlaps and overfull measures are structural errors rather than aesthetic tradeoffs, because they break downstream MusicXML review.
+
+    '
+  evidence:
+    docs:
+    - path: docs/reduction_process_overview.md
+      note: Audit checks convert repeated review problems into repeatable constraints.
+    code: []
+    reports:
+    - path: outputs/reports/part_coherence_parse_issues.tsv
+      note: Observed overlap/parse failures.
+    examples: []
+  exceptions: []
+- id: choose_two_stage_global_transposition
+  title: Choose two-stage global transposition
+  scope: global_transposition
+  priority: high
+  action: choose_two_stage_global_transposition
+  parameters:
+    candidate_semitones:
+    - -18
+    - -17
+    - -16
+    - -15
+    - -14
+    - -13
+    - -12
+    - -11
+    - -10
+    - -9
+    - -8
+    - -7
+    - -6
+    - -5
+    - -4
+    - -3
+    - -2
+    - -1
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    stage_1:
+      objective: musically_plausible_range_register_fit_with_source_color_regularization
+      key_signature_burden: excluded
+      use_octave_folding: true
+      octave_folding_scope: each transposed source pitch is evaluated through pitch-class-preserving octave candidates in the target range before register cost is measured
+      octave_folding_order:
+      - minimize_octave_displacement_from_transposed_source_pitch
+      - then_minimize_register_cost
+      - then_minimize_distance_from_previous_target_pitch_when_available
+      voice_weight: sum(duration of pitched source events)
+      pitch_sweetspot_cost:
+        shape: bounded_piecewise_linear
+        zero_cost_zone: target_preferred_register
+        inside_preferred_register_cost: 0.0
+        outside_preferred_register_cost: distance_in_semitones_to_nearest_preferred_register_boundary / 12
+        hard_range_violation_cost: 10000.0
+        maximum_soft_register_cost_per_pitch: 1.5
+        normalize_by: semitones_per_octave
+        note: Register fit is a bounded musical color pressure, not an unbounded reward for pushing every source upward.
+      octave_displacement_cost:
+        definition: abs(folded_pitch - transposed_source_pitch) / 12
+        weight: 0.75
+        cap: 1.5
+        note: Octave folding is allowed but not free; because pitch class is preserved, this cost prevents octave folding from making high global transpositions look artificially optimal.
+      target_pitch_cost: bounded_pitch_sweetspot_cost + octave_displacement_cost * 0.75
+      folded_pitch_selection_cost: minimize octave_displacement_cost first, then bounded_pitch_sweetspot_cost
+      unfit_pitch_cost: 10000.0
+      score_normalization: duration_weighted_mean_of_bounded_target_pitch_costs plus global regularizers
+      source_displacement_regularizer:
+        included_in_stage_1_score: true
+        penalty_per_absolute_semitone: 0.12
+        role: regularizer_not_posthoc_tiebreaker
+        note: Source displacement is a real musical-color cost; it is strong enough to stop the top of the candidate range from winning merely because it avoids low-register penalties.
+      positive_transposition_color_penalty:
+        enabled: true
+        free_positive_semitones: 3
+        penalty_per_semitone_above_free_zone: 0.2
+        rationale: High positive transpositions tend to make Gesualdo and Take 6 reductions too bright and upper-register-heavy even when individual notes can be octave-folded into range.
+      instrument_register_weights:
+        violin_1: 0.8
+        violin_2: 1.0
+        viola: 1.25
+        cello: 1.5
+        rationale: Viola and cello sweet spots carry more weight because excessive upward global transposition damages quartet color and bass function before it creates obvious range violations.
+      bass_function_penalty:
+        target: cello
+        preferred_bass_anchor_register: [36, 60]
+        penalty_per_semitone_above_preferred_high: 0.08
+        cap: 1.0
+        applies_to: duration_weighted_bottom_source_voice_after_octave_folding
+        rationale: The bottom voice should remain a bass function, not merely a pitch class folded into any playable cello octave.
+      stage_1_tie_breakers:
+      - lower_score
+      - smaller_absolute_transposition
+      - lower_transposition
+    stage_2:
+      objective: reduce_key_signature_burden
+      runs_only_when_source_has_key_signatures: true
+      eligible_candidates: all_candidate_semitones_with_stage_1_score_within_tessitura_tolerance_of_stage_1_best
+      candidate_search_space: all candidate_semitones, not a semitone-radius window around the best candidate
+      near_stage_1_optimum_definition:
+        type: absolute_delta_on_normalized_bounded_stage_1_score
+        maximum_delta: 0.35
+        not_based_on_semitone_distance: true
+        score_scale: normalized_duration_weighted_cost_after_bounded_register_costs_and_global_regularizers
+        no_extra_score_normalization_before_tolerance: true
+        rationale: The previous 0.05 tolerance was appropriate only for the old unbounded tessitura score. On the bounded musical-color scale, 0.35 means candidates with similar range/register plausibility remain eligible for cleaner key signatures.
+      key_signature_burden_metric: duration_weighted_average_abs_transposed_sharps
+      minimum_absolute_key_burden_improvement: 2.0
+      minimum_relative_key_burden_improvement: 0.4
+      candidate_order:
+      - lower_key_signature_burden
+      - lower_stage_1_score
+      - closer_to_stage_1_best_in_semitones
+      - smaller_absolute_transposition
+      - lower_transposition
+      replacement_condition: replace stage_1 best only if absolute and relative key-burden improvements both pass thresholds
+    output:
+      chosen_semitones: stage_1_best unless stage_2 replacement condition passes
+      global_transposition_is_applied_before_reduction: true
+  rationale: 'Global transposition is selected in two stages: first optimize bounded range/register and quartet-color fit using pitch-class-preserving octave folding, stronger source-displacement regularization, instrument-weighted register costs, and a high-positive color penalty, with key signatures excluded; then optionally replace with a cleaner key only among candidates whose normalized first-stage score remains musically near the best candidate.'
+  evidence:
+    docs:
+    - path: docs/reduction_rules.md
+      note: Documents automatic global transposition and key burden guardrails.
+    code: []
+    reports:
+    - path: outputs/reports/transposition_key_signature_audit.tsv
+      note: Corpus audit of cleaner key alternatives.
+    examples: []
+  exceptions: []
+- id: prefer_simple_key_signature_when_tessitura_tied
+  title: Apply stage-two cleaner-key guardrail
+  scope: global_transposition
+  priority: medium
+  action: apply_stage_two_cleaner_key_guardrail
+  parameters:
+    tessitura_tolerance: 0.35
+    minimum_absolute_key_burden_improvement: 2.0
+    minimum_relative_key_burden_improvement: 0.4
+    burden_metric: duration_weighted_average_abs_sharps
+    participates_in_stage_1_score: false
+    eligible_candidate_set: all candidates within stage_1 score tolerance, not only semitone-near candidates
+    nearby_optimal_means: absolute delta on normalized bounded stage_1 score <= tessitura_tolerance
+    nearby_optimal_does_not_mean:
+    - semitone window
+    - percentage of old unbounded tessitura score
+    - key burden proximity
+    score_normalization_before_tolerance: the tolerance is applied to the bounded normalized stage_1 score, after source-displacement and high-positive color regularizers
+  rationale: The cleaner-key rule is a second-stage guardrail. It never changes the first-stage range/register/color score and may only replace the best first-stage candidate when the candidate is score-near on the bounded musical-color scale and substantially reduces printed key burden.
+  evidence:
+    docs:
+    - path: docs/reduction_rules.md
+      note: States the 0.05, 2.0, and 40 percent key-signature guardrails.
+    code: []
+    reports:
+    - path: outputs/reports/transposition_key_signature_candidates.tsv
+      note: Per-candidate audit data.
+    examples: []
+  exceptions: []
+- id: prefer_pitch_class_preserving_octaves
+  title: Prefer pitch-class-preserving octave movement
+  scope: register_placement
+  priority: high
+  action: choose_octave_fit_preserving_pitch_class
+  parameters:
+    max_octave_shift_for_optimizer: 1
+    displacement_weight: 12.0
+    register_weight: 1.0
+    transition_weight: 1.0
+    long_note_change_weight: 2.0
+    protect_bass_anchor: true
+    leap_free_interval: 7
+  rationale: 'Octave movement is allowed to make a line playable, but it is not treated as neutral because register carries musical identity and string color.
+
+    '
+  evidence:
+    docs:
+    - path: docs/reduction_process_overview.md
+      note: Describes pitch-class-preserving octave optimization.
+    code: []
+    reports:
+    - path: outputs/batch_octave_optimization/summary.tsv
+      note: Batch optimization summary.
+    examples:
+    - piece_id: a_quiet_place
+      note: Prototype case for octave smoothing.
+  exceptions: []
+- id: cleanup_review_notation
+  title: Clean notation for review
+  scope: notation_cleanup
+  priority: high
+  action: cleanup_review_notation
+  parameters:
+    suppress_redundant_naturals: true
+    suppress_tie_continuation_accidentals: true
+    normalize_dangling_ties: true
+    add_final_barlines: true
+    split_rests_at_beat_boundaries: true
+    add_cello_treble_clef_for_high_passages: true
+    add_viola_treble_clef_for_high_passages: true
+    release_residue_tolerance_quarters: 0.25
+    beat_boundary_rest_splitting: true
+    operation_order:
+    - normalize_dangling_ties
+    - normalize_beat_readability
+    - suppress_unneeded_naturals
+    - suppress_tie_continuation_accidentals
+    - optionally_remove_editorial_dynamics
+    - add_final_barlines
+    - add_cello_high_clefs
+    - add_viola_high_clefs
+    beat_readability_predicates:
+      merge_adjacent_items_when:
+        same_pitch_content: true
+        adjacent_in_time: true
+        allowed_types:
+        - rest_followed_by_rest
+        - tied_note_or_chord_same_pitch
+        resulting_duration_preserves_sounding_content: true
+      release_residue_absorption:
+        last_item_must_be_rest: true
+        previous_item_must_be_pitched: true
+        last_rest_must_end_at_measure_end: true
+        previous_item_must_end_where_last_rest_begins: true
+        absorb_entire_rest_when:
+          rest_duration_lte_quarters: 0.25
+          previous_duration_gte_quarters: 1.0
+        otherwise_shift_to_nearest_beat_boundary_when:
+          positive_shift_lte_quarters: 0.25
+          rest_remains_positive_duration: true
+      rest_splitting:
+        split_non_full_measure_rests_at_internal_beat_boundaries: true
+        leave_full_measure_rests_intact: true
+      beat_unit_by_meter:
+        denominator_2: 2.0
+        compound_quarter_meter_with_numerator_multiple_of_3_above_3: 1.5
+        default: 4 / denominator
+    clef_predicates:
+      cello:
+        default_clef: bass
+        switch_to_tenor_when_duration_at_or_above_midi_60_gte_quarters: 2.0
+        switch_to_treble_when_duration_at_or_above_midi_67_gte_quarters: 2.0
+        return_to_bass_when_measure_max_midi_lte: 55
+        replace_existing_offset_zero_clef: true
+      viola:
+        default_clef: alto
+        switch_to_treble_when_duration_at_or_above_midi_69_gte_quarters: 1.0
+        return_to_alto_when_measure_max_midi_lte: 65
+        replace_existing_offset_zero_clef: true
+    tie_cleanup_predicates:
+      remove_start_without_matching_next_same_pitch: true
+      convert_continue_with_previous_without_next_to_stop: true
+      convert_continue_without_previous_with_next_to_start: true
+      remove_continue_without_previous_or_next: true
+      remove_stop_without_matching_previous_same_pitch: true
+    accidental_cleanup_predicates:
+      hide_natural_only_when_key_and_measure_state_are_already_natural: true
+      hide_accidentals_on_tie_stop_or_continue: true
+    forbidden_cleanup_effects:
+    - remove_pitched_attacks
+    - thin_dense_bars
+    - invent_notes
+    - change_pitch_classes
+    - change_total_measure_duration
+  rationale: 'Review scores should expose musical decisions, not distracting MusicXML or engraving artifacts.
+
+    '
+  evidence:
+    docs:
+    - path: docs/reduction_process_overview.md
+      note: Summarizes clean engraving mode and director feedback.
+    code: []
+    reports:
+    - path: data/take6/renders/string_quartet_double_stops_pdf/review_pdf_report.tsv
+      note: PDF review cleanup metrics.
+    examples: []
+  exceptions: []
+- id: normalize_musescore_time_modification_import
+  title: Normalize MuseScore time-modification import
+  scope: musescore_compatibility
+  priority: high
+  action: strip_time_modifications_after_musicxml_write
+  parameters:
+    preserve_duration_values: true
+    preserve_tuplet_notation_brackets: true
+  rationale: 'MuseScore can over-count some music21-written nested tuplets when durations and time-modification tags are both present.
+
+    '
+  evidence:
+    docs:
+    - path: docs/take6_reduction_rules.md
+      note: Documents Take 6 rhythm and MuseScore import cleanup.
+    code: []
+    reports:
+    - path: outputs/reports/beat_readability_audit.tsv
+      note: Beat readability audit data.
+    examples: []
+  exceptions: []
+- id: emit_editorial_dynamics_when_enabled
+  title: Emit editorial dynamics only when enabled
+  scope: editorial_generation
+  priority: optional
+  action: generate_bar_level_editorial_dynamics
+  parameters:
+    default_enabled_for_shared_ensemble: true
+    phrase_bars: 4
+    hairpin_bars: 2
+    levels:
+    - p
+    - mp
+    - mf
+    - f
+    energy_features:
+    - active_part_count
+    - attack_density
+    - average_register
+    - registral_span
+    energy_weights:
+      active_part_count: 0.35
+      attack_density: 0.3
+      average_register: 0.2
+      registral_span: 0.15
+  rationale: 'Dynamics are editorial performance suggestions, not source facts, so they must remain optional and clearly separable from note reduction.
+
+    '
+  evidence:
+    docs:
+    - path: README.md
+      note: Documents the editorial dynamics layer and ReductionConfig parameters.
+    code: []
+    reports: []
+    examples:
+    - piece_id: data/kdf/examples/dynamic
+      note: Generated dynamic examples for review.
+  exceptions:
+  - id: take6_default_disables_dynamics
+    description: 'Take 6 reductions disable generated dynamics by default because they implied unsupported interpretation.
+
+      '
+validation:
+  required_checks:
+  - schema_valid
+  - unique_rule_ids
+  - imported_rule_files_exist
+  - evidence_paths_checked
+  expected_metrics:
+  - part_count
+  - measure_count_by_part
+  - global_transposition
+  - cleanup_report_counts

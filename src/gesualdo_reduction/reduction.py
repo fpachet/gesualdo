@@ -186,6 +186,7 @@ class ReductionConfig:
     normalize_short_note_rest_artifacts: bool = False
     min_preserved_trimmed_duration: Fraction | None = None
     max_borrowed_bottom_duplicate_pitch: int | None = None
+    max_borrowed_bottom_pitch: int | None = None
     lower_high_cello_threshold: int | None = None
     add_editorial_dynamics: bool = True
     dynamic_phrase_bars: int = 4
@@ -2030,6 +2031,34 @@ def _is_high_borrowed_bottom_duplicate(
     return _is_borrowed_from_target_anchor(target, event, target_anchor_parts)
 
 
+def _is_high_borrowed_bottom_event(
+    target: TargetPart,
+    event: SourceEvent,
+    *,
+    covered_pitch_classes: set[int],
+    target_anchor_parts: dict[str, set[int]],
+    config: ReductionConfig,
+) -> bool:
+    if (
+        target.role != "bottom"
+        or event.pitch_midi is None
+        or not _is_borrowed_from_target_anchor(target, event, target_anchor_parts)
+    ):
+        return False
+    if (
+        config.max_borrowed_bottom_pitch is not None
+        and event.pitch_midi > config.max_borrowed_bottom_pitch
+    ):
+        return True
+    return _is_high_borrowed_bottom_duplicate(
+        target,
+        event,
+        covered_pitch_classes=covered_pitch_classes,
+        target_anchor_parts=target_anchor_parts,
+        config=config,
+    )
+
+
 def _duplicate_color_tone_penalty(
     event: SourceEvent,
     *,
@@ -2835,7 +2864,14 @@ def _select_inner_events(
                 primary_target_pool,
                 last_pitch,
                 config,
-                can_assign=lambda target, event: _target_is_free_for_event(target, event, selected),
+                can_assign=lambda target, event: _target_is_free_for_event(target, event, selected)
+                and not _is_high_borrowed_bottom_event(
+                    target,
+                    event,
+                    covered_pitch_classes=covered,
+                    target_anchor_parts=target_anchor_parts,
+                    config=config,
+                ),
             )
             if primary_pairs:
                 break
@@ -2896,7 +2932,7 @@ def _select_inner_events(
                 last_pitch,
                 config,
                 can_assign=lambda target, event: _target_is_free_for_event(target, event, selected)
-                and not _is_high_borrowed_bottom_duplicate(
+                and not _is_high_borrowed_bottom_event(
                     target,
                     event,
                     covered_pitch_classes=covered,
@@ -3003,7 +3039,7 @@ def _select_inner_events(
                         last_pitch,
                         config,
                         can_assign=lambda target, event: _target_is_free_for_event(target, event, selected)
-                        and not _is_high_borrowed_bottom_duplicate(
+                        and not _is_high_borrowed_bottom_event(
                             target,
                             event,
                             covered_pitch_classes=covered_at_start,
@@ -3982,6 +4018,7 @@ def build_quartet_score(
             add_editorial_harmony=add_editorial_harmony,
             add_editorial_thirds=add_editorial_thirds,
             editorial_harmony_target_active_parts=editorial_harmony_target_active_parts,
+            max_borrowed_bottom_pitch=STRING_QUARTET.bottom_part.preferred_register[1],
         ),
         policy=RegisterAssignmentPolicy(),
     )
@@ -4007,6 +4044,7 @@ def build_six_voice_quartet_score(
             add_editorial_harmony=add_editorial_harmony,
             add_editorial_thirds=add_editorial_thirds,
             editorial_harmony_target_active_parts=editorial_harmony_target_active_parts,
+            max_borrowed_bottom_pitch=STRING_QUARTET.bottom_part.preferred_register[1],
         ),
         policy=SixVoiceQuartetCompressionPolicy(),
     )
@@ -4145,6 +4183,7 @@ def reduce_to_quartet(
             add_editorial_harmony=add_editorial_harmony,
             add_editorial_thirds=add_editorial_thirds,
             editorial_harmony_target_active_parts=editorial_harmony_target_active_parts,
+            max_borrowed_bottom_pitch=STRING_QUARTET.bottom_part.preferred_register[1],
         ),
         policy=RegisterAssignmentPolicy(),
         candidate_semitones=candidate_semitones,
@@ -4176,6 +4215,7 @@ def reduce_six_to_quartet(
             add_editorial_harmony=add_editorial_harmony,
             add_editorial_thirds=add_editorial_thirds,
             editorial_harmony_target_active_parts=editorial_harmony_target_active_parts,
+            max_borrowed_bottom_pitch=STRING_QUARTET.bottom_part.preferred_register[1],
         ),
         policy=SixVoiceQuartetCompressionPolicy(),
         candidate_semitones=candidate_semitones,

@@ -971,6 +971,64 @@ def test_take6_does_not_put_high_borrowed_duplicate_in_cello():
     )
 
 
+def test_gesualdo_voice_preservation_avoids_high_borrowed_cello():
+    score = make_score(
+        [
+            make_part("soprano", [(0, 1, "C6"), (1, 1, None)]),
+            make_part("alto", [(0, 1, "C5"), (1, 1, None)]),
+            make_part("tenor", [(0, 1, "E4"), (1, 1, None)]),
+            make_part("baritone", [(0, 1, "C4"), (1, 1, None)]),
+            make_part("bass", [(0, 1, None), (1, 1, "C2")]),
+        ]
+    )
+
+    reduced = build_quartet_score(score, enforce_ranges=False, preserve_active_voice_count=True)
+    cello_notes = list(reduced.parts[3].flatten().notes)
+
+    assert all(
+        element.pitch.midi <= STRING_QUARTET.bottom_part.preferred_register[1]
+        or getattr(element.editorial, "sourcePartIndex", None) == 4
+        for element in cello_notes
+    )
+    assert not any(
+        element.pitch.nameWithOctave == "C5"
+        and getattr(element.editorial, "sourcePartIndex", None) == 1
+        for element in cello_notes
+    )
+
+
+def test_gesualdo_primary_selection_avoids_high_borrowed_cello():
+    score = make_score(
+        [
+            make_part("soprano I", [(0, 4, "F5")]),
+            make_part("soprano II", [(0, 1, "D5"), (1, 1, "C5"), (2, 2, "B-4")]),
+            make_part("alto", [(0, 4, "F4")]),
+            make_part("tenor", [(0, 4, "A4")]),
+            make_part("bass", [(0, 2, None), (2, 2, "B-3")]),
+        ]
+    )
+
+    reduced = build_quartet_score(
+        score,
+        enforce_ranges=False,
+        preserve_active_voice_count=True,
+        add_editorial_harmony=True,
+        add_editorial_thirds=True,
+    )
+    cello_notes = list(reduced.parts[3].flatten().notes)
+
+    assert not any(
+        element.pitch.nameWithOctave == "C5"
+        and getattr(element.editorial, "sourcePartIndex", None) == 1
+        for element in cello_notes
+    )
+    assert any(
+        element.pitch.nameWithOctave == "B-3"
+        and getattr(element.editorial, "sourcePartIndex", None) == 4
+        for element in cello_notes
+    )
+
+
 def test_take6_lowers_high_cello_line_into_sweet_spot():
     score = make_score(
         [

@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/gesualdo/reduction_rules.schema.json",
+  "title": "Reduction rule file",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "name",
+    "description",
+    "target_ensemble",
+    "source_idiom",
+    "imports",
+    "metadata",
+    "passes",
+    "priorities",
+    "rules",
+    "validation"
+  ],
+  "properties": {
+    "version": { "const": 1 },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "description": { "type": "string", "minLength": 1 },
+    "target_ensemble": { "type": "string", "minLength": 1 },
+    "source_idiom": { "type": "string", "minLength": 1 },
+    "imports": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[A-Za-z0-9_./-]+\\.ya?ml$" },
+      "uniqueItems": true
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "generated_from_project",
+        "generated_date",
+        "extraction_status",
+        "source_files_inspected"
+      ],
+      "properties": {
+        "generated_from_project": { "type": "string", "minLength": 1 },
+        "generated_date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "extraction_status": { "enum": ["draft", "reviewed", "validated"] },
+        "source_files_inspected": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        }
+      }
+    },
+    "passes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/pass" },
+      "minItems": 1
+    },
+    "priorities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hard_constraints", "optimization_pressures", "optional_enrichments"],
+      "properties": {
+        "hard_constraints": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
+        },
+        "optimization_pressures": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
+        },
+        "optional_enrichments": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/rule" },
+      "minItems": 1
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["required_checks", "expected_metrics"],
+      "properties": {
+        "required_checks": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "expected_metrics": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "pass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "description": { "type": "string", "minLength": 1 }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "id",
+        "title",
+        "scope",
+        "priority",
+        "action",
+        "parameters",
+        "rationale",
+        "evidence",
+        "exceptions"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "title": { "type": "string", "minLength": 1 },
+        "scope": {
+          "enum": [
+            "source_parsing",
+            "source_event_model",
+            "global_transposition",
+            "voice_mapping",
+            "outer_voice_assignment",
+            "inner_voice_compression",
+            "event_selection",
+            "pitch_class_coverage",
+            "chromatic_motion",
+            "dissonance_preservation",
+            "harmonic_role_priority",
+            "register_placement",
+            "instrument_range",
+            "instrument_sweet_spot",
+            "texture_density",
+            "source_voice_restoration",
+            "borrowing",
+            "double_stops",
+            "editorial_generation",
+            "fragment_pruning",
+            "continuity_repair",
+            "notation_cleanup",
+            "musescore_compatibility",
+            "provenance",
+            "validation",
+            "evaluation"
+          ]
+        },
+        "priority": {
+          "enum": ["hard", "very_high", "high", "medium", "low", "optional"]
+        },
+        "action": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "parameters": { "type": "object" },
+        "rationale": { "type": "string", "minLength": 1 },
+        "evidence": { "$ref": "#/$defs/evidence" },
+        "exceptions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/exception" }
+        },
+        "applies_to": { "type": "object" },
+        "pass": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "metrics": { "type": "object" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["docs", "code", "reports", "examples"],
+      "properties": {
+        "docs": { "type": "array", "items": { "$ref": "#/$defs/evidence_entry" } },
+        "code": { "type": "array", "items": { "$ref": "#/$defs/evidence_entry" } },
+        "reports": { "type": "array", "items": { "$ref": "#/$defs/evidence_entry" } },
+        "examples": { "type": "array", "items": { "$ref": "#/$defs/example_entry" } }
+      }
+    },
+    "evidence_entry": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["path"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "symbol": { "type": "string" },
+        "note": { "type": "string" }
+      }
+    },
+    "example_entry": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["piece_id"],
+      "properties": {
+        "piece_id": { "type": "string", "minLength": 1 },
+        "note": { "type": "string" }
+      }
+    },
+    "exception": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "description"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "description": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

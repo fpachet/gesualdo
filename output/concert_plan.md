@@ -4,6 +4,8 @@
 
 This evening presents vocal music without voices. Gesualdo's madrigals and sacred pieces were written for five or six voices. Take 6 works in a very different idiom - gospel, jazz, pop, and studio vocal virtuosity - but it also depends on several independent voices forming one harmonic body.
 
+The concert can begin with a short four-voice piece played without naming its composer. The audience may hear Renaissance, Baroque, or sacred harmony before the reveal: it is the Beach Boys' Our Prayer. This makes the opening both playful and precise: four voices can pass directly into four strings, before the harder reductions begin.
+
 The string quartet cannot reproduce the words, breath, or vocal blend of the originals. It can make other things clear: counterpoint, harmonic structure, register, and the movement from one sonority to another. The practical question is simple: what can be kept when five or six vocal lines have to become four string parts?
 
 ## Why Reduce This Music for String Quartet
@@ -18,17 +20,18 @@ The project also has a practical artistic goal: to enrich the string quartet rep
 
 | # | Piece | Original | Duration | Function |
 |---|---|---:|---:|---|
-| 1 | Carlo Gesualdo, *Luci serene e chiare* | 5 voices | 2:59 | Opening Gesualdo example |
-| 2 | Carlo Gesualdo, *Dolcissima mia vita* | 5 voices | 2:15 | Short lyrical madrigal |
-| 3 | Carlo Gesualdo, *Gia piansi nel dolore* | 5 voices | 2:37 | Chromatic expression of grief |
-| 4 | Carlo Gesualdo, *S'io non miro non moro* | 5 voices | 2:00 | Compact madrigal; Mantovani link |
-| 5 | Take 6, *Come Unto Me* | 6 vocal parts | 2:13 | First Take 6 comparison |
-| 6 | Carlo Gesualdo, *Moro, lasso, al mio duolo* | 5 voices | 2:58 | Central Gesualdo example |
-| 7 | Carlo Gesualdo, *Sparge la morte* | 5 voices | 2:49 | Contrasting madrigal texture |
-| 8 | Carlo Gesualdo, *Belta, poi che t'assenti* | 5 voices | 2:11 | Stravinsky connection |
-| 9 | Carlo Gesualdo, *Tristis est anima mea* | 6 voices | 3:00 | Six-voice sacred work |
-| 10 | Take 6, *Hark! The Herald Angels Sing* | 6 vocal parts | 2:32 | Bright late-program contrast |
-| 11 | Take 6, *A Quiet Place* | 6 vocal parts | 2:46 | Final calm piece |
+| 1 | Anonymous opening chorale *(revealed later as The Beach Boys, Our Prayer)* | 4 voices | 1:08 | Short opening question |
+| 2 | Carlo Gesualdo, *Luci serene e chiare* | 5 voices | 2:59 | Opening Gesualdo example |
+| 3 | Carlo Gesualdo, *Dolcissima mia vita* | 5 voices | 2:15 | Short lyrical madrigal |
+| 4 | Carlo Gesualdo, *Gia piansi nel dolore* | 5 voices | 2:37 | Chromatic expression of grief |
+| 5 | Carlo Gesualdo, *S'io non miro non moro* | 5 voices | 2:00 | Compact madrigal; Mantovani link |
+| 6 | Take 6, *Come Unto Me* | 6 vocal parts | 2:13 | First Take 6 comparison |
+| 7 | Carlo Gesualdo, *Moro, lasso, al mio duolo* | 5 voices | 2:58 | Central Gesualdo example |
+| 8 | Carlo Gesualdo, *Sparge la morte* | 5 voices | 2:49 | Contrasting madrigal texture |
+| 9 | Carlo Gesualdo, *Belta, poi che t'assenti* | 5 voices | 2:11 | Stravinsky connection |
+| 10 | Carlo Gesualdo, *Tristis est anima mea* | 6 voices | 3:00 | Six-voice sacred work |
+| 11 | Take 6, *Hark! The Herald Angels Sing* | 6 vocal parts | 2:32 | Bright late-program contrast |
+| 12 | Take 6, *A Quiet Place* | 6 vocal parts | 2:46 | Final calm piece |
 
 ## AI Argument
 
@@ -40,11 +43,13 @@ The final scores are not automatic transcriptions, but the result of a guided pr
 
 ## Overall Timing
 
-Nominal music duration: about 28:20. Realistic performed music duration: about 31-32 minutes. With transitions and short spoken islands: about 39-40 minutes. Total spoken introduction and discussion: about 19-21 minutes. Total event: about 58-61 minutes.
+Nominal music duration: about 29:30. Realistic performed music duration: about 32-33 minutes. With transitions and short spoken islands: about 41-42 minutes. Total spoken introduction and discussion: about 18-20 minutes. Total event: about 59-62 minutes.
 
 The evening should feel like a concert first and a conference second: short spoken islands, then music. The explanations should sharpen listening rather than interrupt it.
 
 ## Musical Shape
+
+Prologue - anonymous four-part harmony: Our Prayer, played first as a listening question before the composer is revealed.
 
 Part I - Gesualdo madrigal language: Luci serene e chiare; Dolcissima mia vita; Gia piansi nel dolore; S'io non miro non moro.
 
@@ -54,9 +59,11 @@ Part III - Six-voice and closing pieces: Tristis est anima mea; Hark! The Herald
 
 ## Spoken Islands
 
-Opening, 3-4 minutes: vocal music without voices; why Gesualdo and Take 6 are in the same programme; why the string quartet is a useful medium.
+Opening, 1 minute before the first piece: ask the audience to listen without a label. Is it Renaissance, Baroque, sacred, modern? Then play the anonymous opening.
 
-After piece 2 or before piece 3, 3 minutes: what a madrigal is; how words create musical decisions; why chromatic voice-leading matters more than isolated chords.
+After the opening piece, 3-4 minutes: reveal the Beach Boys; introduce vocal music without voices; explain why Gesualdo and Take 6 are in the same programme and why the string quartet is a useful medium.
+
+After piece 3 or before piece 4, 3 minutes: what a madrigal is; how words create musical decisions; why chromatic voice-leading matters more than isolated chords.
 
 Before Come Unto Me, 3 minutes: why Take 6 belongs here; six vocal parts as a modern comparison to Gesualdo's multi-voice writing.
 

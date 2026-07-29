@@ -1,0 +1,138 @@
+version: 1
+name: evaluation_corpus
+description: >
+  Corpus and baseline output metadata for evaluating clean-room reconstruction of
+  the Gesualdo and Take 6 reduction rules, plus the four-voice comparison
+  material used in current concert/review artifacts.
+metadata:
+  generated_from_project: gesualdo
+  generated_date: "2026-07-04"
+  extraction_status: draft
+  source_files_inspected:
+    - data/cpdl/manifest.tsv
+    - data/kdf/manifest.tsv
+    - data/cpdl/5-voices/reductions/string_quartet/report.tsv
+    - data/cpdl/6-voices/reductions/string_quartet/report.tsv
+    - data/take6/reductions/string_quartet_double_stops/report.tsv
+    - data/beach boys/reductions/string_quartet/report.tsv
+    - outputs/reports/part_coherence_audit.tsv
+    - outputs/reports/beat_readability_audit.tsv
+corpora:
+  - id: gesualdo_cpdl_5_voice
+    source_manifest: data/cpdl/manifest.tsv
+    source_voice_count: 5
+    source_sections:
+      - Sacred works for five voices
+      - Secular works for five voices
+    baseline_output_dir: data/cpdl/5-voices/reductions/string_quartet
+    report: data/cpdl/5-voices/reductions/string_quartet/report.tsv
+    render_report: data/cpdl/5-voices/renders/string_quartet_pdf/review_pdf_report.tsv
+    target: string_quartet
+    rule_file: rules/gesualdo.yaml
+    notes: "Main CPDL five-voice Gesualdo baseline."
+  - id: gesualdo_cpdl_6_voice
+    source_manifest: data/cpdl/manifest.tsv
+    source_voice_count: 6
+    source_sections:
+      - Sacred works for six voices
+      - Secular works for six voices
+    baseline_output_dir: data/cpdl/6-voices/reductions/string_quartet
+    report: data/cpdl/6-voices/reductions/string_quartet/report.tsv
+    render_report: data/cpdl/6-voices/renders/string_quartet_pdf/review_pdf_report.tsv
+    target: string_quartet
+    rule_file: rules/gesualdo.yaml
+    notes: "Explicit six-voice-to-quartet Gesualdo baseline."
+  - id: gesualdo_kdf_book4_book6
+    source_manifest: data/kdf/manifest.tsv
+    source_voice_count: 5
+    baseline_output_dir: data/kdf/book4/reductions/string_quartet
+    additional_baseline_output_dirs:
+      - data/kdf/book6/reductions/string_quartet
+    report: data/kdf/reductions/string_quartet_report.tsv
+    render_report: data/kdf/book4/renders/string_quartet_pdf/review_pdf_report.tsv
+    target: string_quartet
+    rule_file: rules/gesualdo.yaml
+    notes: "Kunst der Fuge Gesualdo book IV/VI baseline used in earlier review batches."
+  - id: take6_double_stops
+    source_glob: data/take6/*.mid
+    source_voice_count: 6
+    baseline_output_dir: data/take6/reductions/string_quartet_double_stops
+    report: data/take6/reductions/string_quartet_double_stops/report.tsv
+    render_report: data/take6/renders/string_quartet_double_stops_pdf/review_pdf_report.tsv
+    target: string_quartet
+    rule_file: rules/take6.yaml
+    notes: "Preferred Take 6 six-voice-to-quartet MusicXML batch with source-derived double-stops."
+  - id: beach_boys_four_voice_comparison
+    source_glob: data/beach boys/*.mxl
+    source_voice_count: 4
+    baseline_output_dir: data/beach boys/reductions/string_quartet
+    additional_baseline_files:
+      - data/beach boys/reductions/string_quartet/our_prayer_low_cello.musicxml
+    report: data/beach boys/reductions/string_quartet/report.tsv
+    render_report: data/beach boys/renders/string_quartet_pdf
+    target: string_quartet
+    rule_file: rules/shared_quartet.yaml
+    notes: "Four-voice Our Prayer comparison/prologue material. This is evaluation and concert baseline data, not a separate encoded reducer idiom."
+review_artifacts:
+  - id: gesualdo_5_voice_director_pdf
+    path: output/pdf/quartet_director/gesualdo_5_voice_string_quartet_reductions.pdf
+    corpus: gesualdo_cpdl_5_voice
+  - id: gesualdo_6_voice_director_pdf
+    path: output/pdf/quartet_director/gesualdo_6_voice_string_quartet_reductions.pdf
+    corpus: gesualdo_cpdl_6_voice
+  - id: take6_director_pdf
+    path: output/pdf/quartet_director/take6_string_quartet_double_stops_reductions.pdf
+    corpus: take6_double_stops
+  - id: beach_boys_concert_prologue_pdf
+    path: data/beach boys/renders/string_quartet_pdf/our_prayer_low_cello.pdf
+    corpus: beach_boys_four_voice_comparison
+audit_reports:
+  - id: part_coherence
+    path: outputs/reports/part_coherence_audit.tsv
+    applies_to:
+      - gesualdo_cpdl_5_voice
+      - gesualdo_cpdl_6_voice
+      - take6_double_stops
+  - id: beat_readability
+    path: outputs/reports/beat_readability_audit.tsv
+    applies_to:
+      - take6_double_stops
+  - id: transposition_key_signature
+    path: outputs/reports/transposition_key_signature_audit.tsv
+    applies_to:
+      - gesualdo_cpdl_5_voice
+      - gesualdo_cpdl_6_voice
+  - id: octave_optimization
+    path: outputs/batch_octave_optimization/summary.tsv
+    applies_to:
+      - gesualdo_cpdl_5_voice
+      - gesualdo_kdf_book4_book6
+pilot_subsets:
+  - id: pilot_gesualdo_5_voice
+    corpus: gesualdo_cpdl_5_voice
+    max_pieces: 2
+    selection_reason: "Fast sanity check for five-voice source parsing, enrichment, and quartet validation."
+  - id: pilot_gesualdo_6_voice
+    corpus: gesualdo_cpdl_6_voice
+    max_pieces: 1
+    selection_reason: "Fast sanity check for explicit six-to-four compression."
+  - id: pilot_take6
+    corpus: take6_double_stops
+    preferred_piece_ids:
+      - a_quiet_place
+      - he_never_sleeps
+      - hark_herald
+      - come_unto_me
+    selection_reason: "Covers octave color, micro-rest cleanup, borrowed-line continuity, and reviewed transposition."
+  - id: pilot_beach_boys_four_voice
+    corpus: beach_boys_four_voice_comparison
+    preferred_piece_ids:
+      - our_prayer
+      - our_prayer_low_cello
+    selection_reason: "Checks the direct four-voice-to-quartet comparison and the concert low-cello variant without introducing a new idiom rule file."
+validation:
+  required_checks:
+    - reports_exist
+    - baseline_output_dirs_exist
+    - pilot_corpora_exist
+    - review_artifacts_exist

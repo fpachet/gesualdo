@@ -27,6 +27,7 @@ PLAN_MD = OUTPUT_DIR / "concert_plan.md"
 VISION_MD = OUTPUT_DIR / "vision_paper_draft.md"
 PLAN_PDF = PDF_DIR / "gesualdo_take6_evening_concert_plan.pdf"
 VISION_PDF = PDF_DIR / "gesualdo_take6_vision_paper_draft.pdf"
+TEMPTATIVE_PDF = OUTPUT_DIR / "Temptative Programme.pdf"
 
 
 @dataclass(frozen=True)
@@ -40,17 +41,18 @@ class ProgramItem:
 
 
 PROGRAM: tuple[ProgramItem, ...] = (
-    ProgramItem(1, "Luci serene e chiare", "Carlo Gesualdo", "5 voices", "2:59", "Opening Gesualdo example"),
-    ProgramItem(2, "Dolcissima mia vita", "Carlo Gesualdo", "5 voices", "2:15", "Short lyrical madrigal"),
-    ProgramItem(3, "Gia piansi nel dolore", "Carlo Gesualdo", "5 voices", "2:37", "Chromatic expression of grief"),
-    ProgramItem(4, "S'io non miro non moro", "Carlo Gesualdo", "5 voices", "2:00", "Compact madrigal; Mantovani link"),
-    ProgramItem(5, "Come Unto Me", "Take 6", "6 vocal parts", "2:13", "First Take 6 comparison"),
-    ProgramItem(6, "Moro, lasso, al mio duolo", "Carlo Gesualdo", "5 voices", "2:58", "Central Gesualdo example"),
-    ProgramItem(7, "Sparge la morte", "Carlo Gesualdo", "5 voices", "2:49", "Contrasting madrigal texture"),
-    ProgramItem(8, "Belta, poi che t'assenti", "Carlo Gesualdo", "5 voices", "2:11", "Stravinsky connection"),
-    ProgramItem(9, "Tristis est anima mea", "Carlo Gesualdo", "6 voices", "3:00", "Six-voice sacred work"),
-    ProgramItem(10, "Hark! The Herald Angels Sing", "Take 6", "6 vocal parts", "2:32", "Bright late-program contrast"),
-    ProgramItem(11, "A Quiet Place", "Take 6", "6 vocal parts", "2:46", "Final calm piece"),
+    ProgramItem(1, "Anonymous opening chorale (revealed later as Our Prayer)", "The Beach Boys", "4 voices", "1:08", "Short opening question"),
+    ProgramItem(2, "Luci serene e chiare", "Carlo Gesualdo", "5 voices", "2:59", "Opening Gesualdo example"),
+    ProgramItem(3, "Dolcissima mia vita", "Carlo Gesualdo", "5 voices", "2:15", "Short lyrical madrigal"),
+    ProgramItem(4, "Gia piansi nel dolore", "Carlo Gesualdo", "5 voices", "2:37", "Chromatic expression of grief"),
+    ProgramItem(5, "S'io non miro non moro", "Carlo Gesualdo", "5 voices", "2:00", "Compact madrigal; Mantovani link"),
+    ProgramItem(6, "Come Unto Me", "Take 6", "6 vocal parts", "2:13", "First Take 6 comparison"),
+    ProgramItem(7, "Moro, lasso, al mio duolo", "Carlo Gesualdo", "5 voices", "2:58", "Central Gesualdo example"),
+    ProgramItem(8, "Sparge la morte", "Carlo Gesualdo", "5 voices", "2:49", "Contrasting madrigal texture"),
+    ProgramItem(9, "Belta, poi che t'assenti", "Carlo Gesualdo", "5 voices", "2:11", "Stravinsky connection"),
+    ProgramItem(10, "Tristis est anima mea", "Carlo Gesualdo", "6 voices", "3:00", "Six-voice sacred work"),
+    ProgramItem(11, "Hark! The Herald Angels Sing", "Take 6", "6 vocal parts", "2:32", "Bright late-program contrast"),
+    ProgramItem(12, "A Quiet Place", "Take 6", "6 vocal parts", "2:46", "Final calm piece"),
 )
 
 
@@ -59,6 +61,7 @@ PLAN_SECTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
         "Concept",
         (
             "This evening presents vocal music without voices. Gesualdo's madrigals and sacred pieces were written for five or six voices. Take 6 works in a very different idiom - gospel, jazz, pop, and studio vocal virtuosity - but it also depends on several independent voices forming one harmonic body.",
+            "The concert can begin with a short four-voice piece played without naming its composer. The audience may hear Renaissance, Baroque, or sacred harmony before the reveal: it is the Beach Boys' Our Prayer. This makes the opening both playful and precise: four voices can pass directly into four strings, before the harder reductions begin.",
             "The string quartet cannot reproduce the words, breath, or vocal blend of the originals. It can make other things clear: counterpoint, harmonic structure, register, and the movement from one sonority to another. The practical question is simple: what can be kept when five or six vocal lines have to become four string parts?",
         ),
     ),
@@ -81,13 +84,14 @@ PLAN_SECTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (
         "Overall Timing",
         (
-            "Nominal music duration: about 28:20. Realistic performed music duration: about 31-32 minutes. With transitions and short spoken islands: about 39-40 minutes. Total spoken introduction and discussion: about 19-21 minutes. Total event: about 58-61 minutes.",
+            "Nominal music duration: about 29:30. Realistic performed music duration: about 32-33 minutes. With transitions and short spoken islands: about 41-42 minutes. Total spoken introduction and discussion: about 18-20 minutes. Total event: about 59-62 minutes.",
             "The evening should feel like a concert first and a conference second: short spoken islands, then music. The explanations should sharpen listening rather than interrupt it.",
         ),
     ),
     (
         "Musical Shape",
         (
+            "Prologue - anonymous four-part harmony: Our Prayer, played first as a listening question before the composer is revealed.",
             "Part I - Gesualdo madrigal language: Luci serene e chiare; Dolcissima mia vita; Gia piansi nel dolore; S'io non miro non moro.",
             "Part II - Comparison and central examples: Come Unto Me; Moro, lasso, al mio duolo; Sparge la morte; Belta, poi che t'assenti.",
             "Part III - Six-voice and closing pieces: Tristis est anima mea; Hark! The Herald Angels Sing; A Quiet Place.",
@@ -96,8 +100,9 @@ PLAN_SECTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (
         "Spoken Islands",
         (
-            "Opening, 3-4 minutes: vocal music without voices; why Gesualdo and Take 6 are in the same programme; why the string quartet is a useful medium.",
-            "After piece 2 or before piece 3, 3 minutes: what a madrigal is; how words create musical decisions; why chromatic voice-leading matters more than isolated chords.",
+            "Opening, 1 minute before the first piece: ask the audience to listen without a label. Is it Renaissance, Baroque, sacred, modern? Then play the anonymous opening.",
+            "After the opening piece, 3-4 minutes: reveal the Beach Boys; introduce vocal music without voices; explain why Gesualdo and Take 6 are in the same programme and why the string quartet is a useful medium.",
+            "After piece 3 or before piece 4, 3 minutes: what a madrigal is; how words create musical decisions; why chromatic voice-leading matters more than isolated chords.",
             "Before Come Unto Me, 3 minutes: why Take 6 belongs here; six vocal parts as a modern comparison to Gesualdo's multi-voice writing.",
             "Before Moro, lasso, 4 minutes: the AI/reduction problem. Explain the competing constraints: keep essential musical events, fit four instruments, preserve readable notation, and avoid losing the character of the original.",
             "Before Tristis or Hark, 4 minutes: place the last group clearly: one six-voice Gesualdo work, then two Take 6 pieces to close the evening in a different harmonic world.",
@@ -188,7 +193,8 @@ VISION_SECTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (
         "The Concert as Argument",
         (
-            "The evening programme turns the argument into a listening path. It begins with five-voice Gesualdo pieces where light, sweetness, grief, and paradox are gradually destabilized. Take 6 then appears as the first modern mirror: another world of vocal harmony, compressed into strings.",
+            "The evening programme turns the argument into a listening path. It can begin with an anonymous four-voice opening, later revealed as the Beach Boys' Our Prayer. This gives the audience a direct, playful case of vocal harmony becoming quartet sound before the reductions become more constrained.",
+            "The programme then moves into five-voice Gesualdo pieces where light, sweetness, grief, and paradox are gradually destabilized. Take 6 then appears as a modern mirror: another world of vocal harmony, compressed into strings.",
             "The center of the concert is Moro, lasso, al mio duolo, where chromatic suffering becomes almost physical. The programme then moves through death, absence, and six-voice sacred darkness before turning to Take 6 again: Hark! The Herald Angels Sing as sacred radiance, and A Quiet Place as final repose.",
             "The final point is not that Take 6 resolves Gesualdo historically. It does something gentler and more interesting: it places another model of complex vocal harmony beside Gesualdo, one in which density can become consolation.",
         ),
@@ -227,7 +233,7 @@ def _program_table(styles: dict[str, ParagraphStyle]) -> Table:
         rows.append(
             [
                 str(item.number),
-                Paragraph(f"{item.composer}, <i>{item.piece}</i>" if item.composer == "Carlo Gesualdo" else f"{item.composer}, <i>{item.piece}</i>", styles["small"]),
+                Paragraph(_public_piece_label(item), styles["small"]),
                 item.source,
                 item.duration,
                 Paragraph(item.function, styles["small"]),
@@ -253,6 +259,12 @@ def _program_table(styles: dict[str, ParagraphStyle]) -> Table:
         )
     )
     return table
+
+
+def _public_piece_label(item: ProgramItem) -> str:
+    if item.number == 1:
+        return "<i>Anonymous opening chorale</i><br/><font size='7'>revealed later as The Beach Boys, Our Prayer</font>"
+    return f"{item.composer}, <i>{item.piece}</i>"
 
 
 def _doc(path: Path, title: str, subtitle: str) -> SimpleDocTemplate:
@@ -282,7 +294,8 @@ def _write_plan_markdown() -> None:
     lines.append("| # | Piece | Original | Duration | Function |")
     lines.append("|---|---|---:|---:|---|")
     for item in PROGRAM:
-        lines.append(f"| {item.number} | {item.composer}, *{item.piece}* | {item.source} | {item.duration} | {item.function} |")
+        piece = "Anonymous opening chorale *(revealed later as The Beach Boys, Our Prayer)*" if item.number == 1 else f"{item.composer}, *{item.piece}*"
+        lines.append(f"| {item.number} | {piece} | {item.source} | {item.duration} | {item.function} |")
     lines.append("")
     for heading, paragraphs in PLAN_SECTIONS[2:]:
         lines.extend([f"## {heading}", ""])
@@ -328,6 +341,44 @@ def build_plan_pdf() -> Path:
     return PLAN_PDF
 
 
+def build_temptative_programme_pdf() -> Path:
+    styles = _styles()
+    story = [
+        Paragraph("Current Programme", styles["title"]),
+        Paragraph("Gesualdo / Take 6 - vocal harmony without voices", styles["subtitle"]),
+        Paragraph("Format", styles["heading"]),
+        Paragraph(
+            "Start: 20:30. Nominal music duration: about 29:30. Realistic performed music duration: about 32-33 minutes. With transitions and short spoken islands: about 41-42 minutes. Spoken introduction and discussion: about 18-20 minutes. Total event: about 59-62 minutes.",
+            styles["body"],
+        ),
+        Paragraph("Concept", styles["heading"]),
+        Paragraph(
+            "The evening begins with a short four-voice piece played without a composer label. The audience can first hear it as a question: Renaissance, Baroque, sacred, modern? The reveal - the Beach Boys' Our Prayer - opens the central idea of the concert: vocal harmony can migrate into the string quartet and still keep its harmonic identity.",
+            styles["body"],
+        ),
+        Paragraph(
+            "From there the programme moves to Gesualdo, where five- and six-voice vocal writing creates a harder reduction problem, and then to Take 6, whose close-harmony language becomes a modern mirror.",
+            styles["body"],
+        ),
+        Paragraph("Programme", styles["heading"]),
+        KeepTogether(_program_table(styles)),
+        Paragraph("Dramatic Shape", styles["heading"]),
+        Paragraph("Prologue - anonymous four-part harmony, then the Beach Boys reveal.", styles["body"]),
+        Paragraph("Arc I - Gesualdo madrigal language: light, sweetness, grief, paradox.", styles["body"]),
+        Paragraph("Arc II - Take 6 as modern mirror, then the central Gesualdo shock of Moro, lasso.", styles["body"]),
+        Paragraph("Arc III - six-voice sacred darkness, bright Take 6 radiance, and the quiet close of A Quiet Place.", styles["body"]),
+        Paragraph("Spoken Structure", styles["heading"]),
+        Paragraph("1. One-minute opening invitation: listen first without a label.", styles["body"]),
+        Paragraph("2. Reveal Our Prayer and introduce vocal music without voices.", styles["body"]),
+        Paragraph("3. Explain the madrigal and Gesualdo's chromatic voice-leading.", styles["body"]),
+        Paragraph("4. Introduce Take 6 as a modern close-harmony mirror.", styles["body"]),
+        Paragraph("5. Explain the AI reduction problem as a balance of competing musical constraints.", styles["body"]),
+        Paragraph("6. Prepare the final sequence: sacred darkness, radiance, repose.", styles["body"]),
+    ]
+    _doc(TEMPTATIVE_PDF, "Current Programme", "Gesualdo / Take 6").build(story)
+    return TEMPTATIVE_PDF
+
+
 def build_vision_pdf() -> Path:
     styles = _styles()
     story = [
@@ -354,7 +405,7 @@ def main() -> None:
     PDF_DIR.mkdir(parents=True, exist_ok=True)
     _write_plan_markdown()
     _write_vision_markdown()
-    for path in (build_plan_pdf(), build_vision_pdf(), PLAN_MD, VISION_MD):
+    for path in (build_plan_pdf(), build_vision_pdf(), build_temptative_programme_pdf(), PLAN_MD, VISION_MD):
         print(path.relative_to(ROOT))
 
 

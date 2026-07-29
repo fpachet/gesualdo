@@ -35,22 +35,29 @@ class ProgramItem:
 
 
 PROGRAM: tuple[ProgramItem, ...] = (
-    ProgramItem(1, "Luci serene e chiare", "Carlo Gesualdo", "5 voices", "c. 3:00"),
-    ProgramItem(2, "Dolcissima mia vita", "Carlo Gesualdo", "5 voices", "c. 2:15"),
-    ProgramItem(3, "Gia piansi nel dolore", "Carlo Gesualdo", "5 voices", "c. 2:40"),
-    ProgramItem(4, "S'io non miro non moro", "Carlo Gesualdo", "5 voices", "c. 2:00"),
-    ProgramItem(5, "Come Unto Me", "Take 6", "6 vocal parts", "c. 2:45"),
-    ProgramItem(6, "Moro, lasso, al mio duolo", "Carlo Gesualdo", "5 voices", "c. 3:00"),
-    ProgramItem(7, "Sparge la morte", "Carlo Gesualdo", "5 voices", "c. 2:50"),
-    ProgramItem(8, "Belta, poi che t'assenti", "Carlo Gesualdo", "5 voices", "c. 2:15"),
-    ProgramItem(9, "Tristis est anima mea", "Carlo Gesualdo", "6 voices", "c. 3:00"),
-    ProgramItem(10, "A Quiet Place", "Take 6", "6 vocal parts", "c. 2:30"),
+    ProgramItem(1, "Anonymous opening chorale", "revealed later", "4 voices", "c. 1:10"),
+    ProgramItem(2, "Luci serene e chiare", "Carlo Gesualdo", "5 voices", "c. 3:00"),
+    ProgramItem(3, "Dolcissima mia vita", "Carlo Gesualdo", "5 voices", "c. 2:15"),
+    ProgramItem(4, "Gia piansi nel dolore", "Carlo Gesualdo", "5 voices", "c. 2:40"),
+    ProgramItem(5, "S'io non miro non moro", "Carlo Gesualdo", "5 voices", "c. 2:00"),
+    ProgramItem(6, "Come Unto Me", "Take 6", "6 vocal parts", "c. 2:15"),
+    ProgramItem(7, "Moro, lasso, al mio duolo", "Carlo Gesualdo", "5 voices", "c. 3:00"),
+    ProgramItem(8, "Sparge la morte", "Carlo Gesualdo", "5 voices", "c. 2:50"),
+    ProgramItem(9, "Belta, poi che t'assenti", "Carlo Gesualdo", "5 voices", "c. 2:15"),
+    ProgramItem(10, "Tristis est anima mea", "Carlo Gesualdo", "6 voices", "c. 3:00"),
+    ProgramItem(11, "Hark! The Herald Angels Sing", "Take 6", "6 vocal parts", "c. 2:30"),
+    ProgramItem(12, "A Quiet Place", "Take 6", "6 vocal parts", "c. 2:45"),
 )
 
 
 INTRO_PARAGRAPHS = (
-    "This concert-conference places two distant vocal worlds beside one another: "
-    "Carlo Gesualdo's late Renaissance madrigals and sacred music, and the dense, "
+    "This concert-conference begins with a short four-voice piece played without "
+    "a label. The audience is invited to hear it first as a question: Renaissance, "
+    "Baroque, sacred, modern? The reveal is part of the argument: the piece is "
+    "the Beach Boys' Our Prayer, and it already shows vocal harmony becoming "
+    "quartet harmony.",
+    "The programme then places two distant vocal worlds beside one another: Carlo "
+    "Gesualdo's late Renaissance madrigals and sacred music, and the dense, "
     "radiant close harmony of Take 6. Both repertoires are built from voices that "
     "move with extraordinary independence, but both also create moments where harmony "
     "seems to stop time: suspensions, chromatic shocks, luminous clusters, and "
@@ -61,7 +68,7 @@ INTRO_PARAGRAPHS = (
     "as much of the original contrapuntal pressure as possible. This is also where AI "
     "enters the evening: as a tool for listening, searching, recombining, testing, and "
     "auditing musical decisions.",
-    "The programme gradually moves from Gesualdo's five-voice madrigal world toward "
+    "The programme moves from the four-voice opening into Gesualdo's five-voice madrigal world, then toward "
     "more extreme chromatic writing, then opens a modern mirror through Take 6. The "
     "six-voice Gesualdo near the end acts as a historical summit, and the final Take 6 "
     "piece, A Quiet Place, gives the evening a calm landing after the harmonic vertigo.",
@@ -188,7 +195,7 @@ def build_document(output_path: Path = OUTPUT_PATH) -> Path:
             KeepTogether(_playlist_table(styles)),
             Spacer(1, 5 * mm),
             Paragraph(
-                "Total music: approximately 27 minutes strict timing, or about 30-35 minutes with "
+                "Total music: approximately 29:30 strict timing, or about 32-33 minutes with "
                 "stage pacing and transitions. The complete event can comfortably fit into a one-hour "
                 "concert-conference with short spoken introductions between musical groups.",
                 styles["small"],
@@ -196,8 +203,8 @@ def build_document(output_path: Path = OUTPUT_PATH) -> Path:
             PageBreak(),
             Paragraph("Suggested Spoken Arc", styles["heading"]),
             Paragraph(
-                "<b>1. Opening frame.</b> Why Gesualdo and Take 6 belong in the same room: "
-                "two vocal traditions separated by centuries, both obsessed with expressive harmony.",
+                "<b>1. Opening question.</b> Begin with the anonymous four-voice piece, then reveal "
+                "the Beach Boys and use that surprise to introduce vocal harmony without voices.",
                 styles["body"],
             ),
             Paragraph(
@@ -213,8 +220,8 @@ def build_document(output_path: Path = OUTPUT_PATH) -> Path:
                 styles["body"],
             ),
             Paragraph(
-                "<b>4. The final turn.</b> After Gesualdo's 6-voice sacred depth, A Quiet Place closes "
-                "the evening not with a demonstration, but with a destination.",
+                "<b>4. The final turn.</b> After Gesualdo's 6-voice sacred depth, Hark brings radiance "
+                "and A Quiet Place closes the evening not with a demonstration, but with a destination.",
                 styles["body"],
             ),
         ]

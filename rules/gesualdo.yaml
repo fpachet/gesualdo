@@ -1,0 +1,507 @@
+version: 1
+name: gesualdo
+description: 'Rule set for reducing Gesualdo five- and six-voice vocal polyphony to string quartet while preserving source identity, contrapuntal profile, and reviewable provenance.
+
+  '
+target_ensemble: string_quartet
+source_idiom: gesualdo_madrigal
+imports:
+- shared_quartet.yaml
+metadata:
+  generated_from_project: gesualdo
+  generated_date: '2026-07-04'
+  extraction_status: draft
+  source_files_inspected:
+  - docs/reduction_rules.md
+  - docs/cpdl_six_voice_reduction_plan.md
+  - docs/quartet_director_feedback_plan.md
+  - data/cpdl/5-voices/reductions/string_quartet/report.tsv
+  - data/cpdl/6-voices/reductions/string_quartet/report.tsv
+passes:
+- id: select_parseable_source
+  description: Prefer MXL/MusicXML/XML before MIDI and require the expected source voice count.
+- id: choose_global_transposition
+  description: Use shared range/register/key-signature candidate scoring.
+- id: assign_outer_voices
+  description: Preserve the highest and lowest source voices as quartet anchors.
+- id: compress_inner_voices
+  description: Select inner source events for Violin II, Viola, and borrowable idle outer parts.
+- id: optional_enrichment
+  description: Add source restoration or explicitly tagged editorial harmony when enabled.
+- id: validate_and_review
+  description: Run notation cleanup, audits, and director-review feedback loops.
+priorities:
+  hard_constraints:
+  - require_expected_gesualdo_source_voice_count
+  - preserve_source_rhythm_and_pitch_class
+  optimization_pressures:
+  - preserve_outer_source_voices
+  - preserve_characteristic_chromatic_events
+  - increase_weight_for_uncovered_pitch_classes
+  optional_enrichments:
+  - allow_source_voice_restoration
+  - allow_editorial_support_harmony
+  - allow_editorial_missing_third_completion
+rules:
+- id: require_expected_gesualdo_source_voice_count
+  title: Require expected Gesualdo source voice count
+  scope: source_parsing
+  priority: hard
+  action: require_source_voice_count
+  parameters:
+    allowed_counts:
+    - 5
+    - 6
+    five_voice_sections:
+    - Sacred works for five voices
+    - Secular works for five voices
+    six_voice_sections:
+    - Sacred works for six voices
+    - Secular works for six voices
+    preferred_format_order:
+    - mxl
+    - musicxml
+    - xml
+    - mid
+    - midi
+  rationale: 'CPDL pages can contain alternate downloads or extra staves; the reducer should only reduce sources that parse to the intended voice count.
+
+    '
+  evidence:
+    docs:
+    - path: docs/cpdl_six_voice_reduction_plan.md
+      note: Describes source preflight for six-voice CPDL material.
+    code: []
+    reports:
+    - path: data/cpdl/5-voices/reductions/string_quartet/report.tsv
+      note: Five-voice reduction report.
+    - path: data/cpdl/6-voices/reductions/string_quartet/report.tsv
+      note: Six-voice reduction report.
+    examples: []
+  exceptions: []
+  applies_to:
+    idioms:
+    - gesualdo
+    source_voice_counts:
+    - 5
+    - 6
+    targets:
+    - string_quartet
+  pass: select_parseable_source
+- id: preserve_source_rhythm_and_pitch_class
+  title: Preserve source rhythm and pitch class
+  scope: source_event_model
+  priority: hard
+  action: preserve_attacks_durations_and_pitch_classes
+  parameters:
+    preserve_attacks: true
+    preserve_durations: true
+    preserve_pitch_classes: true
+    allow_octave_displacement: true
+    allow_barline_split_with_tie: true
+  rationale: 'Gesualdo reductions should be transformations of the source polyphony, not recompositions of its rhythm or harmonic content.
+
+    '
+  evidence:
+    docs:
+    - path: docs/reduction_rules.md
+      note: States that rhythm, attacks, durations, pitch classes, and voice identity are preserved.
+    code: []
+    reports: []
+    examples: []
+  exceptions:
+  - id: measure_split
+    description: Notes crossing barlines are split and tied without changing total duration.
+- id: preserve_outer_source_voices
+  title: Preserve outer source voices
+  scope: outer_voice_assignment
+  priority: very_high
+  action: map_extreme_source_voices_to_extreme_quartet_parts
+  parameters:
+    highest_source_voice_target: violin_1
+    lowest_source_voice_target: cello
+    rank_method: median_sounding_pitch
+    allow_range_octave_displacement: true
+    keep_monophonic_outer_targets: true
+  rationale: 'Gesualdo''s outer lines carry structural identity and stabilize the listener while inner contrapuntal material is compressed.
+
+    '
+  evidence:
+    docs:
+    - path: docs/reduction_rules.md
+      note: Describes outer voice preservation.
+    code: []
+    reports: []
+    examples: []
+  exceptions:
+  - id: range_conflict
+    description: Preserve pitch class by octave displacement when a literal pitch is outside range.
+- id: compress_five_voice_inner_material
+  title: Compress five-voice inner material
+  scope: inner_voice_compression
+  priority: high
+  action: select_inner_source_events_for_available_targets
+  parameters:
+    expected_source_voice_count: 5
+    primary_inner_targets:
+    - violin_2
+    - viola
+    allow_idle_outer_borrowing: true
+    allow_supporting_doublings: true
+    preserve_new_pitch_classes_first: true
+    assignment_cost:
+      voice_continuity_weight: 10.0
+      initial_order_weight: 3.0
+      range_displacement_weight: 1.0
+      register_fit_weight: 0.1
+      single_event_register_split_midi: 60
+      single_event_two_target_rule: choose upper target at or above split, lower target below split when no last pitches exist
+    candidate_sort_order:
+    - new_onset_before_tie_continuation
+    - larger_spread_from_outer_anchors
+    - longer_duration
+    - stable_source_id
+  rationale: 'A five-voice madrigal cannot be copied literally into four strings, so the middle texture is selected locally while outer anchors remain stable.
+
+    '
+  evidence:
+    docs:
+    - path: docs/reduction_rules.md
+      note: Describes compression and harmonic coverage tradeoffs.
+    code: []
+    reports:
+    - path: data/cpdl/5-voices/reductions/string_quartet/report.tsv
+      note: Five-voice batch output.
+    examples: []
+  exceptions: []
+  applies_to:
+    idioms:
+    - gesualdo
+    source_voice_counts:
+    - 5
+    targets:
+    - string_quartet
+  pass: compress_inner_voices
+- id: compress_six_voice_inner_material
+  title: Compress six-voice inner material
+  scope: inner_voice_compression
+  priority: high
+  action: compress_six_source_voices_to_quartet
+  parameters:
+    expected_source_voice_count: 6
+    pinned_outer_voices: true
+    middle_source_voice_count: 4
+    primary_inner_targets:
+    - violin_2
+    - viola
+    allow_idle_outer_borrowing: true
+    allow_omission_per_event_window: true
+    assignment_cost:
+      voice_continuity_weight: 10.0
+      initial_order_weight: 3.0
+      range_displacement_weight: 1.0
+      register_fit_weight: 0.1
+      single_event_register_split_midi: 60
+      single_event_two_target_rule: choose upper target at or above split, lower target below split when no last pitches exist
+    candidate_sort_order:
+    - new_onset_before_tie_continuation
+    - larger_spread_from_outer_anchors
+    - longer_duration
+    - stable_source_id
+  rationale: 'Six-voice Gesualdo material needs an explicit six-to-four policy so omitted inner strands are a reviewable choice rather than an accidental side effect.
+
+    '
+  evidence:
+    docs:
+    - path: docs/cpdl_six_voice_reduction_plan.md
+      note: Specifies the six-voice quartet compression engine.
+    code: []
+    reports:
+    - path: data/cpdl/6-voices/reductions/string_quartet/report.tsv
+      note: Six-voice batch output.
+    examples: []
+  exceptions: []
+  applies_to:
+    idioms:
+    - gesualdo
+    source_voice_counts:
+    - 6
+    targets:
+    - string_quartet
+  pass: compress_inner_voices
+- id: increase_weight_for_uncovered_pitch_classes
+  title: Preserve active pitch classes
+  scope: pitch_class_coverage
+  priority: high
+  action: increase_weight_for_uncovered_pitch_classes
+  parameters:
+    prefer_new_pitch_class_over_duplicate: true
+    duplicate_pitch_class_penalty:
+      status: implicit_hard_filter_in_primary_selection
+      rule: primary pass skips candidates whose pitch class is already covered
+      exceptions:
+      - source_line_continuity
+      - supporting_doubling
+      - optional_enrichment
+  rationale: 'Distinct source pitch classes define local sonority; duplicates are less important unless they preserve a line or instrumental weight.
+
+    '
+  evidence:
+    docs:
+    - path: docs/reduction_rules.md
+      note: Names harmonic coverage as a core constraint.
+    code: []
+    reports: []
+    examples: []
+  exceptions:
+  - id: source_line_duplicate
+    description: A duplicate pitch class may be kept when it continues a source line.
+- id: preserve_characteristic_chromatic_events
+  title: Preserve chromatic and dissonant events
+  scope: chromatic_motion
+  priority: high
+  action: preserve_source_chromatic_events_indirectly
+  parameters:
+    implementation_status: indirect_no_explicit_false_relation_or_suspension_detector
+    implemented_mechanisms:
+      source_pitch_class_preservation: true
+      primary_selection_prefers_uncovered_pitch_classes: true
+      new_onsets_preferred_over_tie_continuations: true
+      longer_duration_breaks_ties_after_onset_and_spread: true
+      editorial_harmony_must_not_hide_later_chromatic_source_note: true
+      generated_replacement_allowed_for_detected_chromatic_event: false
+    protected_case:
+      description: If a later source chromatic note appears in an active source line, source-voice enrichment must be allowed to expose it rather than filling the texture only with editorial harmony.
+      example_pattern: rest, G-sharp, A against longer E support
+    not_implemented_as_detectors:
+      false_relation_detector: false
+      cross_relation_detector: false
+      suspension_detector: false
+      generic_dissonance_classifier: false
+    future_detector_specification_needed:
+    - false_or_cross_relation_window
+    - suspension_preparation_dissonance_resolution_pattern
+    - accented_dissonance_classifier
+  rationale: Current Gesualdo chromatic preservation is achieved mainly by preserving real source events and avoiding editorial choices that hide later chromatic source notes; explicit false-relation, cross-relation, suspension, and generic dissonance detectors are not implemented in the current reducer.
+  evidence:
+    docs:
+    - path: docs/reduction_rules.md
+      note: Explicitly says dissonance and chromatic motion are structural material.
+    code: []
+    reports: []
+    examples: []
+  exceptions: []
+- id: avoid_smoothing_dissonance
+  title: Avoid smoothing dissonances
+  scope: dissonance_preservation
+  priority: high
+  action: preserve_source_dissonance_when_detectable
+  parameters:
+    implementation_status: source_priority_not_explicit_dissonance_detection
+    prefer_source_note_over_smooth_filler: true
+    generated_replacement_allowed: false
+    editorial_layers_are_optional: true
+    known_limit: No current rule computes whether a source event is dissonant in counterpoint; dissonance is protected indirectly when the source event is selected or restored.
+  rationale: The current reducer avoids smoothing mostly by making source events primary and editorial material optional/tagged; it does not yet classify all dissonances explicitly.
+  evidence:
+    docs:
+    - path: docs/reduction_rules.md
+      note: Warns against smoothing characteristic dissonances.
+    code: []
+    reports: []
+    examples: []
+  exceptions: []
+- id: allow_idle_outer_borrowing_for_coverage
+  title: Allow idle outer parts to borrow inner material
+  scope: borrowing
+  priority: medium
+  action: allow_idle_outer_target_to_borrow_inner_source_line
+  parameters:
+    allowed_targets:
+    - violin_1
+    - cello
+    require_target_idle: true
+    require_range_fit: true
+    prefer_continuous_source_line: true
+    bottom_target_register_guard:
+      import_rule: avoid_high_borrowed_bottom_register
+      applies_to_target: cello
+      reject_borrowed_non_anchor_events_above_midi: 60
+      allow_true_bottom_anchor_events_above_threshold_after_octave_fitting: true
+      rationale: The cello may borrow inner material for coverage, but borrowed high material should not displace the cello's bass-function identity.
+  rationale: 'A resting outer string may preserve a real inner source line when doing so improves coverage without breaking the outer anchor role.
+
+    '
+  evidence:
+    docs:
+    - path: docs/reduction_rules.md
+      note: Mentions borrowing a line temporarily as acceptable.
+    code: []
+    reports: []
+    examples: []
+  exceptions: []
+- id: penalize_isolated_fragments
+  title: Penalize isolated fragments
+  scope: fragment_pruning
+  priority: medium
+  action: penalize_isolated_fragments
+  parameters:
+    prefer_continuity_over_single_attacks: true
+    borrowed_neighbor_max_gap_quarters: 1.0
+    monophonic_fragment_merge_max_gap_quarters: 0.08333333333333333
+    production_pruning:
+      applies_to: borrowed events in targets with initial anchored source material
+      borrowed_event_definition: event source id is not among initial anchored source ids for that target
+      keep_borrowed_event_when: another borrowed event from the same source part starts within max_gap after this event ends, or ends within max_gap before this event starts
+      borrowed_neighbor_max_gap_quarters: 1.0
+      otherwise_drop_borrowed_event: true
+    audit_sparse_fragment_definition:
+      island_grouping_max_internal_gap_quarters: 1.0
+      long_rest_bars: 2.0
+      max_fragment_note_duration_quarters: 1.5
+      max_fragment_attacks: 3
+      flag_when: island is short by duration or attack count, and silence before or after is at least long_rest_bars times median measure duration
+      severity_high_when: long silence occurs both before and after the island
+  rationale: The production reducer prunes isolated borrowed events with a one-quarter-neighbor rule; the audit layer separately flags sparse islands using duration, attack-count, and long-silence thresholds.
+  evidence:
+    docs:
+    - path: docs/quartet_director_feedback_plan.md
+      note: Director feedback loop identifies sparse fragments as review issues.
+    code: []
+    reports:
+    - path: outputs/reports/part_coherence_audit.tsv
+      note: Fragment and coherence audit data.
+    examples: []
+  exceptions: []
+- id: allow_source_voice_restoration
+  title: Allow source-voice restoration
+  scope: source_voice_restoration
+  priority: optional
+  action: allow_source_voice_restoration
+  parameters:
+    mode_flag: preserve_active_voice_count
+    enabled_in_cpdl_five_voice_batch: true
+    preserve_duplicate_pitch_class_line_when_continuous: true
+    avoid_bare_octave_duplicate_pickup: true
+    bottom_target_register_guard:
+      import_rule: avoid_high_borrowed_bottom_register
+      applies_when_restoring_voice_count_into_cello: true
+      reject_borrowed_non_anchor_events_above_midi: 60
+      allow_true_bottom_anchor_events_above_threshold_after_octave_fitting: true
+      decision_order:
+      - prefer restoring uncovered active source pitch classes
+      - reject illegal high borrowed cello candidates
+      - use continuity and register costs among remaining candidates
+  rationale: 'Optional enrichment can restore real source voices when the plain quartet reduction is too sparse, but restored notes must still be source-traceable.
+
+    '
+  evidence:
+    docs:
+    - path: README.md
+      note: Documents preserve_active_voice_count.
+    code: []
+    reports: []
+    examples: []
+  exceptions:
+  - id: bare_unison_or_octave_pickup
+    description: Do not add an extra duplicate pitch class when the active sonority contains only one pitch class.
+- id: allow_editorial_support_harmony
+  title: Allow editorial support harmony
+  scope: editorial_generation
+  priority: optional
+  action: allow_editorial_support_harmony
+  parameters:
+    mode_flag: add_editorial_harmony
+    enabled_in_cpdl_five_voice_batch: true
+    target_active_parts: 4
+    source_pitch_classes_only: true
+    require_generated_tag: true
+    minimum_support_duration_quarters: 0.5
+    candidate_cost:
+      register_cost_weight: 1.0
+      continuity_cost: abs(candidate - previous_pitch) / 12
+      exact_duplicate_cost: 1.5
+      displacement_cost: abs(candidate - source_pitch) / 24
+      duration_reward_cap_quarters: 4.0
+  rationale: 'Editorial support can fill idle strings, but it must be explicit and subordinate to source preservation.
+
+    '
+  evidence:
+    docs:
+    - path: README.md
+      note: Documents add_editorial_harmony.
+    code: []
+    reports: []
+    examples: []
+  exceptions: []
+- id: allow_editorial_missing_third_completion
+  title: Allow editorial missing-third completion
+  scope: editorial_generation
+  priority: optional
+  action: allow_editorial_missing_third_completion
+  parameters:
+    mode_flag: add_editorial_thirds
+    enabled_in_cpdl_five_voice_batch: true
+    trigger: root_fifth_shell_without_third
+    prefer_nearest_later_source_third: true
+    fallback_third_quality: major
+    require_generated_tag: true
+    lookahead_quarters: 12.0
+    placement_cost:
+    - register_fit_score
+    - continuity_distance_over_12
+    - distance_from_active_anchor_center_over_24
+  rationale: 'A narrow missing-third layer can make root-fifth shells less empty while staying distinguishable from source-derived material.
+
+    '
+  evidence:
+    docs:
+    - path: docs/reduction_rules.md
+      note: Describes optional editorial missing-third completion.
+    code: []
+    reports: []
+    examples: []
+  exceptions:
+  - id: source_contains_no_immediate_clue
+    description: Default to major third when the source gives no immediate clue.
+- id: use_director_review_as_constraint_discovery
+  title: Use director review as constraint discovery
+  scope: evaluation
+  priority: medium
+  action: promote_repeated_review_feedback_to_rules
+  parameters:
+    require_repeatable_check_before_promotion: true
+    review_artifacts:
+    - output/pdf/quartet_director/gesualdo_5_voice_string_quartet_reductions.pdf
+    - output/pdf/quartet_director/gesualdo_6_voice_string_quartet_reductions.pdf
+    audit_outputs:
+    - outputs/reports/part_coherence_audit.tsv
+    - outputs/reports/beat_readability_audit.tsv
+  rationale: 'Repeated director comments become durable knowledge only when they can be stated as a rule and audited across the corpus.
+
+    '
+  evidence:
+    docs:
+    - path: docs/quartet_director_feedback_plan.md
+      note: Captures feedback-to-audit planning.
+    - path: docs/reduction_process_overview.md
+      note: Describes the director-feedback audit loop.
+    code: []
+    reports:
+    - path: outputs/reports/part_coherence_audit.md
+      note: Human-readable audit summary.
+    examples: []
+  exceptions: []
+validation:
+  required_checks:
+  - expected_source_voice_count
+  - part_count_is_four
+  - measure_duration_valid
+  - no_overlaps
+  - source_provenance_present
+  expected_metrics:
+  - global_transposition
+  - reduced_parts
+  - measures_per_part
+  - fragment_flags
+  - register_jump_flags

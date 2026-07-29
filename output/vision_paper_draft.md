@@ -68,7 +68,9 @@ The difficulty is that the important events are not always obvious from pitch co
 
 ## The Concert as Argument
 
-The evening programme turns the argument into a listening path. It begins with five-voice Gesualdo pieces where light, sweetness, grief, and paradox are gradually destabilized. Take 6 then appears as the first modern mirror: another world of vocal harmony, compressed into strings.
+The evening programme turns the argument into a listening path. It can begin with an anonymous four-voice opening, later revealed as the Beach Boys' Our Prayer. This gives the audience a direct, playful case of vocal harmony becoming quartet sound before the reductions become more constrained.
+
+The programme then moves into five-voice Gesualdo pieces where light, sweetness, grief, and paradox are gradually destabilized. Take 6 then appears as a modern mirror: another world of vocal harmony, compressed into strings.
 
 The center of the concert is Moro, lasso, al mio duolo, where chromatic suffering becomes almost physical. The programme then moves through death, absence, and six-voice sacred darkness before turning to Take 6 again: Hark! The Herald Angels Sing as sacred radiance, and A Quiet Place as final repose.
 
