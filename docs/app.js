@@ -1,5 +1,5 @@
 const RAW_BASE = "https://raw.githubusercontent.com/fpachet/gesualdo/main/";
-const ASSET_VERSION = "2026-07-13-beach-boys-our-prayer";
+const ASSET_VERSION = "2026-07-29-concert-materials";
 const STORAGE_KEY = "gesualdo-quartet-review-v1";
 const VEROVIO_SCRIPT_URL = "https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js";
 const SCORE_RENDER_OPTIONS = {
@@ -252,6 +252,18 @@ function take6PdfPath(musicxmlPath) {
     .replace(/\.musicxml$/, ".pdf");
 }
 
+function beachBoysMp3Path(musicxmlPath) {
+  return musicxmlPath
+    .replace("/reductions/string_quartet/", "/renders/string_quartet_mp3/")
+    .replace(/\.musicxml$/, ".mp3");
+}
+
+function beachBoysPdfPath(musicxmlPath) {
+  return musicxmlPath
+    .replace("/reductions/string_quartet/", "/renders/string_quartet_pdf/")
+    .replace(/\.musicxml$/, ".pdf");
+}
+
 function normalizeKdfRow(row, dataset, order) {
   const musicxml = row.output;
   const piece = {
@@ -358,8 +370,8 @@ function normalizeBeachBoysRow(row, dataset, order) {
     semitones: numericValue(row.global_transposition),
     score: null,
     musicxml,
-    pdf: kdfPdfPath(musicxml),
-    mp3: dataset.hasAudio ? kdfMp3Path(musicxml) : "",
+    pdf: beachBoysPdfPath(musicxml),
+    mp3: dataset.hasAudio ? beachBoysMp3Path(musicxml) : "",
     measures: row.measures_per_part,
     reducedParts: 4,
     order,
