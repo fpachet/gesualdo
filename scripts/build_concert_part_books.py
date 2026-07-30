@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import copy
+import importlib.util
 import io
 import re
 import subprocess
+import sys
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,6 +23,19 @@ from reportlab.platypus import Paragraph
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+_MUSICXML_COMPAT_SPEC = importlib.util.spec_from_file_location(
+    "gesualdo_reduction_musicxml_compat",
+    ROOT / "src" / "gesualdo_reduction" / "musicxml_compat.py",
+)
+if _MUSICXML_COMPAT_SPEC is None or _MUSICXML_COMPAT_SPEC.loader is None:
+    raise ImportError("Could not load MusicXML compatibility module")
+_musicxml_compat = importlib.util.module_from_spec(_MUSICXML_COMPAT_SPEC)
+sys.modules[_MUSICXML_COMPAT_SPEC.name] = _musicxml_compat
+_MUSICXML_COMPAT_SPEC.loader.exec_module(_musicxml_compat)
+cleanup_musicxml_engraving = _musicxml_compat.cleanup_musicxml_engraving
+
 OUTPUT_XML_DIR = ROOT / "output" / "parts" / "musicxml"
 OUTPUT_PDF_DIR = ROOT / "output" / "pdf" / "quartet_director" / "parts"
 PIECE_PDF_DIR = OUTPUT_PDF_DIR / "pieces"
@@ -279,10 +294,7 @@ def _set_scaling(root: ET.Element, millimeters: str) -> None:
 
 
 def _apply_part_layout_adjustments(root: ET.Element, source: ProgramPartSource, instrument_name: str) -> None:
-    if instrument_name != "Violoncello":
-        return
-    _optimise_cello_clefs(root)
-    if source.title == "Dolcissima mia vita":
+    if instrument_name == "Violoncello" and source.title == "Dolcissima mia vita":
         _set_scaling(root, "6.3")
 
 
@@ -353,6 +365,7 @@ def extract_part_xml(source: ProgramPartSource, instrument_name: str, output_pat
     output_path.parent.mkdir(parents=True, exist_ok=True)
     ET.indent(root, space="  ")
     ET.ElementTree(root).write(output_path, encoding="utf-8", xml_declaration=True)
+    cleanup_musicxml_engraving(output_path, output_path)
     return output_path
 
 

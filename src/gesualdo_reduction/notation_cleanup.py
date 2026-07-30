@@ -8,7 +8,7 @@ from pathlib import Path
 from fractions import Fraction
 from typing import Iterable
 
-from music21 import bar, clef, converter, dynamics, key, note, stream, tie
+from music21 import bar, clef, converter, dynamics, key, note, pitch as m21pitch, stream, tie
 
 
 @dataclass
@@ -22,6 +22,7 @@ class NotationCleanupReport:
     final_barlines_added: int = 0
     cello_clef_changes_added: int = 0
     viola_clef_changes_added: int = 0
+    respelled_key_signature_accidentals: int = 0
     suppressed_tie_continuation_accidentals: int = 0
     normalized_dangling_ties: int = 0
     pdf_midi_fallbacks: int = 0
@@ -266,8 +267,71 @@ def _measure_key_signature(measure: stream.Measure, current: key.KeySignature | 
     return signatures[-1] if signatures else current
 
 
+def _pitch_alter(pitch: m21pitch.Pitch) -> int:
+    accidental = pitch.accidental
+    return 0 if accidental is None else int(accidental.alter)
+
+
+def _pitch_class_for_spelling(step: str, alter: int) -> int:
+    return (_STEP_TO_SEMITONE[step] + alter) % 12
+
+
+_STEP_TO_SEMITONE = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
+
+
+def _preferred_key_spellings(key_signature: key.KeySignature | None) -> dict[int, tuple[str, int]]:
+    if key_signature is None:
+        return {}
+    spellings: dict[int, tuple[str, int]] = {}
+    for altered_pitch in key_signature.alteredPitches:
+        step = altered_pitch.step
+        alter = _pitch_alter(altered_pitch)
+        spellings[_pitch_class_for_spelling(step, alter)] = (step, alter)
+    return spellings
+
+
+def _set_pitch_spelling(pitch: m21pitch.Pitch, step: str, alter: int) -> bool:
+    midi = int(round(pitch.midi))
+    for octave in range(-1, 10):
+        candidate = m21pitch.Pitch()
+        candidate.step = step
+        candidate.octave = octave
+        candidate.accidental = m21pitch.Accidental(alter) if alter else None
+        if int(round(candidate.midi)) != midi:
+            continue
+        pitch.step = candidate.step
+        pitch.octave = candidate.octave
+        pitch.accidental = candidate.accidental
+        return True
+    return False
+
+
+def normalize_key_signature_spellings(score: stream.Score) -> int:
+    """Respell enharmonics to prefer the active key signature's altered notes."""
+
+    count = 0
+    for part in score.parts:
+        current_key: key.KeySignature | None = None
+        for measure in part.getElementsByClass(stream.Measure):
+            current_key = _measure_key_signature(measure, current_key)
+            preferred = _preferred_key_spellings(current_key)
+            if not preferred:
+                continue
+            for element in measure.notes:
+                for pitch in _pitch_objects(element):
+                    target = preferred.get(int(round(pitch.midi)) % 12)
+                    if target is None:
+                        continue
+                    target_step, target_alter = target
+                    if pitch.step == target_step and _pitch_alter(pitch) == target_alter:
+                        continue
+                    if _set_pitch_spelling(pitch, target_step, target_alter):
+                        count += 1
+    return count
+
+
 def suppress_unneeded_naturals(score: stream.Score) -> int:
-    """Hide explicit naturals that restate the key and local measure state."""
+    """Hide explicit accidentals that restate the key and local measure state."""
 
     count = 0
     for part in score.parts:
@@ -283,15 +347,21 @@ def suppress_unneeded_naturals(score: stream.Score) -> int:
             for element in timed_elements:
                 for pitch in _pitch_objects(element):
                     accidental = pitch.accidental
-                    alter = 0 if accidental is None else int(accidental.alter)
+                    alter = _pitch_alter(pitch)
                     previous_alter = measure_state.get(pitch.step, key_state.get(pitch.step, 0))
-                    key_alter = key_state.get(pitch.step, 0)
                     if (
                         accidental is not None
-                        and accidental.name == "natural"
                         and accidental.displayStatus is not False
-                        and key_alter == 0
                         and previous_alter == 0
+                        and alter == previous_alter
+                    ):
+                        accidental.displayStatus = False
+                        count += 1
+                    elif (
+                        accidental is not None
+                        and accidental.displayStatus is not False
+                        and previous_alter != 0
+                        and alter == previous_alter
                     ):
                         accidental.displayStatus = False
                         count += 1
@@ -461,38 +531,79 @@ def _target_clef_for_cello_measure(
     return current_clef
 
 
+def _measure_clef_at_zero(measure: stream.Measure) -> clef.Clef | None:
+    for clef_obj in measure.getElementsByClass(clef.Clef):
+        if float(clef_obj.offset) == 0:
+            return clef_obj
+    return None
+
+
+def _remove_measure_clefs(measure: stream.Measure) -> int:
+    count = 0
+    for existing in list(measure.getElementsByClass(clef.Clef)):
+        if _safe_remove(existing):
+            count += 1
+    return count
+
+
+def _clef_plans_with_minimum_run(
+    measures: list[stream.Measure],
+    candidates: list[clef.Clef],
+    *,
+    min_high_measures: int,
+) -> list[clef.Clef]:
+    plans = [clef.BassClef() for _ in measures]
+    index = 0
+    while index < len(measures):
+        candidate = candidates[index]
+        if isinstance(candidate, clef.BassClef):
+            index += 1
+            continue
+        run_start = index
+        while index < len(measures) and _clef_id(candidates[index]) == _clef_id(candidate):
+            index += 1
+        if index - run_start >= min_high_measures:
+            for run_index in range(run_start, index):
+                plans[run_index] = copy.deepcopy(candidate)
+    return plans
+
+
 def add_cello_high_clefs(
     score: stream.Score,
     *,
-    tenor_midi: int = 60,
-    treble_midi: int = 67,
-    bass_return_midi: int = 55,
-    min_high_duration: float = 2.0,
+    tenor_midi: int = 65,
+    treble_midi: int = 72,
+    bass_return_midi: int = 60,
+    min_high_duration: float = 3.0,
+    min_high_measures: int = 2,
 ) -> int:
-    """Insert cello clef changes for sustained high passages."""
+    """Insert rare cello clef changes for sustained high passages."""
 
     count = 0
     for part in score.parts:
         if not _is_cello_part(part):
             continue
-        current_clef: clef.Clef = clef.BassClef()
-        for measure in part.getElementsByClass(stream.Measure):
-            measure_clefs = list(measure.getElementsByClass(clef.Clef))
-            if measure_clefs:
-                current_clef = measure_clefs[-1]
-            target_clef = _target_clef_for_cello_measure(
+        measures = list(part.getElementsByClass(stream.Measure))
+        candidates = [
+            _target_clef_for_cello_measure(
                 _measure_pitch_values(measure),
-                current_clef,
+                clef.BassClef(),
                 tenor_midi=tenor_midi,
                 treble_midi=treble_midi,
                 bass_return_midi=bass_return_midi,
                 min_high_duration=min_high_duration,
             )
+            for measure in measures
+        ]
+        plans = _clef_plans_with_minimum_run(measures, candidates, min_high_measures=min_high_measures)
+        current_clef: clef.Clef = clef.BassClef()
+        for measure, target_clef in zip(measures, plans, strict=True):
+            existing_zero = _measure_clef_at_zero(measure)
             if _clef_id(target_clef) == _clef_id(current_clef):
+                if existing_zero is not None and _clef_id(existing_zero) != _clef_id(target_clef):
+                    count += _remove_measure_clefs(measure)
                 continue
-            for existing in list(measure.getElementsByClass(clef.Clef)):
-                if float(existing.offset) == 0:
-                    _safe_remove(existing)
+            count += _remove_measure_clefs(measure)
             measure.insert(0, target_clef)
             current_clef = target_clef
             count += 1
@@ -502,38 +613,52 @@ def add_cello_high_clefs(
 def add_viola_high_clefs(
     score: stream.Score,
     *,
-    treble_midi: int = 69,
-    alto_return_midi: int = 65,
-    min_high_duration: float = 1.0,
+    treble_midi: int = 76,
+    alto_return_midi: int = 72,
+    min_high_duration: float = 3.0,
+    min_high_measures: int = 2,
 ) -> int:
-    """Insert treble clef for sustained high viola passages."""
+    """Insert treble clef for unusually high sustained viola passages."""
 
     count = 0
     for part in score.parts:
         if not _is_viola_part(part):
             continue
-        current_clef: clef.Clef = clef.AltoClef()
-        for measure in part.getElementsByClass(stream.Measure):
-            measure_clefs = list(measure.getElementsByClass(clef.Clef))
-            if measure_clefs:
-                current_clef = measure_clefs[-1]
+        measures = list(part.getElementsByClass(stream.Measure))
+        candidates: list[clef.Clef] = []
+        for measure in measures:
             values = _measure_pitch_values(measure)
             if not values:
-                target_clef = current_clef
+                target_clef = clef.AltoClef()
             elif (
                 max(midi for midi, _ in values) >= treble_midi
                 and _duration_at_or_above(values, treble_midi) >= min_high_duration
             ):
                 target_clef = clef.TrebleClef()
-            elif max(midi for midi, _ in values) <= alto_return_midi:
-                target_clef = clef.AltoClef()
             else:
-                target_clef = current_clef
-            if _clef_id(target_clef) == _clef_id(current_clef):
+                target_clef = clef.AltoClef()
+            candidates.append(target_clef)
+        plans = [clef.AltoClef() for _ in measures]
+        index = 0
+        while index < len(measures):
+            candidate = candidates[index]
+            if isinstance(candidate, clef.AltoClef):
+                index += 1
                 continue
-            for existing in list(measure.getElementsByClass(clef.Clef)):
-                if float(existing.offset) == 0:
-                    _safe_remove(existing)
+            run_start = index
+            while index < len(measures) and _clef_id(candidates[index]) == _clef_id(candidate):
+                index += 1
+            if index - run_start >= min_high_measures:
+                for run_index in range(run_start, index):
+                    plans[run_index] = copy.deepcopy(candidate)
+        current_clef: clef.Clef = clef.AltoClef()
+        for measure, target_clef in zip(measures, plans, strict=True):
+            existing_zero = _measure_clef_at_zero(measure)
+            if _clef_id(target_clef) == _clef_id(current_clef):
+                if existing_zero is not None and _clef_id(existing_zero) != _clef_id(target_clef):
+                    count += _remove_measure_clefs(measure)
+                continue
+            count += _remove_measure_clefs(measure)
             measure.insert(0, target_clef)
             current_clef = target_clef
             count += 1
@@ -559,10 +684,11 @@ def cleanup_score(
         report.normalized_dangling_ties = normalize_dangling_ties(score)
     if beat_readability:
         report.beat_readability_changes = normalize_beat_readability(score)
-    if suppress_naturals:
-        report.suppressed_naturals = suppress_unneeded_naturals(score)
+    report.respelled_key_signature_accidentals = normalize_key_signature_spellings(score)
     if suppress_tie_accidentals:
         report.suppressed_tie_continuation_accidentals = suppress_tie_continuation_accidentals(score)
+    if suppress_naturals:
+        report.suppressed_naturals = suppress_unneeded_naturals(score)
     if clean_dynamics:
         report.removed_dynamics, report.removed_hairpins = remove_editorial_dynamics(score)
     if final_barlines:

@@ -6,7 +6,7 @@ pytest.importorskip("music21")
 
 from music21 import chord, clef, dynamics, instrument, key, meter, note, pitch, stream, tie
 
-from gesualdo_reduction.musicxml_compat import strip_time_modifications
+from gesualdo_reduction.musicxml_compat import cleanup_musicxml_engraving, strip_time_modifications
 from gesualdo_reduction.notation_cleanup import cleanup_score
 from gesualdo_reduction.octave_optimization import optimize_score_octaves
 from gesualdo_reduction.reduction import (
@@ -50,6 +50,49 @@ def make_part(name, events):
         element = note.Rest(quarterLength=duration) if pitch_name is None else note.Note(pitch_name, quarterLength=duration)
         part.insert(offset, element)
     return part
+
+
+def test_musicxml_engraving_cleanup_respells_without_dropping_wedges(tmp_path):
+    xml_path = tmp_path / "flat_key.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Violoncello</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key><fifths>-3</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>C</sign><line>4</line></clef>
+      </attributes>
+      <direction><direction-type><wedge type="crescendo"/></direction-type></direction>
+      <note>
+        <pitch><step>G</step><alter>1</alter><octave>4</octave></pitch>
+        <duration>1</duration>
+        <type>quarter</type>
+        <accidental>sharp</accidental>
+      </note>
+      <direction><direction-type><wedge type="stop"/></direction-type></direction>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.respelled_key_signature_accidentals == 1
+    assert report.suppressed_redundant_accidentals == 1
+    assert text.count("<wedge") == 2
+    assert "<step>A</step>" in text
+    assert "<alter>-1</alter>" in text
+    assert "<accidental>" not in text
+    assert "<sign>F</sign>" in text
 
 
 def make_score(parts):
@@ -319,7 +362,7 @@ def test_cleanup_score_normalizes_dangling_ties():
     assert tied_continue.tie.type == "stop"
 
 
-def test_cleanup_score_adds_cello_high_clef_without_flicker():
+def test_cleanup_score_keeps_cello_bass_clef_for_isolated_high_measure():
     score = stream.Score()
     cello = stream.Part()
     cello.partName = "Violoncello"
@@ -337,9 +380,36 @@ def test_cleanup_score_adds_cello_high_clef_without_flicker():
 
     report = cleanup_score(score)
 
+    assert report.cello_clef_changes_added == 0
+    assert not list(second_measure.getElementsByClass(clef.Clef))
+    assert not list(third_measure.getElementsByClass(clef.Clef))
+
+
+def test_cleanup_score_adds_cello_tenor_clef_for_sustained_high_run():
+    score = stream.Score()
+    cello = stream.Part()
+    cello.partName = "Violoncello"
+    first_measure = stream.Measure(number=1)
+    first_measure.insert(0, clef.BassClef())
+    first_measure.insert(0, note.Note("C3", quarterLength=4))
+    second_measure = stream.Measure(number=2)
+    second_measure.insert(0, note.Note("G4", quarterLength=4))
+    third_measure = stream.Measure(number=3)
+    third_measure.insert(0, note.Note("G4", quarterLength=4))
+    fourth_measure = stream.Measure(number=4)
+    fourth_measure.insert(0, note.Note("C3", quarterLength=4))
+    cello.insert(0, first_measure)
+    cello.insert(4, second_measure)
+    cello.insert(8, third_measure)
+    cello.insert(12, fourth_measure)
+    score.insert(0, cello)
+
+    report = cleanup_score(score)
+
     assert report.cello_clef_changes_added == 2
-    assert any(isinstance(item, clef.TrebleClef) for item in second_measure.getElementsByClass(clef.Clef))
-    assert any(isinstance(item, clef.BassClef) for item in third_measure.getElementsByClass(clef.Clef))
+    assert any(isinstance(item, clef.TenorClef) for item in second_measure.getElementsByClass(clef.Clef))
+    assert not list(third_measure.getElementsByClass(clef.Clef))
+    assert any(isinstance(item, clef.BassClef) for item in fourth_measure.getElementsByClass(clef.Clef))
 
 
 def test_cleanup_score_normalizes_tied_release_residue_to_beat():
@@ -396,7 +466,7 @@ def test_cleanup_score_splits_rests_that_cross_beat_boundaries():
     ]
 
 
-def test_cleanup_score_adds_viola_treble_clef_for_high_passage():
+def test_cleanup_score_keeps_viola_alto_clef_for_ordinary_high_passage():
     score = stream.Score()
     viola = stream.Part()
     viola.partName = "Viola"
@@ -415,9 +485,56 @@ def test_cleanup_score_adds_viola_treble_clef_for_high_passage():
 
     report = cleanup_score(score)
 
+    assert report.viola_clef_changes_added == 0
+    assert not list(second_measure.getElementsByClass(clef.Clef))
+    assert not list(third_measure.getElementsByClass(clef.Clef))
+
+
+def test_cleanup_score_adds_viola_treble_clef_only_for_sustained_very_high_run():
+    score = stream.Score()
+    viola = stream.Part()
+    viola.partName = "Viola"
+    viola.insert(0, clef.AltoClef())
+    first_measure = stream.Measure(number=1)
+    first_measure.insert(0, clef.AltoClef())
+    first_measure.insert(0, note.Note("C4", quarterLength=4))
+    second_measure = stream.Measure(number=2)
+    second_measure.insert(0, note.Note("E5", quarterLength=4))
+    third_measure = stream.Measure(number=3)
+    third_measure.insert(0, note.Note("E5", quarterLength=4))
+    fourth_measure = stream.Measure(number=4)
+    fourth_measure.insert(0, note.Note("C4", quarterLength=4))
+    viola.append(first_measure)
+    viola.append(second_measure)
+    viola.append(third_measure)
+    viola.append(fourth_measure)
+    score.insert(0, viola)
+
+    report = cleanup_score(score)
+
     assert report.viola_clef_changes_added == 2
     assert any(isinstance(item, clef.TrebleClef) for item in second_measure.getElementsByClass(clef.Clef))
-    assert any(isinstance(item, clef.AltoClef) for item in third_measure.getElementsByClass(clef.Clef))
+    assert not list(third_measure.getElementsByClass(clef.Clef))
+    assert any(isinstance(item, clef.AltoClef) for item in fourth_measure.getElementsByClass(clef.Clef))
+
+
+def test_cleanup_score_respells_key_signature_enharmonics():
+    score = stream.Score()
+    part = stream.Part()
+    part.partName = "Violin I"
+    measure = stream.Measure(number=1)
+    measure.insert(0, key.KeySignature(-3))
+    g_sharp = note.Note("G#4", quarterLength=1)
+    g_sharp.pitch.accidental.displayStatus = True
+    measure.insert(0, g_sharp)
+    part.append(measure)
+    score.insert(0, part)
+
+    report = cleanup_score(score)
+
+    assert report.respelled_key_signature_accidentals == 1
+    assert g_sharp.pitch.nameWithOctave == "A-4"
+    assert g_sharp.pitch.accidental.displayStatus is False
 
 
 def test_global_transposition_can_prefer_cleaner_key_within_guard():
