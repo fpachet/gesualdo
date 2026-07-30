@@ -23,6 +23,7 @@ class NotationCleanupReport:
     cello_clef_changes_added: int = 0
     viola_clef_changes_added: int = 0
     respelled_key_signature_accidentals: int = 0
+    respelled_chromatic_context_accidentals: int = 0
     suppressed_tie_continuation_accidentals: int = 0
     normalized_dangling_ties: int = 0
     pdf_midi_fallbacks: int = 0

@@ -124,6 +124,7 @@ def render_pdf(
             shutil.copyfile(input_path, clean_path)
             xml_report = cleanup_musicxml_engraving(clean_path, clean_path)
             report.respelled_key_signature_accidentals = xml_report.respelled_key_signature_accidentals
+            report.respelled_chromatic_context_accidentals = xml_report.respelled_chromatic_context_accidentals
             report.suppressed_naturals = xml_report.suppressed_redundant_accidentals
             report.cello_clef_changes_added = xml_report.cello_clef_changes
             report.viola_clef_changes_added = xml_report.viola_clef_changes
@@ -218,6 +219,7 @@ def write_audit(root: Path, job: RenderJob, rows: list[dict[str, str]]) -> None:
         "cello_clef_changes_added",
         "viola_clef_changes_added",
         "respelled_key_signature_accidentals",
+        "respelled_chromatic_context_accidentals",
         "suppressed_tie_continuation_accidentals",
         "normalized_dangling_ties",
         "pdf_midi_fallbacks",

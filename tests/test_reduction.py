@@ -95,6 +95,99 @@ def test_musicxml_engraving_cleanup_respells_without_dropping_wedges(tmp_path):
     assert "<sign>F</sign>" in text
 
 
+def test_musicxml_engraving_cleanup_respells_flat_side_chromatic_neighbor(tmp_path):
+    xml_path = tmp_path / "chromatic_neighbor.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Violin I</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key><fifths>-3</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note>
+        <pitch><step>C</step><octave>5</octave></pitch>
+        <duration>1</duration>
+        <type>quarter</type>
+      </note>
+      <note>
+        <pitch><step>C</step><alter>1</alter><octave>5</octave></pitch>
+        <duration>1</duration>
+        <type>quarter</type>
+        <accidental>sharp</accidental>
+      </note>
+      <note>
+        <pitch><step>C</step><octave>5</octave></pitch>
+        <duration>1</duration>
+        <type>quarter</type>
+        <accidental>natural</accidental>
+      </note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.respelled_chromatic_context_accidentals == 1
+    assert "<step>D</step>" in text
+    assert "<alter>-1</alter>" in text
+    assert "<accidental>flat</accidental>" in text
+    assert "<accidental>natural</accidental>" not in text
+
+
+def test_musicxml_engraving_cleanup_preserves_upward_leading_tone(tmp_path):
+    xml_path = tmp_path / "leading_tone.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Violin I</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key><fifths>-3</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note>
+        <pitch><step>F</step><alter>1</alter><octave>4</octave></pitch>
+        <duration>1</duration>
+        <type>quarter</type>
+        <accidental>sharp</accidental>
+      </note>
+      <note>
+        <pitch><step>G</step><octave>4</octave></pitch>
+        <duration>1</duration>
+        <type>quarter</type>
+      </note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.respelled_chromatic_context_accidentals == 0
+    assert "<step>F</step>" in text
+    assert "<alter>1</alter>" in text
+    assert "<accidental>sharp</accidental>" in text
+
+
 def make_score(parts):
     score = stream.Score()
     for part in parts:
