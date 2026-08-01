@@ -5,9 +5,9 @@
   </work>
   <movement-title>A Quiet Place - Violin II</movement-title>
   <identification>
-    <creator type="composer">Take 6, arrangement F. Pachet and AI</creator>
+    <creator type="composer">Take 6</creator>
     <encoding>
-      <encoding-date>2026-07-02</encoding-date>
+      <encoding-date>2026-07-30</encoding-date>
       <software>music21 v.9.9.1</software>
     </encoding>
   </identification>
@@ -18,20 +18,20 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="P8bd4518f6fefe7d4ff8dd076a752fcbc">
+    <score-part id="Pda9c67f8c28e642a0c19461fbea53fcf">
       <part-name>Violin II</part-name>
       <part-abbreviation>Vln</part-abbreviation>
-      <score-instrument id="I3479de8083e692fe9a5bebe5837f1c0c">
+      <score-instrument id="I3eec092bc5089b3a472f0bef60b0304d">
         <instrument-name>Violin</instrument-name>
         <instrument-abbreviation>Vln</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I3479de8083e692fe9a5bebe5837f1c0c">
+      <midi-instrument id="I3eec092bc5089b3a472f0bef60b0304d">
         <midi-channel>2</midi-channel>
         <midi-program>41</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
-  <part id="P8bd4518f6fefe7d4ff8dd076a752fcbc">
+  <part id="Pda9c67f8c28e642a0c19461fbea53fcf">
     <measure implicit="no" number="1">
       <attributes>
         <divisions>10080</divisions>
@@ -1644,13 +1644,13 @@
     <measure implicit="no" number="36">
       <note>
         <pitch>
-          <step>C</step>
-          <alter>1</alter>
+          <step>D</step>
+          <alter>-1</alter>
           <octave>5</octave>
         </pitch>
         <duration>10080</duration>
         <type>quarter</type>
-        <accidental>sharp</accidental>
+        <accidental>flat</accidental>
       </note>
       <note>
         <rest />
@@ -1659,8 +1659,8 @@
       </note>
       <note>
         <pitch>
-          <step>C</step>
-          <alter>1</alter>
+          <step>D</step>
+          <alter>-1</alter>
           <octave>5</octave>
         </pitch>
         <duration>10080</duration>
@@ -1869,8 +1869,25 @@
         </pitch>
         <duration>3360</duration>
         <type>eighth</type>
+        <time-modification>
+          <actual-notes>3</actual-notes>
+          <normal-notes>2</normal-notes>
+          <normal-type>eighth</normal-type>
+        </time-modification>
         <stem>up</stem>
         <beam number="1">begin</beam>
+        <notations>
+          <tuplet bracket="yes" number="1" placement="above" type="start">
+            <tuplet-actual>
+              <tuplet-number>3</tuplet-number>
+              <tuplet-type>eighth</tuplet-type>
+            </tuplet-actual>
+            <tuplet-normal>
+              <tuplet-number>2</tuplet-number>
+              <tuplet-type>eighth</tuplet-type>
+            </tuplet-normal>
+          </tuplet>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -1880,6 +1897,11 @@
         </pitch>
         <duration>3360</duration>
         <type>eighth</type>
+        <time-modification>
+          <actual-notes>3</actual-notes>
+          <normal-notes>2</normal-notes>
+          <normal-type>eighth</normal-type>
+        </time-modification>
         <stem>up</stem>
         <beam number="1">continue</beam>
       </note>
@@ -1889,10 +1911,33 @@
           <alter>1</alter>
           <octave>4</octave>
         </pitch>
-        <duration>13440</duration>
+        <duration>3360</duration>
+        <tie type="start" />
         <type>eighth</type>
+        <time-modification>
+          <actual-notes>3</actual-notes>
+          <normal-notes>2</normal-notes>
+          <normal-type>eighth</normal-type>
+        </time-modification>
         <stem>up</stem>
         <beam number="1">end</beam>
+        <notations>
+          <tied type="start" />
+          <tuplet number="1" type="stop" />
+        </notations>
+      </note>
+      <note>
+        <pitch>
+          <step>F</step>
+          <alter>1</alter>
+          <octave>4</octave>
+        </pitch>
+        <duration>10080</duration>
+        <tie type="stop" />
+        <type>quarter</type>
+        <notations>
+          <tied type="stop" />
+        </notations>
       </note>
     </measure>
     <measure implicit="no" number="41">

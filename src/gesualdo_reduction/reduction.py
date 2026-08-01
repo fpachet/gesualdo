@@ -35,9 +35,6 @@ from music21 import (
     tie,
 )
 
-from gesualdo_reduction.musicxml_compat import strip_time_modifications
-
-
 SEMITONES = -9
 OUT_PATH = "gesualdo_quartet_V2.musicxml"
 ENFORCE_RANGES = True
@@ -188,6 +185,10 @@ class ReductionConfig:
     max_borrowed_bottom_duplicate_pitch: int | None = None
     max_borrowed_bottom_pitch: int | None = None
     lower_high_cello_threshold: int | None = None
+    smooth_isolated_handoffs: bool = True
+    smooth_isolated_handoff_max_duration: Fraction = Fraction(1, 4)
+    smooth_isolated_handoff_double_stops: bool = True
+    smooth_isolated_handoff_trim_overlaps: bool = True
     add_editorial_dynamics: bool = True
     dynamic_phrase_bars: int = 4
     dynamic_hairpin_bars: int = 2
@@ -368,7 +369,10 @@ def ql_to_fraction(value) -> Fraction:
 
 
 def title_from_source_path(source_path: str | Path) -> str:
-    title = Path(source_path).stem.replace("_", " ").strip()
+    stem = Path(source_path).stem
+    if "__" in stem:
+        stem = stem.split("__", 1)[0]
+    title = stem.replace("_", " ").strip()
     title = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", title)
     title = re.sub(r"^\d+\s+", "", title)
     title = re.sub(r"\s*,?\s*originalrevu$", "", title, flags=re.IGNORECASE)
@@ -2745,6 +2749,326 @@ def _merge_adjacent_generated_harmony_events(selected: dict[str, list[SourceEven
         selected[target_id] = merged
 
 
+def _previous_pitched_event(events: Sequence[SourceEvent], event: SourceEvent) -> SourceEvent | None:
+    candidates = [
+        other
+        for other in events
+        if other.pitch_midi is not None
+        and other.source_id != event.source_id
+        and other.end <= event.start
+    ]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda ev: (ev.end, ev.start, ev.source_id))
+
+
+def _next_pitched_event(events: Sequence[SourceEvent], event: SourceEvent) -> SourceEvent | None:
+    candidates = [
+        other
+        for other in events
+        if other.pitch_midi is not None
+        and other.source_id != event.source_id
+        and other.start >= event.end
+    ]
+    if not candidates:
+        return None
+    return min(candidates, key=lambda ev: (ev.start, ev.end, ev.source_id))
+
+
+def _is_short_isolated_handoff_candidate(
+    events: Sequence[SourceEvent],
+    event: SourceEvent,
+    max_duration: Fraction,
+) -> bool:
+    if event.is_rest or event.pitch_midi is None or event.duration > max_duration:
+        return False
+    if event.part_index < 0:
+        return False
+
+    previous = _previous_pitched_event(events, event)
+    next_event = _next_pitched_event(events, event)
+    adjacent_before = previous is not None and previous.end == event.start
+    adjacent_after = next_event is not None and next_event.start == event.end
+    if adjacent_before and adjacent_after:
+        return False
+    if adjacent_after and not adjacent_before:
+        return event.end.denominator == 1
+    if adjacent_before and not adjacent_after:
+        return event.start.denominator == 1
+
+    return True
+
+
+def _handoff_receiver_score(
+    receiver_events: Sequence[SourceEvent],
+    event: SourceEvent,
+    receiver: TargetPart,
+    receiver_rank: int,
+    donor_rank: int,
+    config: ReductionConfig,
+) -> tuple[float, SourceEvent | None, SourceEvent | None] | None:
+    if event.pitch_midi is None:
+        return None
+
+    midi_pitch = int(event.pitch_midi)
+    if config.enforce_ranges and not (receiver.midi_range[0] <= midi_pitch <= receiver.midi_range[1]):
+        return None
+    if any(_event_overlaps_interval(existing, event.start, event.end) for existing in receiver_events):
+        return None
+
+    previous = _previous_pitched_event(receiver_events, event)
+    next_event = _next_pitched_event(receiver_events, event)
+    if previous is not None and previous.end == event.start and previous.pitch_midi is not None:
+        previous_gap = abs(int(previous.pitch_midi) - midi_pitch)
+        if next_event is None or next_event.start > event.end:
+            if previous_gap <= 4:
+                register_cost = _register_fit_score(receiver, midi_pitch, config)
+                distance_cost = abs(receiver_rank - donor_rank) / 10
+                score = previous_gap + register_cost + distance_cost + 1.0
+                return score, previous, None
+
+    if next_event is not None and next_event.start == event.end and next_event.pitch_midi is not None:
+        next_gap = abs(midi_pitch - int(next_event.pitch_midi))
+        if previous is None or previous.end < event.start:
+            if next_gap <= 4:
+                register_cost = _register_fit_score(receiver, midi_pitch, config)
+                distance_cost = abs(receiver_rank - donor_rank) / 10
+                score = next_gap + register_cost + distance_cost + 1.0
+                return score, None, next_event
+
+    if previous is None or next_event is None:
+        return None
+    if previous.end != event.start or next_event.start != event.end:
+        return None
+    if previous.pitch_midi is None or next_event.pitch_midi is None:
+        return None
+
+    previous_gap = abs(int(previous.pitch_midi) - midi_pitch)
+    next_gap = abs(midi_pitch - int(next_event.pitch_midi))
+    if max(previous_gap, next_gap) > 7:
+        return None
+
+    line_cost = previous_gap + next_gap
+    direct_cost = abs(int(previous.pitch_midi) - int(next_event.pitch_midi))
+    if line_cost > direct_cost + 4:
+        return None
+
+    register_cost = _register_fit_score(receiver, midi_pitch, config)
+    distance_cost = abs(receiver_rank - donor_rank) / 10
+    score = line_cost + register_cost + distance_cost
+    return score, previous, next_event
+
+
+def _remove_event_once(events: Sequence[SourceEvent], event: SourceEvent) -> list[SourceEvent]:
+    result = list(events)
+    for index, existing in enumerate(result):
+        if existing == event:
+            del result[index]
+            return result
+    return result
+
+
+def _handoff_double_stop_receiver_score(
+    receiver_events: Sequence[SourceEvent],
+    event: SourceEvent,
+    receiver: TargetPart,
+    receiver_rank: int,
+    donor_rank: int,
+    config: ReductionConfig,
+) -> tuple[float, SourceEvent] | None:
+    if not config.smooth_isolated_handoff_double_stops or event.pitch_midi is None:
+        return None
+
+    midi_pitch = int(event.pitch_midi)
+    if config.enforce_ranges and not (receiver.midi_range[0] <= midi_pitch <= receiver.midi_range[1]):
+        return None
+    if abs(receiver_rank - donor_rank) != 1:
+        return None
+
+    overlapping = [
+        existing
+        for existing in receiver_events
+        if existing.pitch_midi is not None and _event_overlaps_interval(existing, event.start, event.end)
+    ]
+    if len(overlapping) != 1:
+        return None
+
+    host = overlapping[0]
+    if host.start > event.start or host.end < event.end or host.pitch_midi is None:
+        return None
+    if host.pitch_midi % 12 == midi_pitch % 12:
+        return None
+    if not _is_playable_double_stop(receiver, int(host.pitch_midi), midi_pitch):
+        return None
+
+    split_durations = [
+        event.start - host.start,
+        event.duration,
+        host.end - event.end,
+    ]
+    if any(duration > 0 and not _is_simple_split_duration(duration) for duration in split_durations):
+        return None
+
+    interval_cost = abs(int(host.pitch_midi) - midi_pitch) / 2
+    register_cost = _register_fit_score(receiver, midi_pitch, config)
+    split_cost = sum(1 for duration in split_durations if duration > 0) / 10
+    distance_cost = abs(receiver_rank - donor_rank) / 10
+    return interval_cost + register_cost + split_cost + distance_cost, host
+
+
+def _handoff_trim_receiver_score(
+    receiver_events: Sequence[SourceEvent],
+    event: SourceEvent,
+    receiver: TargetPart,
+    receiver_rank: int,
+    donor_rank: int,
+    config: ReductionConfig,
+) -> tuple[float, SourceEvent] | None:
+    if not config.smooth_isolated_handoff_trim_overlaps or event.pitch_midi is None:
+        return None
+
+    midi_pitch = int(event.pitch_midi)
+    if config.enforce_ranges and not (receiver.midi_range[0] <= midi_pitch <= receiver.midi_range[1]):
+        return None
+    if abs(receiver_rank - donor_rank) != 1:
+        return None
+
+    overlapping = [
+        existing
+        for existing in receiver_events
+        if existing.pitch_midi is not None and _event_overlaps_interval(existing, event.start, event.end)
+    ]
+    if len(overlapping) != 1:
+        return None
+
+    host = overlapping[0]
+    if host.start >= event.start or host.end != event.end:
+        return None
+    if host.duration > Fraction(1, 2):
+        return None
+    trimmed_duration = event.start - host.start
+    if not _is_simple_split_duration(trimmed_duration):
+        return None
+    if host.pitch_midi is not None and host.pitch_midi % 12 == midi_pitch % 12:
+        return None
+
+    register_cost = _register_fit_score(receiver, midi_pitch, config)
+    distance_cost = abs(receiver_rank - donor_rank) / 10
+    return register_cost + distance_cost + 0.25, host
+
+
+def _trim_host_for_handoff(
+    selected: dict[str, list[SourceEvent]],
+    target: TargetPart,
+    host: SourceEvent,
+    end: Fraction,
+) -> None:
+    if end <= host.start or end >= host.end:
+        raise MeasureValidationError(f"Cannot trim host event {host.source_id} for handoff.")
+    target_events = selected[target.id]
+    host_index = target_events.index(host)
+    selected[target.id] = [
+        *target_events[:host_index],
+        replace(host, duration=end - host.start, source_tie_type=None),
+        *target_events[host_index + 1:],
+    ]
+
+
+def _smooth_isolated_handoffs(
+    assignments: dict[str, list[SourceEvent]],
+    profile: EnsembleProfile,
+    config: ReductionConfig,
+) -> dict[str, list[SourceEvent]]:
+    """Move short isolated notes into an adjacent melodic gap when clearly better."""
+
+    if not config.smooth_isolated_handoffs:
+        return assignments
+
+    smoothed = {target_id: list(events) for target_id, events in assignments.items()}
+    ranks = {target.id: index for index, target in enumerate(profile.parts)}
+    targets_by_id = {target.id: target for target in profile.parts}
+    moved_source_ids: set[str] = set()
+
+    changed = True
+    while changed:
+        changed = False
+        for donor in profile.parts:
+            donor_events = sorted(smoothed.get(donor.id, []), key=lambda ev: (ev.start, ev.end, ev.source_id))
+            for event in donor_events:
+                if event.source_id in moved_source_ids:
+                    continue
+                if not _is_short_isolated_handoff_candidate(
+                    donor_events,
+                    event,
+                    config.smooth_isolated_handoff_max_duration,
+                ):
+                    continue
+
+                options: list[tuple[float, str, TargetPart, SourceEvent | None]] = []
+                for receiver in profile.parts:
+                    if receiver.id == donor.id:
+                        continue
+                    gap_score = _handoff_receiver_score(
+                        smoothed.get(receiver.id, []),
+                        event,
+                        receiver,
+                        ranks[receiver.id],
+                        ranks[donor.id],
+                        config,
+                    )
+                    if gap_score is not None:
+                        options.append((gap_score[0], "gap", receiver, None))
+
+                    trim_score = _handoff_trim_receiver_score(
+                        smoothed.get(receiver.id, []),
+                        event,
+                        receiver,
+                        ranks[receiver.id],
+                        ranks[donor.id],
+                        config,
+                    )
+                    if trim_score is not None:
+                        options.append((trim_score[0], "trim", receiver, trim_score[1]))
+
+                    double_stop_score = _handoff_double_stop_receiver_score(
+                        smoothed.get(receiver.id, []),
+                        event,
+                        receiver,
+                        ranks[receiver.id],
+                        ranks[donor.id],
+                        config,
+                    )
+                    if double_stop_score is not None:
+                        options.append((double_stop_score[0], "double_stop", receiver, double_stop_score[1]))
+
+                if not options:
+                    continue
+
+                _, mode, receiver, host = min(options, key=lambda item: (item[0], ranks[item[2].id]))
+                smoothed[donor.id] = _remove_event_once(smoothed.get(donor.id, []), event)
+                if mode == "double_stop":
+                    if host is None:
+                        raise ValueError("Double-stop handoff selected without a host event.")
+                    _split_host_for_double_stop(smoothed, receiver, host, event.start, event.end)
+                elif mode == "trim":
+                    if host is None:
+                        raise ValueError("Trim handoff selected without a host event.")
+                    _trim_host_for_handoff(smoothed, receiver, host, event.start)
+                smoothed.setdefault(receiver.id, []).append(event)
+                smoothed[receiver.id].sort(key=lambda ev: (ev.start, ev.end, ev.source_id))
+                moved_source_ids.add(event.source_id)
+                changed = True
+                break
+            if changed:
+                break
+
+    return {
+        target.id: sorted(smoothed.get(target.id, []), key=lambda ev: (ev.start, ev.end, ev.source_id))
+        for target in profile.parts
+        if target.id in targets_by_id
+    }
+
+
 def _select_inner_events(
     middle_events: Sequence[SourceEvent],
     top_events: Sequence[SourceEvent],
@@ -3870,6 +4194,7 @@ class ReductionBuilder:
     def build_score(self, src_score: stream.Score) -> stream.Score:
         context = self.build_context(src_score)
         assignments = self.policy.assign(context, self.profile, self.config)
+        assignments = _smooth_isolated_handoffs(assignments, self.profile, self.config)
 
         out = stream.Score()
         set_reduction_metadata(
@@ -4078,6 +4403,8 @@ def build_take6_quartet_score(
             min_preserved_trimmed_duration=Fraction(1, 3),
             max_borrowed_bottom_duplicate_pitch=60,
             lower_high_cello_threshold=55,
+            smooth_isolated_handoff_double_stops=False,
+            smooth_isolated_handoff_trim_overlaps=False,
             add_editorial_dynamics=False,
         ),
         policy=Take6QuartetCompressionPolicy(),
@@ -4255,6 +4582,8 @@ def reduce_take6_to_quartet(
             min_preserved_trimmed_duration=Fraction(1, 3),
             max_borrowed_bottom_duplicate_pitch=60,
             lower_high_cello_threshold=55,
+            smooth_isolated_handoff_double_stops=False,
+            smooth_isolated_handoff_trim_overlaps=False,
             add_editorial_dynamics=False,
         ),
         policy=Take6QuartetCompressionPolicy(),
@@ -4264,7 +4593,6 @@ def reduce_take6_to_quartet(
     normalize_musescore_rhythm_artifacts(out_score)
     lower_take6_high_cello_register(out_score)
     out_score.write("musicxml", fp=str(out_path))
-    strip_time_modifications(out_path)
     return out_score
 
 

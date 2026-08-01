@@ -5,9 +5,9 @@
   </work>
   <movement-title>Dolcissima mia vita - Violin II</movement-title>
   <identification>
-    <creator type="composer">Carlo Gesualdo, arrangement F. Pachet and AI</creator>
+    <creator type="composer">Carlo Gesualdo</creator>
     <encoding>
-      <encoding-date>2026-07-29</encoding-date>
+      <encoding-date>2026-07-30</encoding-date>
       <software>music21 v.9.9.1</software>
     </encoding>
   </identification>
@@ -18,20 +18,20 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="P82d0542a4ea40fbe198fa2fd1b8cf6ed">
+    <score-part id="P144fb920a5d7830b2d4a49043e109e01">
       <part-name>Violin II</part-name>
       <part-abbreviation>Vln</part-abbreviation>
-      <score-instrument id="Id1becc25cca9affc8deea82f930895ab">
+      <score-instrument id="I3f18408fc7463ec16c24196eb008d658">
         <instrument-name>Violin</instrument-name>
         <instrument-abbreviation>Vln</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="Id1becc25cca9affc8deea82f930895ab">
+      <midi-instrument id="I3f18408fc7463ec16c24196eb008d658">
         <midi-channel>2</midi-channel>
         <midi-program>41</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
-  <part id="P82d0542a4ea40fbe198fa2fd1b8cf6ed">
+  <part id="P144fb920a5d7830b2d4a49043e109e01">
     <measure implicit="no" number="1">
       <attributes>
         <divisions>10080</divisions>
@@ -47,9 +47,9 @@
           <line>2</line>
         </clef>
       </attributes>
-      <direction placement="above">
+      <direction>
         <direction-type>
-          <metronome parentheses="no">
+          <metronome>
             <beat-unit>quarter</beat-unit>
             <per-minute>120</per-minute>
           </metronome>
@@ -523,13 +523,13 @@
       </note>
       <note>
         <pitch>
-          <step>A</step>
-          <alter>1</alter>
+          <step>B</step>
+          <alter>-1</alter>
           <octave>3</octave>
         </pitch>
         <duration>20160</duration>
         <type>half</type>
-        <accidental>sharp</accidental>
+        <accidental>flat</accidental>
       </note>
     </measure>
     <measure implicit="no" number="12">
@@ -628,11 +628,21 @@
         </pitch>
         <duration>2520</duration>
         <type>16th</type>
+        <stem>up</stem>
+        <beam number="1">begin</beam>
+        <beam number="2">begin</beam>
       </note>
       <note>
-        <rest />
+        <pitch>
+          <step>C</step>
+          <alter>0</alter>
+          <octave>4</octave>
+        </pitch>
         <duration>2520</duration>
         <type>16th</type>
+        <stem>up</stem>
+        <beam number="1">continue</beam>
+        <beam number="2">continue</beam>
       </note>
       <note>
         <pitch>
@@ -643,8 +653,8 @@
         <duration>2520</duration>
         <type>16th</type>
         <stem>up</stem>
-        <beam number="1">begin</beam>
-        <beam number="2">begin</beam>
+        <beam number="1">continue</beam>
+        <beam number="2">continue</beam>
       </note>
       <note>
         <pitch>
@@ -900,19 +910,9 @@
         <type>quarter</type>
       </note>
       <note>
-        <pitch>
-          <step>B</step>
-          <alter>-1</alter>
-          <octave>3</octave>
-        </pitch>
-        <duration>2520</duration>
-        <type>16th</type>
-      </note>
-      <note>
         <rest />
-        <duration>7560</duration>
-        <type>eighth</type>
-        <dot />
+        <duration>10080</duration>
+        <type>quarter</type>
       </note>
       <note>
         <pitch>
@@ -1092,20 +1092,20 @@
       </note>
       <note>
         <pitch>
-          <step>D</step>
-          <alter>1</alter>
+          <step>E</step>
+          <alter>-1</alter>
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
         <type>eighth</type>
-        <accidental>sharp</accidental>
+        <accidental>flat</accidental>
         <stem>up</stem>
         <beam number="1">end</beam>
       </note>
       <note>
         <pitch>
-          <step>D</step>
-          <alter>1</alter>
+          <step>E</step>
+          <alter>-1</alter>
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
@@ -1164,11 +1164,7 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <tie type="stop" />
         <type>quarter</type>
-        <notations>
-          <tied type="stop" />
-        </notations>
       </note>
       <direction placement="below">
         <direction-type>
@@ -1967,13 +1963,13 @@
       </direction>
       <note>
         <pitch>
-          <step>D</step>
-          <alter>1</alter>
+          <step>E</step>
+          <alter>-1</alter>
           <octave>4</octave>
         </pitch>
         <duration>20160</duration>
         <type>half</type>
-        <accidental>sharp</accidental>
+        <accidental>flat</accidental>
       </note>
       <note>
         <pitch>
@@ -2158,13 +2154,13 @@
     <measure implicit="no" number="32">
       <note>
         <pitch>
-          <step>D</step>
-          <alter>1</alter>
+          <step>E</step>
+          <alter>-1</alter>
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
         <type>quarter</type>
-        <accidental>sharp</accidental>
+        <accidental>flat</accidental>
       </note>
       <note>
         <pitch>
@@ -2191,11 +2187,7 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <tie type="start" />
         <type>quarter</type>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
       <note>
         <pitch>
@@ -2215,6 +2207,7 @@
         <duration>20160</duration>
         <tie type="start" />
         <type>half</type>
+        <accidental>natural</accidental>
         <notations>
           <tied type="start" />
         </notations>
@@ -2280,6 +2273,9 @@
         <duration>20160</duration>
         <type>half</type>
       </note>
+      <barline location="right">
+        <bar-style>light-heavy</bar-style>
+      </barline>
     </measure>
   </part>
 </score-partwise>

@@ -19,6 +19,21 @@ DEFAULT_INPUTS = (
     Path("data/take6/reductions/string_quartet_double_stops/a_quiet_place.musicxml"),
 )
 
+CONCERT_INPUTS = (
+    Path("data/beach boys/reductions/string_quartet/our_prayer_low_cello.musicxml"),
+    Path("data/cpdl/5-voices/reductions/string_quartet/109_luci_serene_e_chiare.musicxml"),
+    Path("data/cpdl/5-voices/reductions/string_quartet/092_dolcissima_mia_vita.musicxml"),
+    Path("data/cpdl/5-voices/reductions/string_quartet/100_gi_piansi_nel_dolore.musicxml"),
+    Path("data/cpdl/5-voices/reductions/string_quartet/147_s_io_non_miro_non_moro.musicxml"),
+    Path("data/take6/reductions/string_quartet_double_stops/come_unto_me.musicxml"),
+    Path("data/cpdl/5-voices/reductions/string_quartet/121_moro_lasso_al_mio_duolo.musicxml"),
+    Path("data/cpdl/5-voices/reductions/string_quartet/161_sparge_la_morte.musicxml"),
+    Path("data/cpdl/5-voices/reductions/string_quartet/074_belt_poi_che_t_assenti.musicxml"),
+    Path("data/cpdl/6-voices/reductions/string_quartet/051_tristis_est_anima_mea.musicxml"),
+    Path("data/take6/reductions/string_quartet_double_stops/hark_herald.musicxml"),
+    Path("data/take6/reductions/string_quartet_double_stops/a_quiet_place.musicxml"),
+)
+
 
 @dataclass(frozen=True)
 class Issue:
@@ -71,6 +86,30 @@ def _pitch_midis(element: note.GeneralNote) -> list[int]:
     return []
 
 
+def _pitch_label(element: note.GeneralNote) -> str:
+    if element.isNote:
+        return element.pitch.nameWithOctave
+    if element.isChord:
+        return ".".join(pitch.nameWithOctave for pitch in element.pitches)
+    return element.classes[0]
+
+
+def _tie_label(element: note.GeneralNote) -> str:
+    if element.isNote:
+        return getattr(getattr(element, "tie", None), "type", "") or ""
+    if element.isChord:
+        return ",".join(
+            sorted(
+                {
+                    getattr(getattr(chord_note, "tie", None), "type", "") or ""
+                    for chord_note in element.notes
+                    if getattr(chord_note, "tie", None)
+                }
+            )
+        )
+    return ""
+
+
 def _audit_measure(
     path: Path,
     part: stream.Part,
@@ -99,24 +138,28 @@ def _audit_measure(
                 )
             )
     if beat > 0:
-        for element in notes_and_rests:
-            if not element.isRest:
-                continue
+        for element in notes:
             offset = _ql(element.offset)
             duration = _ql(element.quarterLength)
-            if offset == 0 and duration == total:
+            if duration <= 0 or offset % beat == 0:
+                continue
+            if duration >= 2 and offset.denominator == 1:
                 continue
             end = offset + duration
             boundary = beat
             while boundary < total:
                 if offset < boundary < end:
+                    tie_text = _tie_label(element)
+                    detail = f"{_pitch_label(element)} {offset}+{duration} crosses beat boundary {boundary}"
+                    if tie_text:
+                        detail += f"; tie={tie_text}"
                     issues.append(
                         Issue(
                             str(path),
                             part_name,
                             measure_number,
-                            "rest_crosses_beat",
-                            f"rest {offset}+{duration} crosses beat boundary {boundary}",
+                            "note_crosses_beat",
+                            detail,
                         )
                     )
                     break
@@ -184,10 +227,11 @@ def write_tsv(path: Path, issues: list[Issue]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("paths", nargs="*", type=Path)
+    parser.add_argument("--concert", action="store_true", help="Audit the current concert program inputs.")
     parser.add_argument("--output", type=Path, default=Path("outputs/reports/beat_readability_audit.tsv"))
     args = parser.parse_args()
 
-    paths = args.paths or list(DEFAULT_INPUTS)
+    paths = args.paths or (list(CONCERT_INPUTS) if args.concert else list(DEFAULT_INPUTS))
     issues = audit_files(paths)
     write_tsv(args.output, issues)
     counts: dict[str, int] = {}

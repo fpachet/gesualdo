@@ -5,9 +5,9 @@
   </work>
   <movement-title>Moro, lasso, al mio duolo - Violin I</movement-title>
   <identification>
-    <creator type="composer">Carlo Gesualdo, arrangement F. Pachet and AI</creator>
+    <creator type="composer">Carlo Gesualdo</creator>
     <encoding>
-      <encoding-date>2026-07-29</encoding-date>
+      <encoding-date>2026-07-30</encoding-date>
       <software>music21 v.9.9.1</software>
     </encoding>
   </identification>
@@ -18,20 +18,20 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="Pcec9bc50a9085d61277d61db16586a90">
+    <score-part id="P9394637fcc518e6006a8fad5f38d97fb">
       <part-name>Violin I</part-name>
       <part-abbreviation>Vln</part-abbreviation>
-      <score-instrument id="I560a13b76bc655cc85751d663b80f45f">
+      <score-instrument id="I6080c8cc639b38d33d84719c14b42ba9">
         <instrument-name>Violin</instrument-name>
         <instrument-abbreviation>Vln</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I560a13b76bc655cc85751d663b80f45f">
+      <midi-instrument id="I6080c8cc639b38d33d84719c14b42ba9">
         <midi-channel>1</midi-channel>
         <midi-program>41</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
-  <part id="Pcec9bc50a9085d61277d61db16586a90">
+  <part id="P9394637fcc518e6006a8fad5f38d97fb">
     <measure implicit="no" number="1">
       <attributes>
         <divisions>10080</divisions>
@@ -47,9 +47,9 @@
           <line>2</line>
         </clef>
       </attributes>
-      <direction placement="above">
+      <direction>
         <direction-type>
-          <metronome parentheses="no">
+          <metronome>
             <beat-unit>quarter</beat-unit>
             <per-minute>96</per-minute>
           </metronome>
@@ -143,11 +143,7 @@
           <octave>4</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="stop" />
         <type>half</type>
-        <notations>
-          <tied type="stop" />
-        </notations>
       </note>
       <direction placement="below">
         <direction-type>
@@ -445,15 +441,25 @@
       </note>
       <note>
         <pitch>
-          <step>E</step>
+          <step>G</step>
           <alter>0</alter>
-          <octave>5</octave>
+          <octave>4</octave>
         </pitch>
         <duration>2520</duration>
         <type>16th</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
         <beam number="2">begin</beam>
+      </note>
+      <note>
+        <chord />
+        <pitch>
+          <step>E</step>
+          <alter>0</alter>
+          <octave>5</octave>
+        </pitch>
+        <duration>2520</duration>
+        <type>16th</type>
       </note>
       <note>
         <pitch>
@@ -1776,11 +1782,7 @@
           <octave>4</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="stop" />
         <type>half</type>
-        <notations>
-          <tied type="stop" />
-        </notations>
       </note>
       <note>
         <pitch>
@@ -2130,11 +2132,7 @@
           <octave>5</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="stop" />
         <type>half</type>
-        <notations>
-          <tied type="stop" />
-        </notations>
       </note>
       <note>
         <pitch>
@@ -2230,11 +2228,7 @@
           <octave>4</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="stop" />
         <type>half</type>
-        <notations>
-          <tied type="stop" />
-        </notations>
       </note>
       <note>
         <pitch>
@@ -2484,6 +2478,9 @@
           <tied type="stop" />
         </notations>
       </note>
+      <barline location="right">
+        <bar-style>light-heavy</bar-style>
+      </barline>
     </measure>
   </part>
 </score-partwise>

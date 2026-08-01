@@ -5,9 +5,9 @@
   </work>
   <movement-title>Moro, lasso, al mio duolo - Violoncello</movement-title>
   <identification>
-    <creator type="composer">Carlo Gesualdo, arrangement F. Pachet and AI</creator>
+    <creator type="composer">Carlo Gesualdo</creator>
     <encoding>
-      <encoding-date>2026-07-29</encoding-date>
+      <encoding-date>2026-07-30</encoding-date>
       <software>music21 v.9.9.1</software>
     </encoding>
   </identification>
@@ -18,20 +18,20 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="Pa286ba52177a9e54db59685114523594">
+    <score-part id="P2acbce87539af1ecfc2bcc2c5219666b">
       <part-name>Violoncello</part-name>
       <part-abbreviation>Vc</part-abbreviation>
-      <score-instrument id="Ieb5116f9b27de159f57b8f18f676f459">
+      <score-instrument id="Idaea1baf832dfe62b2626958d62119aa">
         <instrument-name>Violoncello</instrument-name>
         <instrument-abbreviation>Vc</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="Ieb5116f9b27de159f57b8f18f676f459">
+      <midi-instrument id="Idaea1baf832dfe62b2626958d62119aa">
         <midi-channel>4</midi-channel>
         <midi-program>43</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
-  <part id="Pa286ba52177a9e54db59685114523594">
+  <part id="P2acbce87539af1ecfc2bcc2c5219666b">
     <measure implicit="no" number="1">
       <attributes>
         <divisions>10080</divisions>
@@ -47,9 +47,9 @@
           <line>4</line>
         </clef>
       </attributes>
-      <direction placement="above">
+      <direction>
         <direction-type>
-          <metronome parentheses="no">
+          <metronome>
             <beat-unit>quarter</beat-unit>
             <per-minute>96</per-minute>
           </metronome>
@@ -1663,11 +1663,7 @@
           <octave>4</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="stop" />
         <type>half</type>
-        <notations>
-          <tied type="stop" />
-        </notations>
       </note>
       <note>
         <pitch>
@@ -2105,6 +2101,9 @@
           <tied type="stop" />
         </notations>
       </note>
+      <barline location="right">
+        <bar-style>light-heavy</bar-style>
+      </barline>
     </measure>
   </part>
 </score-partwise>

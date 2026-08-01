@@ -346,7 +346,7 @@ def extract_part_xml(source: ProgramPartSource, instrument_name: str, output_pat
     root = copy.deepcopy(source_root)
     _remove_credit_elements(root)
     _strip_text_directions(root)
-    _set_metadata(root, f"{source.title} - {instrument_name}", f"{source.composer}, arrangement F. Pachet and AI")
+    _set_metadata(root, f"{source.title} - {instrument_name}", source.composer)
 
     part_list = root.find("part-list")
     if part_list is None:

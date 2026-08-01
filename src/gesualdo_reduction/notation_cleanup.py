@@ -26,6 +26,15 @@ class NotationCleanupReport:
     respelled_chromatic_context_accidentals: int = 0
     suppressed_tie_continuation_accidentals: int = 0
     normalized_dangling_ties: int = 0
+    normalized_tied_enharmonics: int = 0
+    normalized_adjacent_enharmonics: int = 0
+    removed_isolated_redundant_notes: int = 0
+    extended_isolated_redundant_notes: int = 0
+    normalized_fragmented_rests: int = 0
+    extended_terminal_short_notes: int = 0
+    applied_gia_piansi_line_cleanups: int = 0
+    applied_luci_serene_line_cleanups: int = 0
+    applied_dolcissima_line_cleanups: int = 0
     pdf_midi_fallbacks: int = 0
 
     def as_row(self) -> dict[str, str]:
@@ -243,14 +252,13 @@ def _split_rests_at_beat_boundaries(measure: stream.Measure) -> int:
 
 
 def normalize_beat_readability(score: stream.Score) -> int:
-    """Clean source-derived note/rest residues that obscure the beat."""
+    """Clean source-derived note residues that obscure the beat."""
 
     changes = 0
     for part in score.parts:
         for measure in part.getElementsByClass(stream.Measure):
             changes += _merge_tied_same_pitch_and_rests(measure)
             changes += _normalize_release_residue(measure)
-            changes += _split_rests_at_beat_boundaries(measure)
     return changes
 
 

@@ -5,7 +5,7 @@
   </work>
   <movement-title>Our Prayer - Violin II</movement-title>
   <identification>
-    <creator type="composer">The Beach Boys, arrangement F. Pachet and AI</creator>
+    <creator type="composer">The Beach Boys</creator>
     <encoding>
       <encoding-date>2026-07-13</encoding-date>
       <software>music21 v.9.9.1</software>
@@ -393,20 +393,26 @@
           <alter>1</alter>
           <octave>4</octave>
         </pitch>
-        <duration>17640</duration>
+        <duration>10080</duration>
+        <tie type="start" />
         <type>quarter</type>
-        <dot />
-        <dot />
+        <notations>
+          <tied type="start" />
+        </notations>
       </note>
       <note>
         <pitch>
-          <step>G</step>
-          <alter>0</alter>
+          <step>F</step>
+          <alter>1</alter>
           <octave>4</octave>
         </pitch>
-        <duration>7560</duration>
-        <type>eighth</type>
+        <duration>15120</duration>
+        <tie type="stop" />
+        <type>quarter</type>
         <dot />
+        <notations>
+          <tied type="stop" />
+        </notations>
       </note>
       <direction placement="above">
         <direction-type>
@@ -634,8 +640,8 @@
       </note>
       <note>
         <pitch>
-          <step>G</step>
-          <alter>-1</alter>
+          <step>F</step>
+          <alter>1</alter>
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
@@ -863,6 +869,9 @@
           <tied type="stop" />
         </notations>
       </note>
+      <barline location="right">
+        <bar-style>light-heavy</bar-style>
+      </barline>
     </measure>
   </part>
 </score-partwise>

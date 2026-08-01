@@ -7,7 +7,7 @@ Generated from structured files in `rules/`.
 | File | Rule count |
 | --- | ---: |
 | `rules/gesualdo.yaml` | 14 |
-| `rules/shared_quartet.yaml` | 14 |
+| `rules/shared_quartet.yaml` | 15 |
 | `rules/take6.yaml` | 16 |
 
 ## Rules By Scope
@@ -17,8 +17,9 @@ Generated from structured files in `rules/`.
   - `avoid_high_borrowed_bottom_register`: Avoid high borrowed bottom register
 - `chromatic_motion`: 1
   - `preserve_characteristic_chromatic_events`: Preserve chromatic and dissonant events
-- `continuity_repair`: 1
+- `continuity_repair`: 2
   - `continue_source_lines_before_redundant_doubling`: Continue source lines before redundant doubling
+  - `smooth_isolated_handoffs`: Smooth isolated handoffs into active lines
 - `dissonance_preservation`: 1
   - `avoid_smoothing_dissonance`: Avoid smoothing dissonances
 - `double_stops`: 2

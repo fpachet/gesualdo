@@ -5,9 +5,9 @@
   </work>
   <movement-title>Tristis est anima mea - Violoncello</movement-title>
   <identification>
-    <creator type="composer">Carlo Gesualdo, arrangement F. Pachet and AI</creator>
+    <creator type="composer">Carlo Gesualdo</creator>
     <encoding>
-      <encoding-date>2026-07-29</encoding-date>
+      <encoding-date>2026-07-30</encoding-date>
       <software>music21 v.9.9.1</software>
     </encoding>
   </identification>
@@ -18,20 +18,20 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="Pc53687c541f458ac426995bfa072e600">
+    <score-part id="Pd7597541b83b64d7ef89ce7b45edf878">
       <part-name>Violoncello</part-name>
       <part-abbreviation>Vc</part-abbreviation>
-      <score-instrument id="Icd56b35d440dace528bc50d092543bc4">
+      <score-instrument id="I98455ddb29bafc8baec7ab0018760783">
         <instrument-name>Violoncello</instrument-name>
         <instrument-abbreviation>Vc</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="Icd56b35d440dace528bc50d092543bc4">
+      <midi-instrument id="I98455ddb29bafc8baec7ab0018760783">
         <midi-channel>4</midi-channel>
         <midi-program>43</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
-  <part id="Pc53687c541f458ac426995bfa072e600">
+  <part id="Pd7597541b83b64d7ef89ce7b45edf878">
     <measure implicit="no" number="1">
       <attributes>
         <divisions>10080</divisions>
@@ -47,9 +47,9 @@
           <line>4</line>
         </clef>
       </attributes>
-      <direction placement="above">
+      <direction>
         <direction-type>
-          <metronome parentheses="no">
+          <metronome>
             <beat-unit>quarter</beat-unit>
             <per-minute>80</per-minute>
           </metronome>
@@ -96,11 +96,7 @@
           <octave>3</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="start" />
         <type>half</type>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
     </measure>
     <measure implicit="no" number="3">
@@ -463,11 +459,7 @@
           <octave>3</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="start" />
         <type>half</type>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
     </measure>
     <measure implicit="no" number="15">
@@ -483,11 +475,11 @@
           <octave>3</octave>
         </pitch>
         <duration>40320</duration>
-        <tie type="stop" />
+        <tie type="start" />
         <tie type="start" />
         <type>whole</type>
         <notations>
-          <tied type="stop" />
+          <tied type="start" />
           <tied type="start" />
         </notations>
       </note>
@@ -683,22 +675,8 @@
       </direction>
       <note>
         <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-      <note>
-        <pitch>
-          <step>F</step>
-          <alter>0</alter>
-          <octave>3</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-      </note>
-      <note>
-        <rest />
-        <duration>5040</duration>
-        <type>eighth</type>
+        <duration>20160</duration>
+        <type>half</type>
       </note>
     </measure>
     <measure implicit="no" number="21">
@@ -2056,6 +2034,9 @@
         <duration>20160</duration>
         <type>half</type>
       </note>
+      <barline location="right">
+        <bar-style>light-heavy</bar-style>
+      </barline>
     </measure>
   </part>
 </score-partwise>

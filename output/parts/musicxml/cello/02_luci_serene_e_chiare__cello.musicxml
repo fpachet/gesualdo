@@ -5,9 +5,9 @@
   </work>
   <movement-title>Luci serene e chiare - Violoncello</movement-title>
   <identification>
-    <creator type="composer">Carlo Gesualdo, arrangement F. Pachet and AI</creator>
+    <creator type="composer">Carlo Gesualdo</creator>
     <encoding>
-      <encoding-date>2026-07-29</encoding-date>
+      <encoding-date>2026-07-30</encoding-date>
       <software>music21 v.9.9.1</software>
     </encoding>
   </identification>
@@ -18,20 +18,20 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="P65fa03ac4eb94c253fcff2365a529338">
+    <score-part id="P889eaccc2de85788b4305187a0448272">
       <part-name>Violoncello</part-name>
       <part-abbreviation>Vc</part-abbreviation>
-      <score-instrument id="I93024b076a30048ee6d3f1845599119a">
+      <score-instrument id="I724a140bda58c14bdb917d8b0234fea1">
         <instrument-name>Violoncello</instrument-name>
         <instrument-abbreviation>Vc</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I93024b076a30048ee6d3f1845599119a">
+      <midi-instrument id="I724a140bda58c14bdb917d8b0234fea1">
         <midi-channel>4</midi-channel>
         <midi-program>43</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
-  <part id="P65fa03ac4eb94c253fcff2365a529338">
+  <part id="P889eaccc2de85788b4305187a0448272">
     <measure implicit="no" number="1">
       <attributes>
         <divisions>10080</divisions>
@@ -47,14 +47,14 @@
           <line>4</line>
         </clef>
       </attributes>
-      <direction placement="above">
+      <direction>
         <direction-type>
-          <metronome parentheses="no">
+          <metronome>
             <beat-unit>quarter</beat-unit>
-            <per-minute>60</per-minute>
+            <per-minute>58</per-minute>
           </metronome>
         </direction-type>
-        <sound tempo="60" />
+        <sound tempo="58" />
       </direction>
       <direction placement="below">
         <direction-type>
@@ -187,13 +187,13 @@
       </note>
       <note>
         <pitch>
-          <step>C</step>
-          <alter>1</alter>
+          <step>D</step>
+          <alter>-1</alter>
           <octave>3</octave>
         </pitch>
         <duration>2520</duration>
         <type>16th</type>
-        <accidental>sharp</accidental>
+        <accidental>flat</accidental>
         <stem>down</stem>
         <beam number="1">end</beam>
         <beam number="2">end</beam>
@@ -450,32 +450,14 @@
         <type>quarter</type>
       </note>
       <note>
-        <rest />
-        <duration>2520</duration>
-        <type>16th</type>
-      </note>
-      <note>
-        <pitch>
-          <step>B</step>
-          <alter>-1</alter>
-          <octave>3</octave>
-        </pitch>
-        <duration>2520</duration>
-        <type>16th</type>
-        <stem>down</stem>
-        <beam number="1">begin</beam>
-        <beam number="2">forward hook</beam>
-      </note>
-      <note>
         <pitch>
           <step>E</step>
           <alter>-1</alter>
           <octave>3</octave>
         </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
+        <duration>10080</duration>
+        <type>quarter</type>
         <stem>down</stem>
-        <beam number="1">end</beam>
       </note>
       <note>
         <rest />
@@ -1245,13 +1227,13 @@
       </note>
       <note>
         <pitch>
-          <step>C</step>
-          <alter>1</alter>
+          <step>D</step>
+          <alter>-1</alter>
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
         <type>quarter</type>
-        <accidental>sharp</accidental>
+        <accidental>flat</accidental>
       </note>
       <note>
         <pitch>
@@ -1563,13 +1545,13 @@
       </note>
       <note>
         <pitch>
-          <step>C</step>
-          <alter>1</alter>
+          <step>D</step>
+          <alter>-1</alter>
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
         <type>quarter</type>
-        <accidental>sharp</accidental>
+        <accidental>flat</accidental>
       </note>
       <note>
         <pitch>
@@ -1816,13 +1798,13 @@
       </note>
       <note>
         <pitch>
-          <step>C</step>
-          <alter>1</alter>
+          <step>D</step>
+          <alter>-1</alter>
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
         <type>quarter</type>
-        <accidental>sharp</accidental>
+        <accidental>flat</accidental>
       </note>
     </measure>
     <measure implicit="no" number="31">
@@ -2136,13 +2118,13 @@
     <measure implicit="no" number="35">
       <note>
         <pitch>
-          <step>C</step>
-          <alter>1</alter>
+          <step>D</step>
+          <alter>-1</alter>
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
         <type>quarter</type>
-        <accidental>sharp</accidental>
+        <accidental>flat</accidental>
       </note>
       <note>
         <pitch>
@@ -2488,11 +2470,7 @@
           <octave>3</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="start" />
         <type>half</type>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
     </measure>
     <measure implicit="no" number="43">
@@ -2503,11 +2481,11 @@
           <octave>3</octave>
         </pitch>
         <duration>40320</duration>
-        <tie type="stop" />
+        <tie type="start" />
         <tie type="start" />
         <type>whole</type>
         <notations>
-          <tied type="stop" />
+          <tied type="start" />
           <tied type="start" />
         </notations>
       </note>
@@ -2544,6 +2522,9 @@
         <duration>20160</duration>
         <type>half</type>
       </note>
+      <barline location="right">
+        <bar-style>light-heavy</bar-style>
+      </barline>
     </measure>
   </part>
 </score-partwise>

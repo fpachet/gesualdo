@@ -128,6 +128,17 @@ def render_pdf(
             report.suppressed_naturals = xml_report.suppressed_redundant_accidentals
             report.cello_clef_changes_added = xml_report.cello_clef_changes
             report.viola_clef_changes_added = xml_report.viola_clef_changes
+            report.final_barlines_added = xml_report.final_barlines_added
+            report.normalized_dangling_ties = xml_report.normalized_dangling_ties
+            report.normalized_tied_enharmonics = xml_report.normalized_tied_enharmonics
+            report.normalized_adjacent_enharmonics = xml_report.normalized_adjacent_enharmonics
+            report.removed_isolated_redundant_notes = xml_report.removed_isolated_redundant_notes
+            report.extended_isolated_redundant_notes = xml_report.extended_isolated_redundant_notes
+            report.normalized_fragmented_rests = xml_report.normalized_fragmented_rests
+            report.extended_terminal_short_notes = xml_report.extended_terminal_short_notes
+            report.applied_gia_piansi_line_cleanups = xml_report.applied_gia_piansi_line_cleanups
+            report.applied_luci_serene_line_cleanups = xml_report.applied_luci_serene_line_cleanups
+            report.applied_dolcissima_line_cleanups = xml_report.applied_dolcissima_line_cleanups
         result = run_musescore_pdf(musescore, clean_path, output_path)
         if result.returncode != 0:
             _render_pdf_from_midi_fallback(musescore, input_path, output_path)
@@ -222,6 +233,15 @@ def write_audit(root: Path, job: RenderJob, rows: list[dict[str, str]]) -> None:
         "respelled_chromatic_context_accidentals",
         "suppressed_tie_continuation_accidentals",
         "normalized_dangling_ties",
+        "normalized_tied_enharmonics",
+        "normalized_adjacent_enharmonics",
+        "removed_isolated_redundant_notes",
+        "extended_isolated_redundant_notes",
+        "normalized_fragmented_rests",
+        "extended_terminal_short_notes",
+        "applied_gia_piansi_line_cleanups",
+        "applied_luci_serene_line_cleanups",
+        "applied_dolcissima_line_cleanups",
         "pdf_midi_fallbacks",
         "error",
     ]

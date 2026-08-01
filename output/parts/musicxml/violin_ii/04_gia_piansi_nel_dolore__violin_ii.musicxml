@@ -5,9 +5,9 @@
   </work>
   <movement-title>Già piansi nel dolore - Violin II</movement-title>
   <identification>
-    <creator type="composer">Carlo Gesualdo, arrangement F. Pachet and AI</creator>
+    <creator type="composer">Carlo Gesualdo</creator>
     <encoding>
-      <encoding-date>2026-07-29</encoding-date>
+      <encoding-date>2026-07-30</encoding-date>
       <software>music21 v.9.9.1</software>
     </encoding>
   </identification>
@@ -18,20 +18,20 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="Pb00149e1c511a7e84830974bc3a0ca5f">
+    <score-part id="P711a9523b9f733bb8fb5ac93b2b3bc54">
       <part-name>Violin II</part-name>
       <part-abbreviation>Vln</part-abbreviation>
-      <score-instrument id="I73ab6838c52270011dc1db9e7116003f">
+      <score-instrument id="I30981c3337c6ad0a3cb2da6068188b23">
         <instrument-name>Violin</instrument-name>
         <instrument-abbreviation>Vln</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I73ab6838c52270011dc1db9e7116003f">
+      <midi-instrument id="I30981c3337c6ad0a3cb2da6068188b23">
         <midi-channel>2</midi-channel>
         <midi-program>41</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
-  <part id="Pb00149e1c511a7e84830974bc3a0ca5f">
+  <part id="P711a9523b9f733bb8fb5ac93b2b3bc54">
     <measure implicit="no" number="1">
       <attributes>
         <divisions>10080</divisions>
@@ -47,9 +47,9 @@
           <line>2</line>
         </clef>
       </attributes>
-      <direction placement="above">
+      <direction>
         <direction-type>
-          <metronome parentheses="no">
+          <metronome>
             <beat-unit>quarter</beat-unit>
             <per-minute>90</per-minute>
           </metronome>
@@ -201,54 +201,19 @@
         <sound dynamics="69" />
       </direction>
       <note>
-        <rest />
-        <duration>15120</duration>
-        <type>quarter</type>
-        <dot />
+        <rest measure="yes" />
+        <duration>40320</duration>
       </note>
       <direction placement="below">
         <direction-type>
           <wedge number="2" spread="15" type="diminuendo" />
         </direction-type>
       </direction>
-      <note>
-        <pitch>
-          <step>A</step>
-          <alter>0</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>2520</duration>
-        <type>16th</type>
-        <stem>up</stem>
-        <beam number="1">begin</beam>
-        <beam number="2">begin</beam>
-      </note>
       <direction placement="below">
         <direction-type>
           <wedge number="1" spread="15" type="stop" />
         </direction-type>
       </direction>
-      <note>
-        <pitch>
-          <step>B</step>
-          <alter>0</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>2520</duration>
-        <type>16th</type>
-        <stem>up</stem>
-        <beam number="1">end</beam>
-        <beam number="2">end</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>C</step>
-          <alter>0</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>20160</duration>
-        <type>half</type>
-      </note>
     </measure>
     <measure implicit="no" number="9">
       <direction placement="below">
@@ -386,11 +351,7 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <tie type="stop" />
         <type>quarter</type>
-        <notations>
-          <tied type="stop" />
-        </notations>
       </note>
       <note>
         <pitch>
@@ -451,9 +412,16 @@
         <type>quarter</type>
       </note>
       <note>
-        <rest />
+        <pitch>
+          <step>C</step>
+          <alter>0</alter>
+          <octave>4</octave>
+        </pitch>
         <duration>2520</duration>
         <type>16th</type>
+        <stem>up</stem>
+        <beam number="1">begin</beam>
+        <beam number="2">begin</beam>
       </note>
       <note>
         <pitch>
@@ -464,8 +432,8 @@
         <duration>2520</duration>
         <type>16th</type>
         <stem>up</stem>
-        <beam number="1">begin</beam>
-        <beam number="2">begin</beam>
+        <beam number="1">continue</beam>
+        <beam number="2">continue</beam>
       </note>
       <note>
         <pitch>
@@ -600,11 +568,7 @@
           <octave>4</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="stop" />
         <type>half</type>
-        <notations>
-          <tied type="stop" />
-        </notations>
       </note>
       <note>
         <pitch>
@@ -748,11 +712,7 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <tie type="stop" />
         <type>quarter</type>
-        <notations>
-          <tied type="stop" />
-        </notations>
       </note>
       <direction placement="below">
         <direction-type>
@@ -870,11 +830,7 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <tie type="start" />
         <type>quarter</type>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
       <note>
         <pitch>
@@ -990,11 +946,7 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <tie type="start" />
         <type>quarter</type>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
       <note>
         <pitch>
@@ -1208,13 +1160,20 @@
         <duration>2520</duration>
         <type>16th</type>
         <stem>up</stem>
-        <beam number="1">end</beam>
-        <beam number="2">end</beam>
+        <beam number="1">continue</beam>
+        <beam number="2">continue</beam>
       </note>
       <note>
-        <rest />
+        <pitch>
+          <step>G</step>
+          <alter>0</alter>
+          <octave>4</octave>
+        </pitch>
         <duration>2520</duration>
         <type>16th</type>
+        <stem>up</stem>
+        <beam number="1">continue</beam>
+        <beam number="2">continue</beam>
       </note>
       <note>
         <pitch>
@@ -1225,8 +1184,8 @@
         <duration>2520</duration>
         <type>16th</type>
         <stem>up</stem>
-        <beam number="1">begin</beam>
-        <beam number="2">begin</beam>
+        <beam number="1">continue</beam>
+        <beam number="2">continue</beam>
       </note>
       <note>
         <pitch>
@@ -1234,17 +1193,16 @@
           <alter>0</alter>
           <octave>4</octave>
         </pitch>
-        <duration>2520</duration>
-        <type>16th</type>
+        <duration>5040</duration>
+        <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
         <beam number="2">end</beam>
       </note>
       <note>
         <rest />
-        <duration>17640</duration>
+        <duration>15120</duration>
         <type>quarter</type>
-        <dot />
         <dot />
       </note>
       <note>
@@ -1498,11 +1456,7 @@
           <octave>3</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="start" />
         <type>half</type>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
     </measure>
     <measure implicit="no" number="34">
@@ -1593,11 +1547,6 @@
         </direction-type>
         <sound dynamics="69" />
       </direction>
-      <direction placement="below">
-        <direction-type>
-          <wedge number="6" spread="15" type="diminuendo" />
-        </direction-type>
-      </direction>
       <note>
         <pitch>
           <step>D</step>
@@ -1633,14 +1582,6 @@
       </note>
     </measure>
     <measure implicit="no" number="37">
-      <direction placement="below">
-        <direction-type>
-          <dynamics default-x="-36" default-y="-80">
-            <mp />
-          </dynamics>
-        </direction-type>
-        <sound dynamics="57" />
-      </direction>
       <note>
         <pitch>
           <step>D</step>
@@ -1650,11 +1591,6 @@
         <duration>10080</duration>
         <type>quarter</type>
       </note>
-      <direction placement="below">
-        <direction-type>
-          <wedge number="6" spread="0" type="stop" />
-        </direction-type>
-      </direction>
       <note>
         <pitch>
           <step>D</step>
@@ -1675,6 +1611,11 @@
       </note>
     </measure>
     <measure implicit="no" number="38">
+      <direction placement="below">
+        <direction-type>
+          <wedge number="6" spread="15" type="diminuendo" />
+        </direction-type>
+      </direction>
       <note>
         <pitch>
           <step>B</step>
@@ -1705,6 +1646,14 @@
       </note>
     </measure>
     <measure implicit="no" number="40">
+      <direction placement="below">
+        <direction-type>
+          <dynamics default-x="-36" default-y="-80">
+            <mp />
+          </dynamics>
+        </direction-type>
+        <sound dynamics="57" />
+      </direction>
       <note>
         <rest />
         <duration>10080</duration>
@@ -1719,6 +1668,11 @@
         <duration>10080</duration>
         <type>quarter</type>
       </note>
+      <direction placement="below">
+        <direction-type>
+          <wedge number="6" spread="0" type="stop" />
+        </direction-type>
+      </direction>
       <note>
         <pitch>
           <step>A</step>
@@ -2005,13 +1959,8 @@
           <alter>0</alter>
           <octave>4</octave>
         </pitch>
-        <duration>2520</duration>
-        <type>16th</type>
-      </note>
-      <note>
-        <rest />
-        <duration>2520</duration>
-        <type>16th</type>
+        <duration>5040</duration>
+        <type>eighth</type>
       </note>
     </measure>
     <measure implicit="no" number="47">
@@ -2290,26 +2239,12 @@
           <octave>4</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="stop" />
         <type>half</type>
-        <notations>
-          <tied type="stop" />
-        </notations>
-      </note>
-      <note>
-        <pitch>
-          <step>E</step>
-          <alter>0</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>2520</duration>
-        <type>16th</type>
       </note>
       <note>
         <rest />
-        <duration>7560</duration>
-        <type>eighth</type>
-        <dot />
+        <duration>10080</duration>
+        <type>quarter</type>
       </note>
       <note>
         <pitch>
@@ -2808,11 +2743,7 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <tie type="start" />
         <type>quarter</type>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
       <direction>
         <sound tempo="83" />
@@ -2894,39 +2825,13 @@
         <duration>2520</duration>
         <type>16th</type>
         <stem>up</stem>
-        <beam number="1">continue</beam>
-        <beam number="2">continue</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>D</step>
-          <alter>0</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>2520</duration>
-        <type>16th</type>
-        <stem>up</stem>
         <beam number="1">end</beam>
         <beam number="2">end</beam>
       </note>
       <note>
         <rest />
-        <duration>2520</duration>
-        <type>16th</type>
-      </note>
-      <note>
-        <pitch>
-          <step>G</step>
-          <alter>0</alter>
-          <octave>3</octave>
-        </pitch>
-        <duration>2520</duration>
-        <type>16th</type>
-      </note>
-      <note>
-        <rest />
-        <duration>2520</duration>
-        <type>16th</type>
+        <duration>10080</duration>
+        <type>quarter</type>
       </note>
       <note>
         <pitch>
@@ -2951,6 +2856,9 @@
         <duration>40320</duration>
         <type>whole</type>
       </note>
+      <barline location="right">
+        <bar-style>light-heavy</bar-style>
+      </barline>
     </measure>
   </part>
 </score-partwise>

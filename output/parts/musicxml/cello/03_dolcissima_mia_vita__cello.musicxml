@@ -5,9 +5,9 @@
   </work>
   <movement-title>Dolcissima mia vita - Violoncello</movement-title>
   <identification>
-    <creator type="composer">Carlo Gesualdo, arrangement F. Pachet and AI</creator>
+    <creator type="composer">Carlo Gesualdo</creator>
     <encoding>
-      <encoding-date>2026-07-29</encoding-date>
+      <encoding-date>2026-07-30</encoding-date>
       <software>music21 v.9.9.1</software>
     </encoding>
   </identification>
@@ -18,20 +18,20 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="Paee24adbc90aca6286ebfa7614e62ce3">
+    <score-part id="P0fd7c514385fab7c37188bb1938828c9">
       <part-name>Violoncello</part-name>
       <part-abbreviation>Vc</part-abbreviation>
-      <score-instrument id="I8db4e8de8a4fb15f72a59c79ff8e3dde">
+      <score-instrument id="I1b66a3709a7d7e57ef5e8d46bbcb33b5">
         <instrument-name>Violoncello</instrument-name>
         <instrument-abbreviation>Vc</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I8db4e8de8a4fb15f72a59c79ff8e3dde">
+      <midi-instrument id="I1b66a3709a7d7e57ef5e8d46bbcb33b5">
         <midi-channel>4</midi-channel>
         <midi-program>43</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
-  <part id="Paee24adbc90aca6286ebfa7614e62ce3">
+  <part id="P0fd7c514385fab7c37188bb1938828c9">
     <measure implicit="no" number="1">
       <attributes>
         <divisions>10080</divisions>
@@ -47,9 +47,9 @@
           <line>4</line>
         </clef>
       </attributes>
-      <direction placement="above">
+      <direction>
         <direction-type>
-          <metronome parentheses="no">
+          <metronome>
             <beat-unit>quarter</beat-unit>
             <per-minute>120</per-minute>
           </metronome>
@@ -573,52 +573,13 @@
       </direction>
       <note>
         <rest />
-        <duration>2520</duration>
-        <type>16th</type>
-      </note>
-      <note>
-        <pitch>
-          <step>C</step>
-          <alter>0</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>2520</duration>
-        <type>16th</type>
+        <duration>40320</duration>
+        <type>whole</type>
       </note>
       <note>
         <rest />
-        <duration>5040</duration>
-        <type>eighth</type>
-      </note>
-      <note>
-        <pitch>
-          <step>D</step>
-          <alter>0</alter>
-          <octave>3</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-      </note>
-      <note>
-        <rest />
-        <duration>15120</duration>
+        <duration>10080</duration>
         <type>quarter</type>
-        <dot />
-      </note>
-      <note>
-        <pitch>
-          <step>D</step>
-          <alter>0</alter>
-          <octave>3</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-      </note>
-      <note>
-        <rest />
-        <duration>15120</duration>
-        <type>quarter</type>
-        <dot />
       </note>
       <note>
         <pitch>
@@ -947,20 +908,20 @@
       </direction>
       <note>
         <pitch>
-          <step>D</step>
-          <alter>1</alter>
+          <step>E</step>
+          <alter>-1</alter>
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
         <type>eighth</type>
-        <accidental>sharp</accidental>
+        <accidental>flat</accidental>
         <stem>down</stem>
         <beam number="1">end</beam>
       </note>
       <note>
         <pitch>
-          <step>D</step>
-          <alter>1</alter>
+          <step>E</step>
+          <alter>-1</alter>
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
@@ -968,8 +929,8 @@
       </note>
       <note>
         <pitch>
-          <step>D</step>
-          <alter>1</alter>
+          <step>E</step>
+          <alter>-1</alter>
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
@@ -1637,13 +1598,13 @@
       </note>
       <note>
         <pitch>
-          <step>D</step>
-          <alter>1</alter>
+          <step>E</step>
+          <alter>-1</alter>
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
         <type>quarter</type>
-        <accidental>sharp</accidental>
+        <accidental>flat</accidental>
       </note>
       <note>
         <pitch>
@@ -1744,13 +1705,13 @@
       </note>
       <note>
         <pitch>
-          <step>A</step>
-          <alter>1</alter>
+          <step>B</step>
+          <alter>-1</alter>
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
         <type>quarter</type>
-        <accidental>sharp</accidental>
+        <accidental>flat</accidental>
       </note>
       <note>
         <pitch>
@@ -1897,6 +1858,9 @@
         <duration>40320</duration>
         <type>whole</type>
       </note>
+      <barline location="right">
+        <bar-style>light-heavy</bar-style>
+      </barline>
     </measure>
   </part>
 </score-partwise>

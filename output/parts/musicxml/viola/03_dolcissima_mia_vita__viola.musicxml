@@ -5,9 +5,9 @@
   </work>
   <movement-title>Dolcissima mia vita - Viola</movement-title>
   <identification>
-    <creator type="composer">Carlo Gesualdo, arrangement F. Pachet and AI</creator>
+    <creator type="composer">Carlo Gesualdo</creator>
     <encoding>
-      <encoding-date>2026-07-29</encoding-date>
+      <encoding-date>2026-07-30</encoding-date>
       <software>music21 v.9.9.1</software>
     </encoding>
   </identification>
@@ -18,20 +18,20 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="P5010203182a99967d80bcabfc084b981">
+    <score-part id="Pb3746d566eb8989499b56e17bd9cfa6a">
       <part-name>Viola</part-name>
       <part-abbreviation>Vla</part-abbreviation>
-      <score-instrument id="Icfc565fda9b97e1f6c36dc0e06d58124">
+      <score-instrument id="I550173709553d20bab8ca07aacb99189">
         <instrument-name>Viola</instrument-name>
         <instrument-abbreviation>Vla</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="Icfc565fda9b97e1f6c36dc0e06d58124">
+      <midi-instrument id="I550173709553d20bab8ca07aacb99189">
         <midi-channel>3</midi-channel>
         <midi-program>42</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
-  <part id="P5010203182a99967d80bcabfc084b981">
+  <part id="Pb3746d566eb8989499b56e17bd9cfa6a">
     <measure implicit="no" number="1">
       <attributes>
         <divisions>10080</divisions>
@@ -47,9 +47,9 @@
           <line>3</line>
         </clef>
       </attributes>
-      <direction placement="above">
+      <direction>
         <direction-type>
-          <metronome parentheses="no">
+          <metronome>
             <beat-unit>quarter</beat-unit>
             <per-minute>120</per-minute>
           </metronome>
@@ -539,11 +539,7 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <tie type="start" />
         <type>quarter</type>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
       <note>
         <pitch>
@@ -576,11 +572,7 @@
           <octave>4</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="stop" />
         <type>half</type>
-        <notations>
-          <tied type="stop" />
-        </notations>
       </note>
       <direction placement="below">
         <direction-type>
@@ -619,6 +611,7 @@
         </pitch>
         <duration>10080</duration>
         <type>quarter</type>
+        <accidental>natural</accidental>
       </note>
       <note>
         <pitch>
@@ -942,11 +935,7 @@
           <octave>3</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="start" />
         <type>half</type>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
     </measure>
     <measure implicit="no" number="16">
@@ -1061,8 +1050,8 @@
       </direction>
       <note>
         <pitch>
-          <step>A</step>
-          <alter>1</alter>
+          <step>B</step>
+          <alter>-1</alter>
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
@@ -1079,8 +1068,8 @@
       </direction>
       <note>
         <pitch>
-          <step>A</step>
-          <alter>1</alter>
+          <step>B</step>
+          <alter>-1</alter>
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
@@ -1652,12 +1641,8 @@
           <octave>4</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="start" />
         <type>half</type>
         <accidental>flat</accidental>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
     </measure>
     <measure implicit="no" number="26">
@@ -1826,13 +1811,13 @@
       </note>
       <note>
         <pitch>
-          <step>D</step>
-          <alter>1</alter>
+          <step>E</step>
+          <alter>-1</alter>
           <octave>4</octave>
         </pitch>
         <duration>20160</duration>
         <type>half</type>
-        <accidental>sharp</accidental>
+        <accidental>flat</accidental>
       </note>
     </measure>
     <measure implicit="no" number="29">
@@ -1991,11 +1976,7 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <tie type="stop" />
         <type>quarter</type>
-        <notations>
-          <tied type="stop" />
-        </notations>
       </note>
       <note>
         <pitch>
@@ -2023,11 +2004,7 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <tie type="start" />
         <type>quarter</type>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
       <note>
         <pitch>
@@ -2061,12 +2038,11 @@
           <octave>4</octave>
         </pitch>
         <duration>80640</duration>
-        <tie type="stop" />
         <type>breve</type>
-        <notations>
-          <tied type="stop" />
-        </notations>
       </note>
+      <barline location="right">
+        <bar-style>light-heavy</bar-style>
+      </barline>
     </measure>
   </part>
 </score-partwise>

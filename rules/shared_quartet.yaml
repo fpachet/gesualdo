@@ -182,6 +182,92 @@ rules:
   exceptions:
   - id: true_bottom_anchor_material
     description: The actual lowest source voice may still be placed in cello and octave-fitted according to range/register rules.
+- id: smooth_isolated_handoffs
+  title: Smooth isolated handoffs into active lines
+  scope: continuity_repair
+  priority: high
+  action: reassign_short_isolated_events_to_clear_neighbor_line_gaps
+  parameters:
+    enabled_by_default: true
+    max_isolated_event_duration_quarters: 0.25
+    donor_candidate:
+      require_pitched_event: true
+      reject_generated_editorial_events: true
+      require_rest_or_gap_before_event: true
+      require_rest_or_gap_after_event: true
+    receiver_candidate:
+      require_target_free_for_event_interval: true
+      require_pitched_event_ending_exactly_at_candidate_start: true
+      require_pitched_event_starting_exactly_at_candidate_end: true
+      max_neighbor_leap_semitones: 7
+      require_line_cost_not_much_worse_than_direct_leap: true
+      max_extra_line_cost_over_direct_leap: 4
+      require_pitch_within_receiver_range: true
+    one_sided_line_continuation:
+      enabled_by_default: true
+      allow_tail_continuation_after_immediate_previous_note: true
+      allow_head_continuation_before_immediate_next_note: true
+      max_single_neighbor_leap_semitones: 4
+      require_receiver_free_for_event_interval: true
+    adjacent_double_stop_absorption:
+      enabled_by_default: true
+      disabled_for_take6_short_color_attack_guardrail: true
+      require_adjacent_target_staff: true
+      require_single_overlapping_receiver_note: true
+      require_receiver_note_covers_candidate_interval: true
+      require_playable_double_stop: true
+      require_simple_split_durations: true
+      preserve_candidate_pitch_register: true
+    overlap_trim_insertion:
+      enabled_by_default: true
+      disabled_for_take6_short_color_attack_guardrail: true
+      require_adjacent_target_staff: true
+      require_single_overlapping_receiver_note: true
+      require_candidate_ends_with_receiver_note: true
+      max_receiver_note_duration_quarters: 0.5
+      shrink_receiver_note_to_candidate_start: true
+      require_simple_trimmed_duration: true
+      prefer_over_fast_double_stop: true
+    scoring:
+      primary: sum_of_neighbor_intervals
+      secondary:
+      - receiver_register_fit
+      - target_staff_distance_from_donor
+  rationale: A short isolated note in one instrument can be a voice-allocation artifact when another instrument has an exact rhythmic gap, a one-sided continuation into or out of a line, a clear overlap that can be fixed by shortening the receiver note, or a playable adjacent double-stop opportunity. Moving the note there preserves melodic fluency and removes an unnecessary interruption without changing the source pitch or rhythm.
+  evidence:
+    docs:
+    - path: docs/quartet_director_feedback_plan.md
+      note: Director review treats needless isolated fragments as playability issues.
+    code:
+    - path: src/gesualdo_reduction/reduction.py
+      note: Implemented by the post-assignment isolated handoff smoother.
+    reports: []
+    examples:
+    - piece_id: dolcissima_mia_vita
+      measure: 13
+      note: A one-sixteenth C in cello is reassigned into the Violin II D-C-B-flat-A line, leaving cello at rest.
+    - piece_id: gia_piansi_nel_dolore
+      measure: 8
+      note: Violin II's A-B-C continuation is reassigned to Viola after its G, and the duplicate dangling Viola C is removed.
+    - piece_id: gia_piansi_nel_dolore
+      measure: 8
+      note: Cello's dotted-eighth C followed by quarter-plus-sixteenth rests is simplified to a quarter C followed by a quarter rest.
+    - piece_id: gia_piansi_nel_dolore
+      measure: 26
+      note: A short cello C is moved into the viola by shortening the preceding A, avoiding both an isolated cello interruption and a rushed A-C double stop.
+    - piece_id: gia_piansi_nel_dolore
+      measure: 27
+      note: Violin II's low G is removed from the opening double stop, leaving the B as the beamed line note.
+    - piece_id: gia_piansi_nel_dolore
+      measure: 52
+      note: A final short viola G is reassigned to Violin I after its F, completing a small tail continuation instead of leaving an isolated viola attack.
+  exceptions:
+  - id: no_clear_receiver_line
+    description: Do not move the event unless another part has both immediate pitched neighbors and no overlap in the exact candidate interval.
+  - id: implausible_melodic_motion
+    description: Do not move the event when it creates a large or musically less plausible leap than the direct neighboring motion.
+  - id: take6_short_color_attacks
+    description: Do not use short overlap trimming or double-stop absorption in Take 6 reductions, where a separate source-double-stop pass rejects short isolated color attacks.
 - id: require_source_event_or_editorial_tag
   title: Preserve source provenance
   scope: provenance
@@ -466,11 +552,11 @@ rules:
     suppress_tie_continuation_accidentals: true
     normalize_dangling_ties: true
     add_final_barlines: true
-    split_rests_at_beat_boundaries: true
+    split_rests_at_beat_boundaries: false
     add_cello_treble_clef_for_high_passages: true
     add_viola_treble_clef_for_high_passages: true
     release_residue_tolerance_quarters: 0.25
-    beat_boundary_rest_splitting: true
+    beat_boundary_rest_splitting: false
     operation_order:
     - normalize_dangling_ties
     - normalize_beat_readability
@@ -500,8 +586,13 @@ rules:
           positive_shift_lte_quarters: 0.25
           rest_remains_positive_duration: true
       rest_splitting:
-        split_non_full_measure_rests_at_internal_beat_boundaries: true
+        split_non_full_measure_rests_at_internal_beat_boundaries: false
         leave_full_measure_rests_intact: true
+      rest_run_simplification:
+        merge_adjacent_plain_rests_same_voice: true
+        require_fewer_rest_symbols_after_rewrite: true
+        rewrite_as_shortest_standard_duration_sequence: true
+        example_total_five_quarters: whole_rest_plus_quarter_rest
       beat_unit_by_meter:
         denominator_2: 2.0
         compound_quarter_meter_with_numerator_multiple_of_3_above_3: 1.5
@@ -525,8 +616,23 @@ rules:
       remove_continue_without_previous_or_next: true
       remove_stop_without_matching_previous_same_pitch: true
     accidental_cleanup_predicates:
+      prefer_active_key_signature_spellings: true
+      prefer_flat_spellings_in_flat_side_contexts: true
       hide_natural_only_when_key_and_measure_state_are_already_natural: true
       hide_accidentals_on_tie_stop_or_continue: true
+      normalize_tied_enharmonics_to_tie_start_spelling: true
+      normalize_adjacent_enharmonics_when_same_pitch_repeats: true
+      piece_specific_spelling_overrides:
+      - piece_id: luci_serene_e_chiare
+        title: Luci serene e chiare
+        rule: write_C_sharp_as_D_flat
+        reason: In the local flat-side harmonic context, D-flat reads more naturally than C-sharp and avoids a misleading sharp-side implication.
+        applies_after_generic_chromatic_respelling: true
+      - piece_id: dolcissima_mia_vita
+        title: Dolcissima mia vita
+        rule: write_D_sharp_as_E_flat
+        reason: E-flat is the clearer spelling in the local flat-side harmonic context of this reduction.
+        applies_after_generic_chromatic_respelling: true
     forbidden_cleanup_effects:
     - remove_pitched_attacks
     - thin_dense_bars
@@ -544,7 +650,36 @@ rules:
     reports:
     - path: data/take6/renders/string_quartet_double_stops_pdf/review_pdf_report.tsv
       note: PDF review cleanup metrics.
-    examples: []
+    examples:
+    - piece_id: luci_serene_e_chiare
+      measure: 41
+      note: C-sharp spellings are forced to D-flat after generic chromatic cleanup so score and parts remain consistent on rebuild.
+    - piece_id: luci_serene_e_chiare
+      measure: 31
+      note: Removed a redundant isolated short attack and simplified the resulting rest notation.
+    - piece_id: gia_piansi_nel_dolore
+      measure: 8
+      note: Violin II's A-B-C line is moved to Viola to continue the ascending figure, leaving Violin II resting.
+    - piece_id: gia_piansi_nel_dolore
+      measure: 8
+      note: Cello's dotted-eighth C is lengthened to a quarter note and the trailing rest fragments are collapsed to a single quarter rest.
+    - piece_id: gia_piansi_nel_dolore
+      measure: 27
+      note: Violin II's later E is lengthened from a 16th to an eighth after removing the awkward low G from the opening double stop.
+    - piece_id: gia_piansi_nel_dolore
+      measure: 46
+      note: Extended a musically acceptable short Violin II note into the following tiny rest when the resulting dissonance remained idiomatic.
+    - piece_id: our_prayer
+      measure: 6
+      note: Keep the cello eighth-note line; do not over-simplify it away during readability cleanup.
+    - piece_id: dolcissima_mia_vita
+      measure: 13
+      note: Cello rest run is rewritten from five small rests to a whole rest plus a quarter rest.
+    - piece_id: dolcissima_mia_vita
+      measure: 14
+      note: A redundant isolated Violin II B-flat 16th already covered by Violin I is removed, and the resulting rest is merged to a quarter rest.
+    - piece_id: dolcissima_mia_vita
+      note: D-sharp spellings are forced to E-flat throughout the piece.
   exceptions: []
 - id: normalize_musescore_time_modification_import
   title: Normalize MuseScore time-modification import

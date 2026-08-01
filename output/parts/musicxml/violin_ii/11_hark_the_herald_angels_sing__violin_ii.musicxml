@@ -5,9 +5,9 @@
   </work>
   <movement-title>Hark! The Herald Angels Sing - Violin II</movement-title>
   <identification>
-    <creator type="composer">Take 6, arrangement F. Pachet and AI</creator>
+    <creator type="composer">Take 6</creator>
     <encoding>
-      <encoding-date>2026-07-02</encoding-date>
+      <encoding-date>2026-07-30</encoding-date>
       <software>music21 v.9.9.1</software>
     </encoding>
   </identification>
@@ -18,20 +18,20 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="Pc388b6e3047d41424d2ac9ac9eb4f6b7">
+    <score-part id="Pc2e68b20a995c147c1034cef0f9ea2fe">
       <part-name>Violin II</part-name>
       <part-abbreviation>Vln</part-abbreviation>
-      <score-instrument id="I3cbe25865144806daa26f6d1b7bfd8f8">
+      <score-instrument id="Ic08bc6338a4febc8fdfa1e99b41f48a5">
         <instrument-name>Violin</instrument-name>
         <instrument-abbreviation>Vln</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I3cbe25865144806daa26f6d1b7bfd8f8">
+      <midi-instrument id="Ic08bc6338a4febc8fdfa1e99b41f48a5">
         <midi-channel>2</midi-channel>
         <midi-program>41</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
-  <part id="Pc388b6e3047d41424d2ac9ac9eb4f6b7">
+  <part id="Pc2e68b20a995c147c1034cef0f9ea2fe">
     <measure implicit="no" number="1">
       <attributes>
         <divisions>10080</divisions>
@@ -70,13 +70,8 @@
     <measure implicit="no" number="3">
       <note>
         <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-      <note>
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
+        <duration>20160</duration>
+        <type>half</type>
       </note>
       <note>
         <pitch>
@@ -363,13 +358,8 @@
       </note>
       <note>
         <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-      <note>
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
+        <duration>20160</duration>
+        <type>half</type>
       </note>
     </measure>
     <measure implicit="no" number="10">
@@ -777,6 +767,7 @@
         </pitch>
         <duration>5040</duration>
         <type>eighth</type>
+        <accidental>sharp</accidental>
       </note>
     </measure>
     <measure implicit="no" number="18">
@@ -948,14 +939,36 @@
           <alter>0</alter>
           <octave>4</octave>
         </pitch>
-        <duration>30240</duration>
+        <duration>20160</duration>
+        <tie type="start" />
         <type>half</type>
+        <notations>
+          <tied type="start" />
+        </notations>
+      </note>
+      <note>
+        <pitch>
+          <step>G</step>
+          <alter>0</alter>
+          <octave>4</octave>
+        </pitch>
+        <duration>7560</duration>
+        <tie type="stop" />
+        <type>eighth</type>
         <dot />
+        <notations>
+          <tied type="stop" />
+        </notations>
       </note>
       <note>
         <rest />
         <duration>10080</duration>
         <type>quarter</type>
+      </note>
+      <note>
+        <rest />
+        <duration>2520</duration>
+        <type>16th</type>
       </note>
     </measure>
     <measure implicit="no" number="22">
@@ -1329,13 +1342,8 @@
       </note>
       <note>
         <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-      <note>
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
+        <duration>20160</duration>
+        <type>half</type>
       </note>
     </measure>
     <measure implicit="no" number="31">
@@ -1911,8 +1919,16 @@
           <alter>0</alter>
           <octave>4</octave>
         </pitch>
-        <duration>40320</duration>
-        <type>whole</type>
+        <duration>37800</duration>
+        <type>half</type>
+        <dot />
+        <dot />
+        <dot />
+      </note>
+      <note>
+        <rest />
+        <duration>2520</duration>
+        <type>16th</type>
       </note>
     </measure>
     <measure implicit="no" number="44">
@@ -1942,13 +1958,8 @@
     <measure implicit="no" number="46">
       <note>
         <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-      <note>
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
+        <duration>20160</duration>
+        <type>half</type>
       </note>
       <note>
         <pitch>
@@ -2276,13 +2287,8 @@
       </note>
       <note>
         <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-      <note>
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
+        <duration>20160</duration>
+        <type>half</type>
       </note>
     </measure>
     <measure implicit="no" number="53">
@@ -3206,9 +3212,15 @@
           <alter>1</alter>
           <octave>4</octave>
         </pitch>
-        <duration>20160</duration>
-        <type>half</type>
-        <accidental>sharp</accidental>
+        <duration>17640</duration>
+        <type>quarter</type>
+        <dot />
+        <dot />
+      </note>
+      <note>
+        <rest />
+        <duration>2520</duration>
+        <type>16th</type>
       </note>
     </measure>
     <measure implicit="no" number="69">
@@ -3224,8 +3236,32 @@
           <alter>0</alter>
           <octave>4</octave>
         </pitch>
-        <duration>40320</duration>
-        <type>whole</type>
+        <duration>20160</duration>
+        <tie type="start" />
+        <type>half</type>
+        <notations>
+          <tied type="start" />
+        </notations>
+      </note>
+      <note>
+        <pitch>
+          <step>C</step>
+          <alter>0</alter>
+          <octave>4</octave>
+        </pitch>
+        <duration>17640</duration>
+        <tie type="stop" />
+        <type>quarter</type>
+        <dot />
+        <dot />
+        <notations>
+          <tied type="stop" />
+        </notations>
+      </note>
+      <note>
+        <rest />
+        <duration>2520</duration>
+        <type>16th</type>
       </note>
     </measure>
     <measure implicit="no" number="70">

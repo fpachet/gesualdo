@@ -419,14 +419,55 @@ only the short version.
    accidentals, dangling ties or slurs, final barlines, clef changes, and
    other notation artifacts.
 
-2. Automatic cleanup must not hide musical decisions.
+2. Accidentals follow the musical key context before chromatic convenience.
+
+   Notes that belong to the active key signature should use that spelling:
+   for example A-flat in E-flat major, not G-sharp. In flat-side harmonic
+   contexts, local chromatic notes should also prefer flat spellings when that
+   is the clearer reading. The reviewed case is `Luci serene e chiare`, where
+   C-sharp spellings are forced to D-flat after the generic chromatic spelling
+   pass, so the conductor score, part XMLs, and rebuilt PDFs remain consistent.
+   The same principle is used in `Dolcissima mia vita`, where D-sharp spellings
+   are forced to E-flat.
+
+3. Automatic cleanup must not hide musical decisions.
 
    Engraving cleanup may merge tied same-pitch fragments, simplify rests, or
    improve clefs when the sounding music is unchanged. It should not remove
    attacks, thin dense bars, or invent contrapuntal material without becoming a
    named reduction rule.
 
-3. Director comments become rules only when generalizable.
+4. Rests are simplified, not over-notated.
+
+   Adjacent rest fragments may be merged, and tiny final release rests may be
+   absorbed into the preceding note when the sounding pitch content remains
+   acceptable. Rests are not split merely to show every beat boundary. A long
+   note that starts clearly on the beat does not need to be subdivided only for
+   beat readability. When a run of adjacent rests cannot be represented as a
+   single standard rest, it is rewritten as the shortest standard sequence
+   available; for example, the five-quarter rest span in `Dolcissima mia vita`
+   bar 13 cello becomes a whole rest plus a quarter rest. In bar 14, a
+   redundant isolated Violin II B-flat 16th already covered by Violin I is
+   removed and the resulting rest is merged into a quarter rest. In `Già piansi
+   nel dolore` bar 8, the cello's dotted-eighth C is lengthened to a quarter
+   note and the trailing rest fragments are collapsed to one quarter rest. In
+   bar 27, the low G is removed from the Violin II double stop and the later E
+   is lengthened from a 16th to an eighth.
+
+5. Clefs should avoid one-note flicker.
+
+   Cello defaults to bass clef. Tenor or treble clef is reserved for sustained
+   high passages, not isolated high notes in the middle of a phrase. Viola
+   defaults to alto clef; treble clef is only for unusually high sustained
+   writing.
+
+6. Imported text is removed unless it is musical tempo information.
+
+   Review and concert scores keep the title, composer, and beginning tempo
+   indications, but remove imported vocal-edition page numbers, lyrics, edition
+   labels, and other non-playing annotations.
+
+7. Director comments become rules only when generalizable.
 
    A repeated problem should be stated as a musical rule, tested on examples or
    export validation, and recorded in the rule documentation. One isolated

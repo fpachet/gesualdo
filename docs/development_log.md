@@ -353,3 +353,63 @@ The detailed rollout summary is in
   or whether a later expressive edition should keep a curated subset.
 - Continue iterating on annotated director examples and promote repeated
   observations into explicit rules, tests, and audit checks.
+
+## Concert Engraving Review Rules
+
+The concert-book review produced several rules that are now meant to survive
+future MusicXML and PDF rebuilds.
+
+Accidentals:
+
+- Prefer notes already present in the active key signature over enharmonic
+  equivalents outside it.
+- In flat-side contexts, prefer flat spellings when they read more naturally
+  than a sharp-side chromatic spelling.
+- Specific reviewed case: in `Luci serene e chiare`, all C-sharp spellings are
+  written as D-flat. This rule is applied after the generic chromatic
+  respelling pass, because that pass may otherwise reintroduce C-sharps.
+- Specific reviewed case: in `Dolcissima mia vita`, D-sharp spellings are
+  written as E-flat throughout the piece.
+- Tied enharmonics are normalized so a tie does not connect two different
+  spellings of the same sounding pitch.
+
+Rhythm and rests:
+
+- Remove or extend isolated short notes only when they are redundant or when
+  the resulting sonority remains musically acceptable.
+- Merge rest fragments left behind by deleted notes.
+- Rewrite unreadable same-voice rest runs as the shortest available sequence of
+  standard rests. The reviewed `Dolcissima mia vita` bar 13 cello case changes
+  from five rest symbols to a whole rest plus a quarter rest.
+- Remove the reviewed redundant isolated Violin II B-flat 16th in `Dolcissima
+  mia vita` bar 14, because the event is already covered by Violin I; merge the
+  resulting rest fragments.
+- In `Già piansi nel dolore` bar 8, move Violin II's A-B-C continuation into
+  Viola after its G, and remove the duplicate dangling Viola C. The result is a
+  continuous Viola line and a full-bar Violin II rest.
+- In `Già piansi nel dolore` bar 8, simplify the cello by lengthening the
+  dotted-eighth C to a quarter note and replacing the two trailing rest fragments
+  with one quarter rest.
+- In `Già piansi nel dolore` bar 27, remove the awkward low G from the Violin II
+  opening double stop and lengthen the later E from a 16th to an eighth.
+- Do not split rests merely to expose beat boundaries.
+- Do not split a half note or longer note that starts clearly on the beat just
+  for readability.
+
+Clefs:
+
+- Cello defaults to bass clef. Tenor or treble clef should appear only for
+  sustained high writing, not for a single high note in the middle of a phrase.
+- Viola defaults to alto clef. Treble clef is reserved for unusually high
+  sustained writing.
+
+Text cleanup:
+
+- Keep title, composer, and tempo indications.
+- Remove imported lyrics, vocal-edition page numbers, edition labels such as
+  "This edition?", and other non-playing annotations.
+
+Reviewed examples now covered by cleanup rules or tests include `Luci serene e
+chiare` bars 7, 9, 31, and 41-42; `Già piansi nel dolore` bars 26, 27, 46, 52, and
+53; `Dolcissima mia vita` bar 13; `Hark! The Herald Angels Sing` bar 6; and
+the `A Quiet Place` triplet-preservation case.

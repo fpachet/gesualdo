@@ -1,4 +1,5 @@
 from fractions import Fraction
+from xml.etree import ElementTree as ET
 
 import pytest
 
@@ -6,6 +7,7 @@ pytest.importorskip("music21")
 
 from music21 import chord, clef, dynamics, instrument, key, meter, note, pitch, stream, tie
 
+import gesualdo_reduction.reduction as reduction_module
 from gesualdo_reduction.musicxml_compat import cleanup_musicxml_engraving, strip_time_modifications
 from gesualdo_reduction.notation_cleanup import cleanup_score
 from gesualdo_reduction.octave_optimization import optimize_score_octaves
@@ -18,6 +20,7 @@ from gesualdo_reduction.reduction import (
     _editorial_dynamic_points,
     _lower_high_cello_register,
     _merge_adjacent_generated_harmony_events,
+    _smooth_isolated_handoffs,
     build_ensemble_score,
     build_bar_map,
     build_measured_part,
@@ -95,6 +98,1138 @@ def test_musicxml_engraving_cleanup_respells_without_dropping_wedges(tmp_path):
     assert "<sign>F</sign>" in text
 
 
+def test_musicxml_engraving_cleanup_removes_text_annotations_but_keeps_tempo_and_dynamics(tmp_path):
+    xml_path = tmp_path / "annotations.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <credit><credit-words>This edition?</credit-words></credit>
+  <part-list>
+    <score-part id="P1"><part-name>Violin I</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <direction><direction-type><words>Imported vocal text</words></direction-type></direction>
+      <direction>
+        <direction-type>
+          <metronome><beat-unit>quarter</beat-unit><per-minute>58</per-minute></metronome>
+        </direction-type>
+        <sound tempo="58" />
+      </direction>
+      <direction><direction-type><dynamics><mf /></dynamics></direction-type></direction>
+      <note>
+        <pitch><step>C</step><octave>4</octave></pitch>
+        <duration>1</duration>
+        <type>quarter</type>
+        <lyric><text>la</text></lyric>
+      </note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.removed_text_annotations == 4
+    assert "This edition?" not in text
+    assert "Imported vocal text" not in text
+    assert "<lyric>" not in text
+    assert "<metronome>" in text
+    assert 'tempo="58"' in text
+    assert "<mf" in text
+
+
+def test_musicxml_engraving_cleanup_removes_dangling_ties(tmp_path):
+    xml_path = tmp_path / "dangling_ties.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Viola</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key><fifths>-1</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>C</sign><line>3</line></clef>
+      </attributes>
+      <note>
+        <pitch><step>G</step><octave>4</octave></pitch>
+        <duration>1</duration>
+        <tie type="start" />
+        <type>quarter</type>
+        <notations><tied type="start" /></notations>
+      </note>
+      <note>
+        <pitch><step>D</step><octave>4</octave></pitch>
+        <duration>1</duration>
+        <type>quarter</type>
+      </note>
+      <note>
+        <pitch><step>A</step><octave>4</octave></pitch>
+        <duration>1</duration>
+        <tie type="start" />
+        <type>quarter</type>
+        <notations><tied type="start" /></notations>
+      </note>
+      <note>
+        <pitch><step>A</step><octave>4</octave></pitch>
+        <duration>1</duration>
+        <tie type="stop" />
+        <type>quarter</type>
+        <notations><tied type="stop" /></notations>
+      </note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.normalized_dangling_ties == 1
+    assert text.count('<tie type="start" />') == 1
+    assert text.count('<tied type="start" />') == 1
+    assert '<tie type="stop" />' in text
+    assert '<tied type="stop" />' in text
+
+
+def test_musicxml_engraving_cleanup_normalizes_tied_enharmonics(tmp_path):
+    xml_path = tmp_path / "tied_enharmonics.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Violin II</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note>
+        <pitch><step>C</step><alter>1</alter><octave>4</octave></pitch>
+        <duration>2</duration>
+        <tie type="start" />
+        <type>half</type>
+        <accidental>sharp</accidental>
+        <notations><tied type="start" /></notations>
+      </note>
+    </measure>
+    <measure number="2">
+      <note>
+        <pitch><step>D</step><alter>-1</alter><octave>4</octave></pitch>
+        <duration>2</duration>
+        <tie type="stop" />
+        <type>half</type>
+        <accidental>flat</accidental>
+        <notations><tied type="stop" /></notations>
+      </note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.normalized_tied_enharmonics == 1
+    assert "<step>D</step>" not in text
+    assert text.count("<step>C</step>") == 2
+    assert text.count("<alter>1</alter>") == 2
+    assert "<accidental>flat</accidental>" not in text
+
+
+def test_musicxml_engraving_cleanup_normalizes_adjacent_enharmonics(tmp_path):
+    xml_path = tmp_path / "adjacent_enharmonics.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Viola</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>C</sign><line>3</line></clef>
+      </attributes>
+      <note>
+        <pitch><step>C</step><alter>1</alter><octave>4</octave></pitch>
+        <duration>1</duration>
+        <type>quarter</type>
+        <accidental>sharp</accidental>
+      </note>
+      <note>
+        <pitch><step>D</step><alter>-1</alter><octave>4</octave></pitch>
+        <duration>1</duration>
+        <type>quarter</type>
+        <accidental>flat</accidental>
+      </note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.normalized_adjacent_enharmonics == 1
+    assert "<step>D</step>" not in text
+    assert text.count("<step>C</step>") == 2
+    assert text.count("<alter>1</alter>") == 2
+    assert "<accidental>flat</accidental>" not in text
+
+
+def test_musicxml_engraving_cleanup_leaves_adjacent_natural_enharmonics(tmp_path):
+    xml_path = tmp_path / "adjacent_natural_enharmonics.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Violin II</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note>
+        <pitch><step>E</step><alter>1</alter><octave>4</octave></pitch>
+        <duration>1</duration>
+        <type>quarter</type>
+        <accidental>sharp</accidental>
+      </note>
+      <note>
+        <pitch><step>F</step><octave>4</octave></pitch>
+        <duration>1</duration>
+        <type>quarter</type>
+      </note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.normalized_adjacent_enharmonics == 0
+    assert "<step>E</step>" in text
+    assert "<alter>1</alter>" in text
+    assert "<step>F</step>" in text
+
+
+def test_musicxml_engraving_cleanup_removes_isolated_redundant_short_note(tmp_path):
+    xml_path = tmp_path / "isolated_redundant_short_note.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Violin I</part-name></score-part>
+    <score-part id="P2"><part-name>Violin II</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>4</duration><type>quarter</type></note>
+      <note><rest /><duration>8</duration><type>half</type></note>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><rest /><duration>3</duration><type>eighth</type><dot /></note>
+      <note><pitch><step>E</step><octave>4</octave></pitch><duration>4</duration><type>quarter</type></note>
+    </measure>
+  </part>
+  <part id="P2">
+    <measure number="1">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><rest /><duration>12</duration><type>half</type><dot /></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><rest /><duration>7</duration><type>quarter</type><dot /></note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.removed_isolated_redundant_notes == 1
+    assert report.normalized_fragmented_rests == 1
+    assert text.count("<rest />") == 3
+    assert text.count("<step>C</step>") == 1
+    assert "<duration>12</duration>\n        <type>half</type>\n        <dot />" in text
+
+
+def test_musicxml_engraving_cleanup_merges_deleted_note_rest_fragment(tmp_path):
+    xml_path = tmp_path / "fragmented_rests.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Violin I</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="31">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><pitch><step>C</step><alter>1</alter><octave>5</octave></pitch><duration>4</duration><type>quarter</type></note>
+      <note><rest /><duration>8</duration><type>half</type></note>
+      <note><rest /><duration>1</duration><type>16th</type></note>
+      <note><rest /><duration>3</duration><type>eighth</type><dot /></note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.normalized_fragmented_rests == 1
+    assert text.count("<rest />") == 1
+    assert "<duration>12</duration>\n        <type>half</type>\n        <dot />" in text
+
+
+def test_musicxml_engraving_cleanup_simplifies_long_fragmented_rest_run(tmp_path):
+    xml_path = tmp_path / "dolcissima_cello_bar_13_rests.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <movement-title>Dolcissima mia vita</movement-title>
+  <part-list>
+    <score-part id="P1"><part-name>Violoncello</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="13">
+      <attributes><divisions>4</divisions><time><beats>4</beats><beat-type>2</beat-type></time></attributes>
+      <note><pitch><step>E</step><alter>-1</alter><octave>3</octave></pitch><duration>4</duration><type>quarter</type></note>
+      <note><rest /><duration>4</duration><type>quarter</type></note>
+      <note><rest /><duration>2</duration><type>eighth</type></note>
+      <note><rest /><duration>6</duration><type>quarter</type><dot /></note>
+      <note><rest /><duration>2</duration><type>eighth</type></note>
+      <note><rest /><duration>6</duration><type>quarter</type><dot /></note>
+      <note><pitch><step>B</step><alter>-1</alter><octave>2</octave></pitch><duration>4</duration><type>quarter</type></note>
+      <note><pitch><step>F</step><octave>3</octave></pitch><duration>4</duration><type>quarter</type></note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.normalized_fragmented_rests == 1
+    assert text.count("<rest />") == 2
+    assert "<duration>16</duration>\n        <type>whole</type>" in text
+    assert "<duration>4</duration>\n        <type>quarter</type>" in text
+
+
+def test_musicxml_engraving_cleanup_applies_dolcissima_bar_14_and_e_flats(tmp_path):
+    xml_path = tmp_path / "dolcissima_bar_14.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <movement-title>Dolcissima mia vita</movement-title>
+  <part-list>
+    <score-part id="P1"><part-name>Violin I</part-name></score-part>
+    <score-part id="P2"><part-name>Violin II</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="14">
+      <attributes><divisions>4</divisions><time><beats>8</beats><beat-type>4</beat-type></time></attributes>
+      <note><rest /><duration>24</duration><type>whole</type></note>
+      <note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><rest /><duration>7</duration><type>quarter</type><dot /></note>
+    </measure>
+  </part>
+  <part id="P2">
+    <measure number="14">
+      <attributes><divisions>4</divisions><time><beats>8</beats><beat-type>4</beat-type></time></attributes>
+      <note><rest /><duration>24</duration><type>whole</type></note>
+      <note><pitch><step>B</step><alter>-1</alter><octave>3</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><rest /><duration>3</duration><type>eighth</type><dot /></note>
+      <note><pitch><step>A</step><octave>4</octave></pitch><duration>4</duration><type>quarter</type></note>
+    </measure>
+    <measure number="16">
+      <note>
+        <pitch><step>D</step><alter>1</alter><octave>4</octave></pitch>
+        <duration>2</duration>
+        <type>eighth</type>
+        <accidental>sharp</accidental>
+      </note>
+      <note>
+        <pitch><step>D</step><alter>1</alter><octave>4</octave></pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+      </note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.applied_dolcissima_line_cleanups == 3
+    assert text.count("<step>B</step>") == 1
+    assert text.count("<step>E</step>") == 2
+    assert text.count("<alter>-1</alter>") == 3
+    assert "<accidental>flat</accidental>" in text
+    assert "<accidental>sharp</accidental>" not in text
+    assert "<duration>4</duration>\n        <type>quarter</type>" in text
+
+
+def test_musicxml_engraving_cleanup_adds_final_barlines(tmp_path):
+    xml_path = tmp_path / "missing_final_barlines.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Violin I</part-name></score-part>
+    <score-part id="P2"><part-name>Violoncello</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note>
+    </measure>
+  </part>
+  <part id="P2">
+    <measure number="1">
+      <attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+      <note><pitch><step>C</step><octave>3</octave></pitch><duration>4</duration><type>whole</type></note>
+      <barline location="right"><bar-style>regular</bar-style></barline>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    root = ET.parse(xml_path).getroot()
+    styles = [
+        part.findall("measure")[-1].findtext("barline[@location='right']/bar-style")
+        for part in root.findall("part")
+    ]
+
+    assert report.final_barlines_added == 4
+    assert styles == ["light-heavy", "light-heavy"]
+
+
+def test_musicxml_engraving_cleanup_keeps_nonstandard_trailing_rest_fragment(tmp_path):
+    xml_path = tmp_path / "trailing_rest_fragment.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Violin I</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>5</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>15</duration><type>half</type><dot /></note>
+      <note><rest /><duration>4</duration><type>quarter</type></note>
+      <note><rest /><duration>1</duration><type>16th</type></note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.normalized_fragmented_rests == 0
+    assert text.count("<rest />") == 2
+
+
+def test_musicxml_engraving_cleanup_extends_terminal_sixteenth_into_rest(tmp_path):
+    xml_path = tmp_path / "terminal_sixteenth.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Violin I</part-name></score-part>
+    <score-part id="P2"><part-name>Violin II</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="46">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><rest /><duration>15</duration><type>half</type><dot /></note>
+      <note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+    </measure>
+  </part>
+  <part id="P2">
+    <measure number="46">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>2</duration><type>eighth</type></note>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>2</duration><type>eighth</type></note>
+      <note><pitch><step>E</step><octave>4</octave></pitch><duration>10</duration><type>half</type></note>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><rest /><duration>1</duration><type>16th</type></note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.extended_terminal_short_notes == 1
+    assert text.count("<rest />") == 1
+    assert "<duration>2</duration>\n        <type>eighth</type>" in text
+
+
+def test_musicxml_engraving_cleanup_keeps_other_voice_terminal_rest(tmp_path):
+    xml_path = tmp_path / "other_voice_terminal_rest.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Violin II</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>14</duration><type>half</type><dot /></note>
+      <note>
+        <pitch><step>D</step><octave>4</octave></pitch>
+        <duration>1</duration>
+        <voice>1</voice>
+        <type>16th</type>
+      </note>
+      <note><rest /><duration>1</duration><voice>2</voice><type>16th</type></note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.extended_terminal_short_notes == 0
+    assert text.count("<rest />") == 1
+
+
+def test_musicxml_engraving_cleanup_keeps_dissonant_terminal_sixteenth_rest(tmp_path):
+    xml_path = tmp_path / "dissonant_terminal_sixteenth.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Violin I</part-name></score-part>
+    <score-part id="P2"><part-name>Violin II</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="46">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><rest /><duration>15</duration><type>half</type><dot /></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>16th</type></note>
+    </measure>
+  </part>
+  <part id="P2">
+    <measure number="46">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><pitch><step>E</step><octave>4</octave></pitch><duration>14</duration><type>half</type><dot /></note>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><rest /><duration>1</duration><type>16th</type></note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.extended_terminal_short_notes == 0
+    assert text.count("<rest />") == 2
+
+
+def test_musicxml_engraving_cleanup_allows_gia_piansi_bar_46_editorial_exception(tmp_path):
+    xml_path = tmp_path / "gia_piansi_bar_46_exception.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <movement-title>Già piansi nel dolore</movement-title>
+  <part-list>
+    <score-part id="P1"><part-name>Violin I</part-name></score-part>
+    <score-part id="P2"><part-name>Violin II</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="46">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><rest /><duration>15</duration><type>half</type><dot /></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>16th</type></note>
+    </measure>
+  </part>
+  <part id="P2">
+    <measure number="46">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><pitch><step>E</step><octave>4</octave></pitch><duration>14</duration><type>half</type><dot /></note>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><rest /><duration>1</duration><type>16th</type></note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.extended_terminal_short_notes == 1
+    assert text.count("<rest />") == 1
+
+
+def test_musicxml_engraving_cleanup_applies_gia_piansi_line_cleanups(tmp_path):
+    xml_path = tmp_path / "gia_piansi_line_cleanups.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <movement-title>Già piansi nel dolore</movement-title>
+  <part-list>
+    <score-part id="P1"><part-name>Viola</part-name></score-part>
+    <score-part id="P2"><part-name>Violoncello</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="51">
+      <attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+      <note><rest /><duration>14</duration><type>half</type><dot /></note>
+      <note><pitch><step>B</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><rest /><duration>1</duration><type>16th</type></note>
+    </measure>
+    <measure number="52">
+      <note><rest /><duration>12</duration><type>half</type><dot /></note>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>2</duration><type>eighth</type></note>
+      <note><rest /><duration>2</duration><type>eighth</type></note>
+    </measure>
+    <measure number="53">
+      <note><rest /><duration>8</duration><type>half</type></note>
+      <note><pitch><step>G</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><rest /><duration>1</duration><type>16th</type></note>
+      <note><pitch><step>E</step><octave>4</octave></pitch><duration>6</duration><type>quarter</type><dot /></note>
+    </measure>
+  </part>
+  <part id="P2">
+    <measure number="51">
+      <attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+      <note><rest /><duration>6</duration><type>quarter</type><dot /></note>
+      <note><rest /><duration>2</duration><type>eighth</type></note>
+      <note><rest /><duration>4</duration><type>quarter</type></note>
+      <note><rest /><duration>2</duration><type>eighth</type></note>
+      <note><rest /><duration>2</duration><type>eighth</type></note>
+    </measure>
+    <measure number="53">
+      <note><rest /><duration>14</duration><type>half</type><dot /></note>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><rest /><duration>1</duration><type>16th</type></note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.applied_gia_piansi_line_cleanups == 5
+    assert text.count("<rest measure=\"yes\" />") == 1
+    assert text.count("<step>B</step>") == 1
+    assert text.count("<step>D</step>") == 1
+    assert text.count("<step>G</step>") == 1
+    assert text.count("<step>C</step>") == 1
+
+
+def test_musicxml_engraving_cleanup_applies_gia_piansi_bar_8_handoff(tmp_path):
+    xml_path = tmp_path / "gia_piansi_bar_8_handoff.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <movement-title>Già piansi nel dolore</movement-title>
+  <part-list>
+    <score-part id="P1"><part-name>Violin II</part-name></score-part>
+    <score-part id="P2"><part-name>Viola</part-name></score-part>
+    <score-part id="P3"><part-name>Violoncello</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="8">
+      <attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+      <note><rest /><duration>6</duration><type>quarter</type><dot /></note>
+      <note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><pitch><step>B</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>8</duration><type>half</type></note>
+    </measure>
+  </part>
+  <part id="P2">
+    <measure number="8">
+      <attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+      <note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><pitch><step>F</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><pitch><step>F</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><pitch><step>G</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><rest /><duration>2</duration><type>eighth</type></note>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>3</duration><type>eighth</type><dot /></note>
+      <note><rest /><duration>4</duration><type>quarter</type></note>
+      <note><rest /><duration>1</duration><type>16th</type></note>
+    </measure>
+  </part>
+  <part id="P3">
+    <measure number="8">
+      <attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+      <note><rest /><duration>8</duration><type>half</type></note>
+      <note><pitch><step>C</step><octave>3</octave></pitch><duration>3</duration><type>eighth</type><dot /></note>
+      <note><rest /><duration>4</duration><type>quarter</type></note>
+      <note><rest /><duration>1</duration><type>16th</type></note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    root = ET.parse(xml_path).getroot()
+    parts = {part.get("id"): part for part in root.findall("part")}
+    violin_ii_notes = parts["P1"].findall("./measure[@number='8']/note")
+    viola_notes = parts["P2"].findall("./measure[@number='8']/note")
+    cello_notes = parts["P3"].findall("./measure[@number='8']/note")
+    viola_pitches = [
+        (
+            note.findtext("pitch/step"),
+            note.findtext("pitch/octave"),
+            note.findtext("duration"),
+        )
+        for note in viola_notes
+        if note.find("pitch") is not None
+    ]
+
+    assert report.applied_gia_piansi_line_cleanups == 3
+    assert len(violin_ii_notes) == 1
+    assert violin_ii_notes[0].find("rest").get("measure") == "yes"  # type: ignore[union-attr]
+    assert violin_ii_notes[0].findtext("duration") == "16"
+    assert viola_pitches[-3:] == [("A", "4", "1"), ("B", "4", "1"), ("C", "5", "8")]
+    assert not any(
+        note.findtext("pitch/step") == "C"
+        and note.findtext("pitch/octave") == "4"
+        for note in viola_notes
+    )
+    assert [(note.find("rest") is not None, note.findtext("duration"), note.findtext("type")) for note in cello_notes] == [
+        (True, "8", "half"),
+        (False, "4", "quarter"),
+        (True, "4", "quarter"),
+    ]
+
+
+def test_musicxml_engraving_cleanup_applies_gia_piansi_bar_27_violin_ii(tmp_path):
+    xml_path = tmp_path / "gia_piansi_bar_27_violin_ii.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <movement-title>Già piansi nel dolore</movement-title>
+  <part-list>
+    <score-part id="P1"><part-name>Violin II</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="27">
+      <attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+      <note>
+        <pitch><step>G</step><octave>3</octave></pitch>
+        <duration>1</duration>
+        <type>16th</type>
+        <stem>up</stem>
+        <beam number="1">begin</beam>
+        <beam number="2">begin</beam>
+      </note>
+      <note>
+        <chord />
+        <pitch><step>B</step><octave>4</octave></pitch>
+        <duration>1</duration>
+        <type>16th</type>
+      </note>
+      <note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><pitch><step>G</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><pitch><step>F</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><rest /><duration>7</duration><type>quarter</type><dot /><dot /></note>
+      <note><pitch><step>G</step><octave>3</octave></pitch><duration>4</duration><type>quarter</type></note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    root = ET.parse(xml_path).getroot()
+    notes = root.findall("./part/measure[@number='27']/note")
+    pitches = [
+        (note.findtext("pitch/step"), note.findtext("pitch/octave"), note.findtext("duration"), note.findtext("type"))
+        for note in notes
+        if note.find("pitch") is not None
+    ]
+
+    assert report.applied_gia_piansi_line_cleanups == 2
+    assert len(notes) == 7
+    assert notes[0].find("chord") is None
+    assert notes[0].find("beam[@number='1']").text == "begin"  # type: ignore[union-attr]
+    assert pitches[:5] == [
+        ("B", "4", "1", "16th"),
+        ("A", "4", "1", "16th"),
+        ("G", "4", "1", "16th"),
+        ("F", "4", "1", "16th"),
+        ("E", "4", "2", "eighth"),
+    ]
+    assert notes[5].find("rest") is not None
+    assert notes[5].findtext("duration") == "6"
+    assert notes[5].findtext("type") == "quarter"
+    assert len(notes[5].findall("dot")) == 1
+
+
+def test_musicxml_engraving_cleanup_applies_luci_serene_cello_cleanup(tmp_path):
+    xml_path = tmp_path / "luci_serene_cello_bar_7.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <movement-title>Luci serene e chiare</movement-title>
+  <part-list>
+    <score-part id="P1"><part-name>Violoncello</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="7">
+      <attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+      <note><rest /><duration>4</duration><type>quarter</type></note>
+      <note><rest /><duration>1</duration><type>16th</type></note>
+      <note>
+        <pitch><step>B</step><alter>-1</alter><octave>3</octave></pitch>
+        <duration>1</duration>
+        <type>16th</type>
+        <beam number="1">begin</beam>
+        <beam number="2">forward hook</beam>
+      </note>
+      <note>
+        <pitch><step>E</step><alter>-1</alter><octave>3</octave></pitch>
+        <duration>2</duration>
+        <type>eighth</type>
+        <beam number="1">end</beam>
+      </note>
+      <note><rest /><duration>2</duration><type>eighth</type></note>
+      <note><pitch><step>F</step><octave>3</octave></pitch><duration>2</duration><type>eighth</type></note>
+      <note><pitch><step>E</step><octave>3</octave></pitch><duration>2</duration><type>eighth</type></note>
+      <note><pitch><step>G</step><octave>3</octave></pitch><duration>2</duration><type>eighth</type></note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.applied_luci_serene_line_cleanups == 1
+    assert "<step>B</step>" not in text
+    assert text.count("<rest />") == 2
+    assert "<duration>1</duration>" not in text
+    assert "<pitch>\n          <step>E</step>\n          <alter>-1</alter>\n          <octave>3</octave>\n        </pitch>\n        <duration>4</duration>\n        <type>quarter</type>" in text
+
+
+def test_musicxml_engraving_cleanup_applies_luci_serene_bar_9_delayed_16ths(tmp_path):
+    xml_path = tmp_path / "luci_serene_bar_9_delayed_16ths.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <movement-title>Luci serene e chiare</movement-title>
+  <part-list>
+    <score-part id="P1"><part-name>Violin I</part-name></score-part>
+    <score-part id="P2"><part-name>Violin II</part-name></score-part>
+    <score-part id="P3"><part-name>Viola</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="9">
+      <attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+      <note><rest /><duration>1</duration><type>16th</type></note>
+      <note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>14</duration><type>half</type><dot /></note>
+    </measure>
+  </part>
+  <part id="P2">
+    <measure number="9">
+      <attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+      <note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>2</duration><type>eighth</type></note>
+      <note><rest /><duration>1</duration><type>16th</type></note>
+      <note><pitch><step>E</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><pitch><step>G</step><octave>4</octave></pitch><duration>12</duration><type>half</type><dot /></note>
+    </measure>
+  </part>
+  <part id="P3">
+    <measure number="9">
+      <attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+      <note><pitch><step>E</step><alter>-1</alter><octave>4</octave></pitch><duration>2</duration><type>eighth</type></note>
+      <note><rest /><duration>1</duration><type>16th</type></note>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>12</duration><type>half</type><dot /></note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.applied_luci_serene_line_cleanups == 3
+    assert "<type>16th</type>" not in text
+    assert text.count("<type>eighth</type>") == 5
+    assert text.count("<rest />") == 0
+
+
+def test_musicxml_engraving_cleanup_applies_luci_serene_d_flat_spellings(tmp_path):
+    xml_path = tmp_path / "luci_serene_d_flat_spellings.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <movement-title>Luci serene e chiare</movement-title>
+  <part-list>
+    <score-part id="P1"><part-name>Violin I</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="41">
+      <attributes>
+        <divisions>4</divisions>
+        <key><fifths>-3</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+      </attributes>
+      <note>
+        <pitch><step>C</step><alter>1</alter><octave>5</octave></pitch>
+        <duration>2</duration>
+        <type>eighth</type>
+        <accidental>sharp</accidental>
+      </note>
+      <note>
+        <pitch><step>D</step><octave>5</octave></pitch>
+        <duration>14</duration>
+        <type>half</type>
+        <dot />
+      </note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.applied_luci_serene_line_cleanups == 1
+    assert "<step>C</step>" not in text
+    assert "<step>D</step>" in text
+    assert "<alter>-1</alter>" in text
+    assert "<accidental>flat</accidental>" in text
+    assert "<accidental>sharp</accidental>" not in text
+
+
+def test_musicxml_engraving_cleanup_extends_hark_cello_bar_six_c(tmp_path):
+    xml_path = tmp_path / "hark_cello_sustain.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <movement-title>Hark! The Herald Angels Sing</movement-title>
+  <part-list>
+    <score-part id="P1"><part-name>Violin II</part-name></score-part>
+    <score-part id="P2"><part-name>Violoncello</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="5">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><rest /><duration>16</duration><type>whole</type></note>
+    </measure>
+    <measure number="6">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><rest /><duration>4</duration><type>quarter</type></note>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>2</duration><type>eighth</type></note>
+      <note><rest /><duration>10</duration><type>half</type><dot /></note>
+    </measure>
+  </part>
+  <part id="P2">
+    <measure number="5">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>F</sign><line>4</line></clef>
+      </attributes>
+      <note><pitch><step>D</step><octave>3</octave></pitch><duration>4</duration><type>quarter</type></note>
+      <note><rest /><duration>12</duration><type>half</type><dot /></note>
+    </measure>
+    <measure number="6">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>F</sign><line>4</line></clef>
+      </attributes>
+      <note><rest /><duration>4</duration><type>quarter</type></note>
+      <note><pitch><step>C</step><octave>3</octave></pitch><duration>2</duration><type>eighth</type></note>
+      <note><rest /><duration>2</duration><type>eighth</type></note>
+      <note><pitch><step>F</step><octave>3</octave></pitch><duration>4</duration><type>quarter</type></note>
+      <note><pitch><step>E</step><octave>3</octave></pitch><duration>4</duration><type>quarter</type></note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.removed_isolated_redundant_notes == 0
+    assert report.extended_isolated_redundant_notes == 1
+    assert text.count("<step>C</step>") == 2
+    assert "<duration>4</duration>\n        <type>quarter</type>" in text
+
+
+def test_musicxml_engraving_cleanup_keeps_isolated_uncovered_short_note(tmp_path):
+    xml_path = tmp_path / "isolated_uncovered_short_note.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Violin I</part-name></score-part>
+    <score-part id="P2"><part-name>Violin II</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>4</duration><type>quarter</type></note>
+      <note><rest /><duration>8</duration><type>half</type></note>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><rest /><duration>3</duration><type>eighth</type><dot /></note>
+      <note><pitch><step>E</step><octave>4</octave></pitch><duration>4</duration><type>quarter</type></note>
+    </measure>
+  </part>
+  <part id="P2">
+    <measure number="1">
+      <attributes>
+        <divisions>4</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><rest /><duration>12</duration><type>half</type><dot /></note>
+      <note><pitch><step>G</step><octave>4</octave></pitch><duration>1</duration><type>16th</type></note>
+      <note><rest /><duration>7</duration><type>quarter</type><dot /></note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.removed_isolated_redundant_notes == 0
+    assert text.count("<step>C</step>") == 1
+
+
 def test_musicxml_engraving_cleanup_respells_flat_side_chromatic_neighbor(tmp_path):
     xml_path = tmp_path / "chromatic_neighbor.musicxml"
     xml_path.write_text(
@@ -143,6 +1278,52 @@ def test_musicxml_engraving_cleanup_respells_flat_side_chromatic_neighbor(tmp_pa
     assert "<alter>-1</alter>" in text
     assert "<accidental>flat</accidental>" in text
     assert "<accidental>natural</accidental>" not in text
+
+
+def test_musicxml_engraving_cleanup_uses_score_key_for_parts_without_key(tmp_path):
+    xml_path = tmp_path / "shared_key_signature.musicxml"
+    xml_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Violin I</part-name></score-part>
+    <score-part id="P2"><part-name>Viola</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key><fifths>-3</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>4</duration><type>whole</type></note>
+    </measure>
+  </part>
+  <part id="P2">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>C</sign><line>3</line></clef>
+      </attributes>
+      <note><pitch><step>A</step><alter>1</alter><octave>3</octave></pitch><duration>1</duration><type>quarter</type></note>
+      <note><pitch><step>B</step><octave>3</octave></pitch><duration>3</duration><type>half</type><dot /></note>
+    </measure>
+  </part>
+</score-partwise>
+""",
+        encoding="utf-8",
+    )
+
+    report = cleanup_musicxml_engraving(xml_path, xml_path)
+    text = xml_path.read_text(encoding="utf-8")
+
+    assert report.respelled_key_signature_accidentals == 1
+    assert "<step>A</step>" not in text
+    assert text.count("<step>B</step>") == 3
+    assert text.count("<alter>-1</alter>") == 2
+    assert "<alter>1</alter>" not in text
 
 
 def test_musicxml_engraving_cleanup_preserves_upward_leading_tone(tmp_path):
@@ -261,6 +1442,42 @@ def test_strip_time_modifications_preserves_tuplet_notations(tmp_path):
     assert "<time-modification>" not in musicxml
     assert "<duration>1</duration>" in musicxml
     assert '<tuplet type="start"/>' in musicxml
+
+
+def test_reduce_take6_to_quartet_preserves_triplet_time_modifications(monkeypatch, tmp_path):
+    score = stream.Score()
+    violin = stream.Part()
+    violin.partName = "Violin I"
+    measure = stream.Measure(number=1)
+    measure.append(meter.TimeSignature("4/4"))
+    for pitch_name in ("C4", "D4", "E4"):
+        measure.append(note.Note(pitch_name, quarterLength=Fraction(1, 3)))
+    measure.append(note.Rest(quarterLength=3))
+    violin.append(measure)
+    score.append(violin)
+
+    for part_name in ("Violin II", "Viola", "Violoncello"):
+        part = stream.Part()
+        part.partName = part_name
+        part_measure = stream.Measure(number=1)
+        part_measure.append(meter.TimeSignature("4/4"))
+        part_measure.append(note.Rest(quarterLength=4))
+        part.append(part_measure)
+        score.append(part)
+
+    def fake_reduce_to_ensemble(*args, **kwargs):
+        return score
+
+    monkeypatch.setattr(reduction_module, "reduce_to_ensemble", fake_reduce_to_ensemble)
+    output_path = tmp_path / "take6_triplet.musicxml"
+
+    reduce_take6_to_quartet(tmp_path / "source.mid", out_path=output_path)
+
+    musicxml = output_path.read_text(encoding="utf-8")
+    assert musicxml.count("<time-modification>") == 3
+    assert musicxml.count("<actual-notes>3</actual-notes>") == 3
+    assert musicxml.count("<normal-notes>2</normal-notes>") == 3
+    assert '<tuplet bracket="yes"' in musicxml
 
 
 def test_normalize_musescore_rhythm_artifacts_rewrites_tiny_residues():
@@ -533,7 +1750,7 @@ def test_cleanup_score_normalizes_tied_release_residue_to_beat():
     assert items[0].tie is None
 
 
-def test_cleanup_score_splits_rests_that_cross_beat_boundaries():
+def test_cleanup_score_does_not_split_rests_that_cross_beat_boundaries():
     score = stream.Score()
     part = stream.Part()
     part.partName = "Cello"
@@ -548,13 +1765,12 @@ def test_cleanup_score_splits_rests_that_cross_beat_boundaries():
 
     report = cleanup_score(score)
 
-    assert report.beat_readability_changes == 1
+    assert report.beat_readability_changes == 0
     items = [(ql_to_fraction(item.offset), ql_to_fraction(item.quarterLength), item.isRest) for item in measure.notesAndRests]
     assert items == [
         (Fraction(0, 1), Fraction(1, 1), True),
         (Fraction(1, 1), Fraction(1, 2), False),
-        (Fraction(3, 2), Fraction(1, 2), True),
-        (Fraction(2, 1), Fraction(1, 2), True),
+        (Fraction(3, 2), Fraction(1, 1), True),
         (Fraction(5, 2), Fraction(3, 2), False),
     ]
 
@@ -1880,6 +3096,130 @@ def test_take6_reduction_metadata_uses_take6_composer_and_clean_title(tmp_path):
     assert out_path.exists()
 
 
+def test_smooth_isolated_handoff_fills_neighbor_line_gap():
+    assignments = {
+        "vln1": [],
+        "vln2": [
+            SourceEvent("src:vln2:d", 1, 0, Fraction(1, 1), Fraction(1, 4), 62, False),
+            SourceEvent("src:vln2:bb", 1, 1, Fraction(3, 2), Fraction(1, 4), 58, False),
+            SourceEvent("src:vln2:a", 1, 2, Fraction(7, 4), Fraction(1, 4), 57, False),
+        ],
+        "vla": [
+            SourceEvent("src:vla:eb", 2, 0, Fraction(0, 1), Fraction(2, 1), 63, False),
+        ],
+        "vc": [
+            SourceEvent("src:vc:low", 3, 0, Fraction(0, 1), Fraction(1, 1), 51, False),
+            SourceEvent("src:vc:c", 3, 1, Fraction(5, 4), Fraction(1, 4), 60, False),
+            SourceEvent("src:vc:d", 3, 2, Fraction(2, 1), Fraction(1, 1), 50, False),
+        ],
+    }
+
+    smoothed = _smooth_isolated_handoffs(assignments, STRING_QUARTET, ReductionConfig())
+
+    vln2_pitches = [
+        event.pitch_midi
+        for event in smoothed["vln2"]
+        if Fraction(1, 1) <= event.start < Fraction(2, 1)
+    ]
+    cello_offsets = {event.start for event in smoothed["vc"]}
+    assert vln2_pitches == [62, 60, 58, 57]
+    assert Fraction(5, 4) not in cello_offsets
+
+
+def test_smooth_isolated_handoff_trims_receiver_note_before_insert():
+    assignments = {
+        "vln1": [],
+        "vln2": [],
+        "vla": [
+            SourceEvent("src:vla:a", 2, 0, Fraction(2, 1), Fraction(1, 2), 69, False),
+            SourceEvent("src:vla:g", 2, 1, Fraction(5, 2), Fraction(1, 2), 67, False),
+        ],
+        "vc": [
+            SourceEvent("src:vc:c", 3, 0, Fraction(9, 4), Fraction(1, 4), 60, False),
+            SourceEvent("src:vc:b", 3, 1, Fraction(3, 1), Fraction(1, 4), 59, False),
+        ],
+    }
+
+    smoothed = _smooth_isolated_handoffs(assignments, STRING_QUARTET, ReductionConfig())
+
+    viola_events = [
+        (event.start, event.duration, event.pitch_midi)
+        for event in smoothed["vla"]
+        if Fraction(2, 1) <= event.start < Fraction(3, 1)
+    ]
+    cello_offsets = {event.start for event in smoothed["vc"]}
+    assert viola_events == [
+        (Fraction(2, 1), Fraction(1, 4), 69),
+        (Fraction(9, 4), Fraction(1, 4), 60),
+        (Fraction(5, 2), Fraction(1, 2), 67),
+    ]
+    assert Fraction(9, 4) not in cello_offsets
+
+
+def test_smooth_isolated_handoff_absorbs_playable_adjacent_double_stop_when_trim_is_not_clear():
+    assignments = {
+        "vln1": [],
+        "vln2": [],
+        "vla": [
+            SourceEvent("src:vla:a", 2, 0, Fraction(2, 1), Fraction(1, 1), 69, False),
+            SourceEvent("src:vla:g", 2, 1, Fraction(3, 1), Fraction(1, 2), 67, False),
+        ],
+        "vc": [
+            SourceEvent("src:vc:c", 3, 0, Fraction(9, 4), Fraction(1, 4), 60, False),
+            SourceEvent("src:vc:b", 3, 1, Fraction(7, 2), Fraction(1, 4), 59, False),
+        ],
+    }
+
+    smoothed = _smooth_isolated_handoffs(assignments, STRING_QUARTET, ReductionConfig())
+
+    viola_events = [
+        (event.start, event.duration, event.pitch_midi)
+        for event in smoothed["vla"]
+        if Fraction(2, 1) <= event.start < Fraction(3, 1)
+    ]
+    cello_offsets = {event.start for event in smoothed["vc"]}
+    assert viola_events == [
+        (Fraction(2, 1), Fraction(1, 4), 69),
+        (Fraction(9, 4), Fraction(1, 4), 60),
+        (Fraction(9, 4), Fraction(1, 4), 69),
+        (Fraction(5, 2), Fraction(1, 2), 69),
+    ]
+    assert Fraction(9, 4) not in cello_offsets
+
+
+def test_smooth_isolated_handoff_extends_receiver_tail_line():
+    assignments = {
+        "vln1": [
+            SourceEvent("src:vln1:a", 0, 0, Fraction(3, 1), Fraction(1, 2), 57, False),
+            SourceEvent("src:vln1:f", 0, 1, Fraction(7, 2), Fraction(1, 4), 65, False),
+        ],
+        "vln2": [
+            SourceEvent("src:vln2:a", 1, 0, Fraction(3, 1), Fraction(1, 1), 69, False),
+        ],
+        "vla": [
+            SourceEvent("src:vla:d", 2, 0, Fraction(3, 1), Fraction(1, 2), 62, False),
+            SourceEvent("src:vla:g", 2, 1, Fraction(15, 4), Fraction(1, 4), 67, False),
+            SourceEvent("src:vla:next_d", 2, 2, Fraction(4, 1), Fraction(1, 2), 62, False),
+        ],
+        "vc": [],
+    }
+
+    smoothed = _smooth_isolated_handoffs(assignments, STRING_QUARTET, ReductionConfig())
+
+    vln1_tail = [
+        (event.start, event.duration, event.pitch_midi)
+        for event in smoothed["vln1"]
+        if Fraction(3, 1) <= event.start < Fraction(4, 1)
+    ]
+    viola_offsets = {event.start for event in smoothed["vla"] if event.source_id != "src:vla:next_d"}
+    assert vln1_tail == [
+        (Fraction(3, 1), Fraction(1, 2), 57),
+        (Fraction(7, 2), Fraction(1, 4), 65),
+        (Fraction(15, 4), Fraction(1, 4), 67),
+    ]
+    assert Fraction(15, 4) not in viola_offsets
+
+
 def test_octave_optimizer_preserves_pitch_classes_while_smoothing_neighbors():
     score = make_score(
         [
@@ -1910,3 +3250,10 @@ def test_octave_optimizer_preserves_pitch_classes_while_smoothing_neighbors():
 
 def test_title_from_source_path_splits_take6_camel_case():
     assert title_from_source_path("data/take6/ComeUntoMe.mid") == "Come Unto Me"
+
+
+def test_title_from_source_path_ignores_cpdl_download_suffix():
+    assert (
+        title_from_source_path("data/cpdl/5-voices/sources/092_dolcissima_mia_vita__02_dolcissima_mia_vita_gesualdo.mxl")
+        == "Dolcissima Mia Vita"
+    )

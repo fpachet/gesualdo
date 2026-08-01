@@ -12,7 +12,6 @@ from pathlib import Path
 
 from music21 import converter, tempo
 
-from gesualdo_reduction.musicxml_compat import strip_time_modifications
 from gesualdo_reduction.reduction import (
     lower_take6_high_cello_register,
     normalize_musescore_grid_rhythm,
@@ -165,7 +164,6 @@ def main() -> int:
                 should_write = True
             if should_write:
                 reduced.write("musicxml", fp=str(output_path))
-            strip_time_modifications(output_path)
             report_rows.append(
                 {
                     "source_path": str(source_path),

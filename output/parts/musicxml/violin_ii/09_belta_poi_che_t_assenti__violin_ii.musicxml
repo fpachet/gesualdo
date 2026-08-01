@@ -5,9 +5,9 @@
   </work>
   <movement-title>Beltà, poi che t'assenti - Violin II</movement-title>
   <identification>
-    <creator type="composer">Carlo Gesualdo, arrangement F. Pachet and AI</creator>
+    <creator type="composer">Carlo Gesualdo</creator>
     <encoding>
-      <encoding-date>2026-07-29</encoding-date>
+      <encoding-date>2026-07-30</encoding-date>
       <software>music21 v.9.9.1</software>
     </encoding>
   </identification>
@@ -18,20 +18,20 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="P8e6768259fd44302822187f07257d342">
+    <score-part id="Pf3f5314b11af25919d3fc803e7971025">
       <part-name>Violin II</part-name>
       <part-abbreviation>Vln</part-abbreviation>
-      <score-instrument id="Id4da5bb0a9969331b1f2add352211698">
+      <score-instrument id="I07b34dcd28b0e605eb388090a9158f4d">
         <instrument-name>Violin</instrument-name>
         <instrument-abbreviation>Vln</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="Id4da5bb0a9969331b1f2add352211698">
+      <midi-instrument id="I07b34dcd28b0e605eb388090a9158f4d">
         <midi-channel>2</midi-channel>
         <midi-program>41</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
-  <part id="P8e6768259fd44302822187f07257d342">
+  <part id="Pf3f5314b11af25919d3fc803e7971025">
     <measure implicit="no" number="1">
       <attributes>
         <divisions>10080</divisions>
@@ -49,7 +49,7 @@
       </attributes>
       <direction placement="above">
         <direction-type>
-          <metronome parentheses="no">
+          <metronome>
             <beat-unit>quarter</beat-unit>
             <per-minute>120</per-minute>
           </metronome>
@@ -402,8 +402,8 @@
       </note>
       <note>
         <pitch>
-          <step>D</step>
-          <alter>1</alter>
+          <step>E</step>
+          <alter>-1</alter>
           <octave>4</octave>
         </pitch>
         <duration>20160</duration>
@@ -514,8 +514,8 @@
     <measure implicit="no" number="18">
       <note>
         <pitch>
-          <step>G</step>
-          <alter>1</alter>
+          <step>A</step>
+          <alter>-1</alter>
           <octave>3</octave>
         </pitch>
         <duration>20160</duration>
@@ -844,11 +844,7 @@
           <octave>4</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="stop" />
         <type>half</type>
-        <notations>
-          <tied type="stop" />
-        </notations>
       </note>
       <note>
         <pitch>
@@ -1716,8 +1712,8 @@
       </note>
       <note>
         <pitch>
-          <step>D</step>
-          <alter>1</alter>
+          <step>E</step>
+          <alter>-1</alter>
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
@@ -1742,11 +1738,7 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <tie type="start" />
         <type>quarter</type>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
       <note>
         <rest />
@@ -1771,13 +1763,7 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <tie type="stop" />
-        <tie type="start" />
         <type>quarter</type>
-        <notations>
-          <tied type="stop" />
-          <tied type="start" />
-        </notations>
       </note>
       <note>
         <pitch>
@@ -1832,11 +1818,7 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <tie type="start" />
         <type>quarter</type>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
       <note>
         <rest />
@@ -1871,13 +1853,7 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <tie type="stop" />
-        <tie type="start" />
         <type>quarter</type>
-        <notations>
-          <tied type="stop" />
-          <tied type="start" />
-        </notations>
       </note>
       <note>
         <pitch>
@@ -1946,6 +1922,9 @@
         <duration>20160</duration>
         <type>half</type>
       </note>
+      <barline location="right">
+        <bar-style>light-heavy</bar-style>
+      </barline>
     </measure>
   </part>
 </score-partwise>

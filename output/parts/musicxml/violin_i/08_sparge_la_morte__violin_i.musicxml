@@ -5,9 +5,9 @@
   </work>
   <movement-title>Sparge la morte - Violin I</movement-title>
   <identification>
-    <creator type="composer">Carlo Gesualdo, arrangement F. Pachet and AI</creator>
+    <creator type="composer">Carlo Gesualdo</creator>
     <encoding>
-      <encoding-date>2026-07-29</encoding-date>
+      <encoding-date>2026-07-30</encoding-date>
       <software>music21 v.9.9.1</software>
     </encoding>
   </identification>
@@ -18,20 +18,20 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="Pdbc472be8013f27dc0bb00f9b07bc59d">
+    <score-part id="P8e4c5c299f7ec056c480a2a5620aee26">
       <part-name>Violin I</part-name>
       <part-abbreviation>Vln</part-abbreviation>
-      <score-instrument id="Ia51b83d53d186081a6a60a3b0cccb9ab">
+      <score-instrument id="Ifa44bd5d337b145ce3f6ce91c7d5891c">
         <instrument-name>Violin</instrument-name>
         <instrument-abbreviation>Vln</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="Ia51b83d53d186081a6a60a3b0cccb9ab">
+      <midi-instrument id="Ifa44bd5d337b145ce3f6ce91c7d5891c">
         <midi-channel>1</midi-channel>
         <midi-program>41</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
-  <part id="Pdbc472be8013f27dc0bb00f9b07bc59d">
+  <part id="P8e4c5c299f7ec056c480a2a5620aee26">
     <measure implicit="no" number="1">
       <attributes>
         <divisions>10080</divisions>
@@ -47,9 +47,9 @@
           <line>2</line>
         </clef>
       </attributes>
-      <direction placement="above">
+      <direction>
         <direction-type>
-          <metronome parentheses="no">
+          <metronome>
             <beat-unit>quarter</beat-unit>
             <per-minute>100</per-minute>
           </metronome>
@@ -963,6 +963,7 @@
         </pitch>
         <duration>20160</duration>
         <type>half</type>
+        <accidental>natural</accidental>
       </note>
       <note>
         <pitch>
@@ -1642,11 +1643,7 @@
           <octave>4</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="stop" />
         <type>half</type>
-        <notations>
-          <tied type="stop" />
-        </notations>
       </note>
       <direction placement="below">
         <direction-type>
@@ -1828,6 +1825,9 @@
         <type>whole</type>
         <accidental>sharp</accidental>
       </note>
+      <barline location="right">
+        <bar-style>light-heavy</bar-style>
+      </barline>
     </measure>
   </part>
 </score-partwise>

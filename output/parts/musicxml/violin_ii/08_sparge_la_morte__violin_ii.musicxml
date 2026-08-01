@@ -5,9 +5,9 @@
   </work>
   <movement-title>Sparge la morte - Violin II</movement-title>
   <identification>
-    <creator type="composer">Carlo Gesualdo, arrangement F. Pachet and AI</creator>
+    <creator type="composer">Carlo Gesualdo</creator>
     <encoding>
-      <encoding-date>2026-07-29</encoding-date>
+      <encoding-date>2026-07-30</encoding-date>
       <software>music21 v.9.9.1</software>
     </encoding>
   </identification>
@@ -18,20 +18,20 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="P0eb4c2cf70718ed1afb578996deae810">
+    <score-part id="P9d0471781b6d980c6f2879ec46468bd9">
       <part-name>Violin II</part-name>
       <part-abbreviation>Vln</part-abbreviation>
-      <score-instrument id="Id5eb2d1e583dae16b1882e583c63240a">
+      <score-instrument id="Icf144c6affeaa57b4ca8b9101e0c8895">
         <instrument-name>Violin</instrument-name>
         <instrument-abbreviation>Vln</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="Id5eb2d1e583dae16b1882e583c63240a">
+      <midi-instrument id="Icf144c6affeaa57b4ca8b9101e0c8895">
         <midi-channel>2</midi-channel>
         <midi-program>41</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
-  <part id="P0eb4c2cf70718ed1afb578996deae810">
+  <part id="P9d0471781b6d980c6f2879ec46468bd9">
     <measure implicit="no" number="1">
       <attributes>
         <divisions>10080</divisions>
@@ -47,9 +47,9 @@
           <line>2</line>
         </clef>
       </attributes>
-      <direction placement="above">
+      <direction>
         <direction-type>
-          <metronome parentheses="no">
+          <metronome>
             <beat-unit>quarter</beat-unit>
             <per-minute>100</per-minute>
           </metronome>
@@ -1000,11 +1000,7 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <tie type="start" />
         <type>quarter</type>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
     </measure>
     <measure implicit="no" number="38">
@@ -1163,11 +1159,7 @@
           <octave>4</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="start" />
         <type>half</type>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
       <note>
         <rest />
@@ -1196,11 +1188,7 @@
           <octave>4</octave>
         </pitch>
         <duration>40320</duration>
-        <tie type="stop" />
         <type>whole</type>
-        <notations>
-          <tied type="stop" />
-        </notations>
       </note>
       <direction placement="below">
         <direction-type>
@@ -1479,11 +1467,7 @@
           <octave>4</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="stop" />
         <type>half</type>
-        <notations>
-          <tied type="stop" />
-        </notations>
       </note>
       <note>
         <pitch>
@@ -1817,11 +1801,11 @@
           <octave>4</octave>
         </pitch>
         <duration>40320</duration>
-        <tie type="stop" />
+        <tie type="start" />
         <tie type="start" />
         <type>whole</type>
         <notations>
-          <tied type="stop" />
+          <tied type="start" />
           <tied type="start" />
         </notations>
       </note>
@@ -1840,6 +1824,9 @@
           <tied type="stop" />
         </notations>
       </note>
+      <barline location="right">
+        <bar-style>light-heavy</bar-style>
+      </barline>
     </measure>
   </part>
 </score-partwise>

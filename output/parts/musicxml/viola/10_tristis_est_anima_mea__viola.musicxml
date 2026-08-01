@@ -5,9 +5,9 @@
   </work>
   <movement-title>Tristis est anima mea - Viola</movement-title>
   <identification>
-    <creator type="composer">Carlo Gesualdo, arrangement F. Pachet and AI</creator>
+    <creator type="composer">Carlo Gesualdo</creator>
     <encoding>
-      <encoding-date>2026-07-29</encoding-date>
+      <encoding-date>2026-07-30</encoding-date>
       <software>music21 v.9.9.1</software>
     </encoding>
   </identification>
@@ -18,20 +18,20 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="P6bd278df0ac939898cd12fa9a53597ef">
+    <score-part id="Pc9b2d7a6b0f36040e2367c062527f7a0">
       <part-name>Viola</part-name>
       <part-abbreviation>Vla</part-abbreviation>
-      <score-instrument id="Id3224f34eba5adba2018f00c2dacb3fd">
+      <score-instrument id="I8924cb8f57a6f481ca593467ef76b73a">
         <instrument-name>Viola</instrument-name>
         <instrument-abbreviation>Vla</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="Id3224f34eba5adba2018f00c2dacb3fd">
+      <midi-instrument id="I8924cb8f57a6f481ca593467ef76b73a">
         <midi-channel>3</midi-channel>
         <midi-program>42</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
-  <part id="P6bd278df0ac939898cd12fa9a53597ef">
+  <part id="Pc9b2d7a6b0f36040e2367c062527f7a0">
     <measure implicit="no" number="1">
       <attributes>
         <divisions>10080</divisions>
@@ -47,9 +47,9 @@
           <line>3</line>
         </clef>
       </attributes>
-      <direction placement="above">
+      <direction>
         <direction-type>
-          <metronome parentheses="no">
+          <metronome>
             <beat-unit>quarter</beat-unit>
             <per-minute>80</per-minute>
           </metronome>
@@ -107,11 +107,7 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <tie type="start" />
         <type>quarter</type>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
     </measure>
     <measure implicit="no" number="3">
@@ -122,11 +118,7 @@
           <octave>3</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="stop" />
         <type>half</type>
-        <notations>
-          <tied type="stop" />
-        </notations>
       </note>
       <note>
         <pitch>
@@ -230,13 +222,9 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <tie type="stop" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
-        <notations>
-          <tied type="stop" />
-        </notations>
       </note>
       <note>
         <pitch>
@@ -756,11 +744,7 @@
           <octave>4</octave>
         </pitch>
         <duration>20160</duration>
-        <tie type="start" />
         <type>half</type>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
     </measure>
     <measure implicit="no" number="17">
@@ -1658,9 +1642,9 @@
       </note>
       <note>
         <pitch>
-          <step>C</step>
+          <step>G</step>
           <alter>0</alter>
-          <octave>5</octave>
+          <octave>4</octave>
         </pitch>
         <duration>2520</duration>
         <type>16th</type>
@@ -1903,11 +1887,7 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <tie type="start" />
         <type>quarter</type>
-        <notations>
-          <tied type="start" />
-        </notations>
       </note>
     </measure>
     <measure implicit="no" number="35">
@@ -2795,6 +2775,9 @@
         <duration>20160</duration>
         <type>half</type>
       </note>
+      <barline location="right">
+        <bar-style>light-heavy</bar-style>
+      </barline>
     </measure>
   </part>
 </score-partwise>
