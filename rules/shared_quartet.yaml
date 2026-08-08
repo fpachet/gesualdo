@@ -238,9 +238,7 @@ rules:
     docs:
     - path: docs/quartet_director_feedback_plan.md
       note: Director review treats needless isolated fragments as playability issues.
-    code:
-    - path: src/gesualdo_reduction/reduction.py
-      note: Implemented by the post-assignment isolated handoff smoother.
+    code: []
     reports: []
     examples:
     - piece_id: dolcissima_mia_vita
@@ -259,8 +257,23 @@ rules:
       measure: 27
       note: Violin II's low G is removed from the opening double stop, leaving the B as the beamed line note.
     - piece_id: gia_piansi_nel_dolore
+      measure: 45
+      note: Viola and Cello merge successive eighth rests into quarter rests without moving the surrounding hairpin directions.
+    - piece_id: gia_piansi_nel_dolore
+      measure: 48
+      note: Viola merges the two opening eighth rests into a single quarter rest before the half-note entry.
+    - piece_id: gia_piansi_nel_dolore
+      measure: 50
+      note: Viola and Cello collapse full-bar rest fragments into measure rests.
+    - piece_id: gia_piansi_nel_dolore
+      measure: 51
+      note: The lower Viola E from the double stop is moved to Violin II as a quarter note after its F.
+    - piece_id: gia_piansi_nel_dolore
       measure: 52
       note: A final short viola G is reassigned to Violin I after its F, completing a small tail continuation instead of leaving an isolated viola attack.
+    - piece_id: gia_piansi_nel_dolore
+      measure: 57
+      note: The lower Viola double-stop notes D and G are moved to Violin II as eighth notes.
   exceptions:
   - id: no_clear_receiver_line
     description: Do not move the event unless another part has both immediate pitched neighbors and no overlap in the exact candidate interval.
@@ -633,6 +646,11 @@ rules:
         rule: write_D_sharp_as_E_flat
         reason: E-flat is the clearer spelling in the local flat-side harmonic context of this reduction.
         applies_after_generic_chromatic_respelling: true
+      - piece_id: s_io_non_miro_non_moro
+        title: S'io non miro non moro
+        rule: write_reviewed_cello_chromatic_ascents_as_sharps
+        reason: The reviewed Cello E-flats in bars 6 and 11 read more clearly as D-sharps, and the bar 27 Cello A-flat reads more clearly as G-sharp.
+        applies_after_generic_chromatic_respelling: true
     forbidden_cleanup_effects:
     - remove_pitched_attacks
     - thin_dense_bars
@@ -667,8 +685,23 @@ rules:
       measure: 27
       note: Violin II's later E is lengthened from a 16th to an eighth after removing the awkward low G from the opening double stop.
     - piece_id: gia_piansi_nel_dolore
+      measure: 45
+      note: Split rest notation caused by intervening hairpin directions is simplified from two eighth rests to one quarter rest in Viola and Cello.
+    - piece_id: gia_piansi_nel_dolore
+      measure: 48
+      note: Opening Viola rest notation is simplified from two eighth rests to one quarter rest.
+    - piece_id: gia_piansi_nel_dolore
+      measure: 50
+      note: Viola and Cello full-bar rests are rewritten as measure rests instead of quarter-plus-dotted-half fragments.
+    - piece_id: gia_piansi_nel_dolore
+      measure: 51
+      note: Violin II receives the lower Viola E as a quarter note, preserving the upper Viola line.
+    - piece_id: gia_piansi_nel_dolore
       measure: 46
       note: Extended a musically acceptable short Violin II note into the following tiny rest when the resulting dissonance remained idiomatic.
+    - piece_id: gia_piansi_nel_dolore
+      measure: 57
+      note: Violin II receives D and G as eighth notes while Viola keeps only the upper double-stop notes.
     - piece_id: our_prayer
       measure: 6
       note: Keep the cello eighth-note line; do not over-simplify it away during readability cleanup.
@@ -680,6 +713,41 @@ rules:
       note: A redundant isolated Violin II B-flat 16th already covered by Violin I is removed, and the resulting rest is merged to a quarter rest.
     - piece_id: dolcissima_mia_vita
       note: D-sharp spellings are forced to E-flat throughout the piece.
+    - piece_id: s_io_non_miro_non_moro
+      measure: 6
+      note: Cello's ascending E-flat is written as D-sharp.
+    - piece_id: s_io_non_miro_non_moro
+      measure: 11
+      note: Cello's ascending E-flat is written as D-sharp.
+    - piece_id: s_io_non_miro_non_moro
+      measure: 18
+      note: Viola's A 16th absorbs the following 16th rest and becomes an eighth note.
+    - piece_id: s_io_non_miro_non_moro
+      measure: 20
+      note: The high Violin I E-flat is moved down one octave while preserving pitch class.
+    - piece_id: s_io_non_miro_non_moro
+      measure: 27
+      note: Cello's A-flat is written as G-sharp.
+    - piece_id: moro_lasso_al_mio_duolo
+      measure: 7
+      note: Violin II's terminal D 16th is lengthened to an eighth; Viola's G and Cello's B are lengthened from eighths to quarters.
+    - piece_id: moro_lasso_al_mio_duolo
+      measure: 9
+      note: Cello's terminal F is lengthened from an eighth to a quarter.
+    - piece_id: moro_lasso_al_mio_duolo
+      measure: 33
+      note: Viola's A is notated as a 16th tied to an eighth tied into the following half note, beamed with the preceding G as 16-16-8, while the lower Viola E from the double stop moves to Violin II as an eighth note continuing B-E-F-G.
+    - piece_id: sparge_la_morte
+      measure: 19
+      note: Cello's D half note is split into two tied quarter notes so the beat boundary is readable.
+    - piece_id: sparge_la_morte
+      note: Piece-wide spellings prefer D-flat instead of C-sharp, G-flat instead of F-sharp, and D-sharp instead of E-flat.
+    - piece_id: hark_herald
+      measure: 44
+      note: A-flat major key signature is inserted from bar 44, and later key tones are respelled to match the key signature without redundant accidentals.
+    - piece_id: hark_herald
+      measure: 65
+      note: Redundant double-stop notes are removed from Viola and Violin I in the reviewed concert edition.
   exceptions: []
 - id: normalize_musescore_time_modification_import
   title: Normalize MuseScore time-modification import

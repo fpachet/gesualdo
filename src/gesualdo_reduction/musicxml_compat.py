@@ -55,6 +55,12 @@ class MusicXMLEngravingReport:
     applied_gia_piansi_line_cleanups: int = 0
     applied_luci_serene_line_cleanups: int = 0
     applied_dolcissima_line_cleanups: int = 0
+    applied_sio_non_miro_line_cleanups: int = 0
+    applied_come_unto_me_line_cleanups: int = 0
+    applied_a_quiet_place_line_cleanups: int = 0
+    applied_moro_lasso_line_cleanups: int = 0
+    applied_sparge_la_morte_line_cleanups: int = 0
+    applied_hark_herald_line_cleanups: int = 0
 
 
 _STEP_TO_SEMITONE = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
@@ -542,6 +548,38 @@ def _set_tie_type(note: ET.Element, tie_type: str | None) -> int:
     return changed
 
 
+def _add_tie_type(note: ET.Element, tie_type: str) -> int:
+    changed = 0
+    if not any(tie.get("type") == tie_type for tie in note.findall("tie")):
+        tie = ET.Element("tie", {"type": tie_type})
+        notations = note.find("notations")
+        insert_at = list(note).index(notations) if notations is not None else len(note)
+        note.insert(insert_at, tie)
+        changed += 1
+
+    notations = note.find("notations")
+    if notations is None:
+        notations = ET.Element("notations")
+        note.append(notations)
+    if not any(tied.get("type") == tie_type for tied in notations.findall("tied")):
+        notations.append(ET.Element("tied", {"type": tie_type}))
+        changed += 1
+    return changed
+
+
+def _set_note_beams(note: ET.Element, beams: list[tuple[str, str]]) -> int:
+    existing = [(beam.get("number") or "", beam.text or "") for beam in note.findall("beam")]
+    if existing == beams:
+        return 0
+    for beam in list(note.findall("beam")):
+        note.remove(beam)
+    for number, value in beams:
+        beam = ET.Element("beam", {"number": number})
+        beam.text = value
+        note.append(beam)
+    return 1
+
+
 def _duration_fraction(note: ET.Element, divisions: int) -> Fraction:
     duration_text = note.findtext("duration")
     if duration_text is None:
@@ -646,7 +684,6 @@ def _normalize_dangling_ties_once(root: ET.Element) -> int:
             tie_types = _tie_types(note)
             if not tie_types:
                 continue
-            tie_type = "continue" if "continue" in tie_types else "start" if "start" in tie_types else "stop"
             has_previous = any(
                 previous_midi == midi
                 and previous_voice == voice
@@ -662,6 +699,15 @@ def _normalize_dangling_ties_once(root: ET.Element) -> int:
                 for next_note, next_start, _next_end, next_midi, next_voice in items
             )
 
+            if {"stop", "start"}.issubset(tie_types):
+                if has_previous and has_next:
+                    continue
+                new_tie_type = "stop" if has_previous else "start" if has_next else None
+                if _set_tie_type(note, new_tie_type):
+                    changed += 1
+                continue
+
+            tie_type = "continue" if "continue" in tie_types else "start" if "start" in tie_types else "stop"
             new_tie_type = tie_type
             if tie_type == "start" and not has_next:
                 new_tie_type = None
@@ -1404,6 +1450,31 @@ def _extend_followed_by_rest(
     return False
 
 
+def _extend_note_partway_into_rest(
+    measure: ET.Element,
+    note: ET.Element,
+    rest: ET.Element,
+    *,
+    extra_units: int,
+    divisions: int,
+) -> bool:
+    if extra_units <= 0 or not _is_plain_rest(rest):
+        return False
+    note_units = int(note.findtext("duration") or "0")
+    rest_units = int(rest.findtext("duration") or "0")
+    if note_units <= 0 or rest_units < extra_units:
+        return False
+    if not _set_note_duration(note, note_units + extra_units, divisions):
+        return False
+    if rest_units == extra_units:
+        measure.remove(rest)
+    else:
+        _set_note_duration(rest, rest_units - extra_units, divisions)
+    for beam in list(note.findall("beam")):
+        note.remove(beam)
+    return True
+
+
 def _cleanup_gia_piansi_viola_line(measure: ET.Element, measure_number: str, divisions: int) -> int:
     entries = [
         (note, start, end)
@@ -1570,7 +1641,118 @@ def _cleanup_gia_piansi_violin_ii_bar_27(measure: ET.Element, divisions: int) ->
     return 2
 
 
-def _cleanup_gia_piansi_cello_rests(measure: ET.Element, divisions: int) -> int:
+def _copy_missing_performance_marks(source: ET.Element, target: ET.Element) -> None:
+    for tag in ("stem", "beam"):
+        if target.find(tag) is None:
+            for source_child in source.findall(tag):
+                target.append(copy.deepcopy(source_child))
+
+
+def _promote_chord_note_after_removing_base(
+    measure: ET.Element,
+    base_note: ET.Element,
+    chord_note: ET.Element,
+) -> bool:
+    chord = chord_note.find("chord")
+    if chord is None:
+        return False
+    chord_note.remove(chord)
+    _copy_missing_performance_marks(base_note, chord_note)
+    measure.remove(base_note)
+    return True
+
+
+def _cleanup_gia_piansi_violin_ii_bar_51(measure: ET.Element, divisions: int) -> int:
+    entries = [
+        (note, start, end)
+        for note, start, end in _measure_note_entries(measure, divisions)
+        if note.find("grace") is None
+    ]
+    if len(entries) < 3:
+        return 0
+    f_note, f_start, f_end = entries[0]
+    rest, rest_start, rest_end = entries[1]
+    if (
+        f_start != Fraction(0, 1)
+        or f_end != Fraction(2, 1)
+        or not _pitch_matches(f_note, "F", "4")
+        or rest_start != Fraction(2, 1)
+        or rest_end != Fraction(3, 1)
+        or not _is_plain_rest(rest)
+    ):
+        return 0
+    _set_note_pitch(rest, "E", 0, "4")
+    return 1
+
+
+def _cleanup_gia_piansi_violin_ii_bar_57(measure: ET.Element, divisions: int) -> int:
+    entries = [
+        (note, start, end)
+        for note, start, end in _measure_note_entries(measure, divisions)
+        if note.find("grace") is None
+    ]
+    if len(entries) < 6:
+        return 0
+    rest, rest_start, rest_end = entries[4]
+    if (
+        rest_start != Fraction(1, 1)
+        or rest_end != Fraction(2, 1)
+        or not _is_plain_rest(rest)
+    ):
+        return 0
+    eighth_units = divisions // 2
+    if eighth_units <= 0:
+        return 0
+    _set_note_pitch(rest, "D", 0, "4")
+    if not _set_note_duration(rest, eighth_units, divisions):
+        return 0
+    second_note = _new_pitched_note("G", 0, "3", eighth_units, divisions)
+    measure.insert(list(measure).index(rest) + 1, second_note)
+    return 1
+
+
+def _cleanup_gia_piansi_viola_bar_51_handoff(measure: ET.Element) -> int:
+    notes = [note for note in measure.findall("note") if note.find("grace") is None]
+    if len(notes) < 12:
+        return 0
+    e_note = notes[5]
+    c_chord = notes[6]
+    if (
+        not _pitch_matches(e_note, "E", "4")
+        or e_note.find("chord") is not None
+        or not _pitch_matches(c_chord, "C", "5")
+        or c_chord.find("chord") is None
+    ):
+        return 0
+    return int(_promote_chord_note_after_removing_base(measure, e_note, c_chord))
+
+
+def _cleanup_gia_piansi_viola_bar_57_handoff(measure: ET.Element) -> int:
+    notes = [note for note in measure.findall("note") if note.find("grace") is None]
+    if len(notes) < 8:
+        return 0
+    low_d, high_b_1 = notes[1], notes[2]
+    low_g, high_b_2 = notes[4], notes[5]
+    if (
+        not _pitch_matches(low_d, "D", "4")
+        or low_d.find("chord") is not None
+        or not _pitch_matches(high_b_1, "B", "4")
+        or high_b_1.find("chord") is None
+        or not _pitch_matches(low_g, "G", "3")
+        or low_g.find("chord") is not None
+        or not _pitch_matches(high_b_2, "B", "4")
+        or high_b_2.find("chord") is None
+    ):
+        return 0
+    changed = 0
+    if _promote_chord_note_after_removing_base(measure, low_d, high_b_1):
+        changed += 1
+    if _promote_chord_note_after_removing_base(measure, low_g, high_b_2):
+        changed += 1
+    return changed
+
+
+def _cleanup_gia_piansi_measure_rest(measure: ET.Element, divisions: int) -> int:
     entries = _measure_note_entries(measure, divisions)
     if not entries or any(not _is_plain_rest(note) for note, _start, _end in entries):
         return 0
@@ -1578,6 +1760,35 @@ def _cleanup_gia_piansi_cello_rests(measure: ET.Element, divisions: int) -> int:
     if total_units != 4 * divisions:
         return 0
     return _make_measure_rest(measure, entries, divisions)
+
+
+def _cleanup_gia_piansi_split_eighth_rests(
+    measure: ET.Element,
+    divisions: int,
+    *,
+    first_rest_start: Fraction,
+) -> int:
+    entries = [
+        (note, start, end)
+        for note, start, end in _measure_note_entries(measure, divisions)
+        if note.find("grace") is None
+    ]
+    for index, (rest_1, rest_1_start, rest_1_end) in enumerate(entries[:-1]):
+        rest_2, rest_2_start, rest_2_end = entries[index + 1]
+        if (
+            rest_1_start != first_rest_start
+            or rest_1_end != first_rest_start + Fraction(1, 2)
+            or not _is_plain_rest(rest_1)
+            or rest_2_start != rest_1_end
+            or rest_2_end != first_rest_start + Fraction(1, 1)
+            or not _is_plain_rest(rest_2)
+        ):
+            continue
+        if not _set_note_duration(rest_1, divisions, divisions):
+            return 0
+        measure.remove(rest_2)
+        return 1
+    return 0
 
 
 def _cleanup_gia_piansi_cello_bar_8(measure: ET.Element, divisions: int) -> int:
@@ -1659,16 +1870,44 @@ def apply_gia_piansi_line_cleanups(root: ET.Element) -> int:
                     changed += _cleanup_gia_piansi_violin_ii_bar_8(measure, divisions)
                 elif measure_number == "27":
                     changed += _cleanup_gia_piansi_violin_ii_bar_27(measure, divisions)
+                elif measure_number == "51":
+                    changed += _cleanup_gia_piansi_violin_ii_bar_51(measure, divisions)
+                elif measure_number == "57":
+                    changed += _cleanup_gia_piansi_violin_ii_bar_57(measure, divisions)
             elif "viola" in part_name:
                 if measure_number == "8":
                     changed += _cleanup_gia_piansi_viola_bar_8(measure, divisions)
+                elif measure_number == "45":
+                    changed += _cleanup_gia_piansi_split_eighth_rests(
+                        measure,
+                        divisions,
+                        first_rest_start=Fraction(1, 1),
+                    )
+                elif measure_number == "48":
+                    changed += _cleanup_gia_piansi_split_eighth_rests(
+                        measure,
+                        divisions,
+                        first_rest_start=Fraction(0, 1),
+                    )
+                elif measure_number == "50":
+                    changed += _cleanup_gia_piansi_measure_rest(measure, divisions)
                 elif measure_number in {"51", "52", "53"}:
                     changed += _cleanup_gia_piansi_viola_line(measure, measure_number, divisions)
+                    if measure_number == "51":
+                        changed += _cleanup_gia_piansi_viola_bar_51_handoff(measure)
+                elif measure_number == "57":
+                    changed += _cleanup_gia_piansi_viola_bar_57_handoff(measure)
             elif "cello" in part_name or "violoncello" in part_name:
                 if measure_number == "8":
                     changed += _cleanup_gia_piansi_cello_bar_8(measure, divisions)
-                elif measure_number == "51":
-                    changed += _cleanup_gia_piansi_cello_rests(measure, divisions)
+                elif measure_number == "45":
+                    changed += _cleanup_gia_piansi_split_eighth_rests(
+                        measure,
+                        divisions,
+                        first_rest_start=Fraction(1, 1),
+                    )
+                elif measure_number in {"50", "51"}:
+                    changed += _cleanup_gia_piansi_measure_rest(measure, divisions)
                 elif measure_number == "53":
                     changed += _cleanup_gia_piansi_cello_line(measure, measure_number, divisions)
     return changed
@@ -1876,6 +2115,986 @@ def apply_luci_serene_line_cleanups(root: ET.Element) -> int:
     return changed
 
 
+def _respell_note(note: ET.Element, step: str, alter: int) -> bool:
+    pitch = note.find("pitch")
+    if pitch is None:
+        return False
+    if not _set_pitch_element_spelling(pitch, step, alter):
+        return False
+    if alter:
+        _set_accidental(note, alter)
+    else:
+        _remove_accidental(note)
+    return True
+
+
+def _cleanup_sio_cello_spellings(measure: ET.Element, measure_number: str) -> int:
+    targets = {
+        "6": ("E", "-1", "3", "D", 1),
+        "11": ("E", "-1", "3", "D", 1),
+        "27": ("A", "-1", "3", "G", 1),
+    }
+    target = targets.get(measure_number)
+    if target is None:
+        return 0
+
+    source_step, source_alter, source_octave, target_step, target_alter = target
+    for note in measure.findall("note"):
+        if (
+            _pitch_matches(note, source_step, source_octave)
+            and _note_alter(note) == source_alter
+            and _respell_note(note, target_step, target_alter)
+        ):
+            return 1
+    return 0
+
+
+def _cleanup_sio_viola_bar_18(measure: ET.Element, divisions: int) -> int:
+    entries = [
+        (note, start, end)
+        for note, start, end in _measure_note_entries(measure, divisions)
+        if note.find("grace") is None
+    ]
+    for index, (note, start, end) in enumerate(entries[:-1]):
+        rest = entries[index + 1][0]
+        if (
+            start == Fraction(3, 2)
+            and end - start == Fraction(1, 4)
+            and _pitch_matches(note, "A", "3")
+            and _note_alter(note) == "0"
+            and _extend_followed_by_rest(measure, note, rest, divisions=divisions)
+        ):
+            return 1
+    return 0
+
+
+def _cleanup_sio_violin_i_bar_20(measure: ET.Element) -> int:
+    for note in measure.findall("note"):
+        if (
+            _pitch_matches(note, "E", "6")
+            and _note_alter(note) == "-1"
+            and _duration_fraction(note, 1) > 0
+        ):
+            pitch = note.find("pitch")
+            if pitch is None:
+                return 0
+            octave = pitch.find("octave")
+            if octave is None or octave.text == "5":
+                return 0
+            octave.text = "5"
+            return 1
+    return 0
+
+
+def apply_sio_non_miro_line_cleanups(root: ET.Element) -> int:
+    """Apply named editorial cleanups for S'io non miro non moro."""
+
+    if "s'io non miro" not in _ascii_fold(root.findtext("movement-title") or ""):
+        return 0
+
+    changed = 0
+    part_names = _part_names(root)
+    for part in root.findall("part"):
+        part_name = part_names.get(part.get("id") or "", "")
+        divisions = 1
+        for measure in part.findall("measure"):
+            for attributes in measure.findall("attributes"):
+                divisions_text = attributes.findtext("divisions")
+                if divisions_text is not None:
+                    try:
+                        divisions = int(divisions_text)
+                    except ValueError:
+                        divisions = 1
+            measure_number = measure.get("number") or ""
+            if "violin i" in part_name and "violin ii" not in part_name and measure_number == "20":
+                changed += _cleanup_sio_violin_i_bar_20(measure)
+            elif _is_viola_name(part_name) and measure_number == "18":
+                changed += _cleanup_sio_viola_bar_18(measure, divisions)
+            elif _is_cello_name(part_name) and measure_number in {"6", "11", "27"}:
+                changed += _cleanup_sio_cello_spellings(measure, measure_number)
+    return changed
+
+
+def _measure_note_entries_with_chords(measure: ET.Element, divisions: int) -> list[tuple[ET.Element, Fraction, Fraction]]:
+    entries: list[tuple[ET.Element, Fraction, Fraction]] = []
+    offset = Fraction(0, 1)
+    last_note_start = offset
+    for child in measure:
+        if child.tag == "backup":
+            offset -= Fraction(int(child.findtext("duration") or "0"), max(divisions, 1))
+            continue
+        if child.tag == "forward":
+            offset += Fraction(int(child.findtext("duration") or "0"), max(divisions, 1))
+            continue
+        if child.tag != "note":
+            continue
+        duration = _duration_fraction(child, divisions)
+        start = last_note_start if child.find("chord") is not None else offset
+        entries.append((child, start, start + duration))
+        if child.find("chord") is None:
+            last_note_start = offset
+            offset += duration
+    return entries
+
+
+def _copy_chord_note_for_host(host: ET.Element, step: str, alter: int, octave: str, divisions: int) -> ET.Element | None:
+    units = int(host.findtext("duration") or "0")
+    if units <= 0:
+        return None
+    chord_note = _new_pitched_note(step, alter, octave, units, divisions)
+    chord_note.insert(0, ET.Element("chord"))
+    voice = host.find("voice")
+    if voice is not None:
+        duration = chord_note.find("duration")
+        insert_at = list(chord_note).index(duration) + 1 if duration is not None else len(chord_note)
+        copied_voice = ET.Element("voice")
+        copied_voice.text = voice.text
+        chord_note.insert(insert_at, copied_voice)
+    return chord_note
+
+
+def _cleanup_come_unto_me_bar_23_handoff(
+    violin_i_measure: ET.Element,
+    viola_measure: ET.Element,
+    divisions: int,
+) -> int:
+    violin_i_entries = _measure_note_entries_with_chords(violin_i_measure, divisions)
+    viola_entries = _measure_note_entries_with_chords(viola_measure, divisions)
+
+    violin_i_host: ET.Element | None = None
+    violin_i_has_ab = False
+    for note, start, end in violin_i_entries:
+        if start != Fraction(5, 2) or end - start != Fraction(1, 2):
+            continue
+        if _pitch_matches(note, "C", "5") and note.find("chord") is None:
+            violin_i_host = note
+        elif _pitch_matches(note, "A", "4") and _note_alter(note) == "-1":
+            violin_i_has_ab = True
+
+    viola_ab: ET.Element | None = None
+    for note, start, end in viola_entries:
+        if (
+            start == Fraction(5, 2)
+            and end - start == Fraction(1, 2)
+            and note.find("chord") is not None
+            and _pitch_matches(note, "A", "4")
+            and _note_alter(note) == "-1"
+        ):
+            viola_ab = note
+            break
+
+    if violin_i_host is None or viola_ab is None:
+        return 0
+
+    if not violin_i_has_ab:
+        chord_note = _copy_chord_note_for_host(violin_i_host, "A", -1, "4", divisions)
+        if chord_note is None:
+            return 0
+        host_index = list(violin_i_measure).index(violin_i_host)
+        violin_i_measure.insert(host_index + 1, chord_note)
+    viola_measure.remove(viola_ab)
+    return 1
+
+
+def _cleanup_come_unto_me_violin_ii_bar_15(measure: ET.Element, divisions: int) -> int:
+    entries = [
+        (note, start, end)
+        for note, start, end in _measure_note_entries(measure, divisions)
+        if note.find("grace") is None
+    ]
+    for index, (note, start, end) in enumerate(entries[:-1]):
+        next_note, next_start, next_end = entries[index + 1]
+        if (
+            start == Fraction(3, 4)
+            and end - start == Fraction(1, 1)
+            and next_start == Fraction(7, 4)
+            and next_end - next_start == Fraction(1, 4)
+            and _pitch_matches(note, "C", "4")
+            and _pitch_matches(next_note, "C", "4")
+            and "start" in _tie_types(note)
+            and "stop" in _tie_types(next_note)
+        ):
+            changed = _set_tie_type(note, None)
+            if _convert_note_to_rest(next_note):
+                return 1 if changed else 0
+    return 0
+
+
+def _cleanup_come_unto_me_violin_i_bar_49(measure: ET.Element, divisions: int) -> int:
+    for note, start, end in _measure_note_entries_with_chords(measure, divisions):
+        if (
+            start == Fraction(13, 4)
+            and end - start == Fraction(1, 4)
+            and _pitch_matches(note, "E", "5")
+            and _note_alter(note) == "0"
+        ):
+            _set_note_pitch(note, "E", -1, "5")
+            return 1
+    return 0
+
+
+def apply_come_unto_me_line_cleanups(root: ET.Element) -> int:
+    """Apply named editorial cleanups for Come Unto Me."""
+
+    if "come unto me" not in _ascii_fold(root.findtext("movement-title") or ""):
+        return 0
+
+    changed = 0
+    part_names = _part_names(root)
+    measure_lookup: dict[tuple[str, str], tuple[ET.Element, int]] = {}
+    for part in root.findall("part"):
+        part_name = part_names.get(part.get("id") or "", "")
+        if "violin i" in part_name and "violin ii" not in part_name:
+            role = "violin_i"
+        elif "violin ii" in part_name:
+            role = "violin_ii"
+        elif _is_viola_name(part_name):
+            role = "viola"
+        else:
+            continue
+
+        divisions = 1
+        for measure in part.findall("measure"):
+            for attributes in measure.findall("attributes"):
+                divisions_text = attributes.findtext("divisions")
+                if divisions_text is not None:
+                    try:
+                        divisions = int(divisions_text)
+                    except ValueError:
+                        divisions = 1
+            measure_number = measure.get("number") or ""
+            measure_lookup[(role, measure_number)] = (measure, divisions)
+            if role == "violin_ii" and measure_number == "15":
+                changed += _cleanup_come_unto_me_violin_ii_bar_15(measure, divisions)
+            elif role == "violin_i" and measure_number == "49":
+                changed += _cleanup_come_unto_me_violin_i_bar_49(measure, divisions)
+
+    violin_i_bar_23 = measure_lookup.get(("violin_i", "23"))
+    viola_bar_23 = measure_lookup.get(("viola", "23"))
+    if violin_i_bar_23 is not None and viola_bar_23 is not None:
+        changed += _cleanup_come_unto_me_bar_23_handoff(
+            violin_i_bar_23[0],
+            viola_bar_23[0],
+            violin_i_bar_23[1],
+        )
+    return changed
+
+
+def _cleanup_a_quiet_place_violin_i_bar_5(measure: ET.Element, divisions: int) -> int:
+    changed = 0
+    entries = _measure_note_entries_with_chords(measure, divisions)
+    final_d: ET.Element | None = None
+    final_has_e = False
+    for note, start, end in entries:
+        if (
+            start == Fraction(0, 1)
+            and end == Fraction(2, 1)
+            and _pitch_matches(note, "F", "4")
+            and _note_alter(note) in {"0", "1"}
+        ):
+            _set_note_pitch(note, "E", 0, "4")
+            changed += 1
+        elif (
+            start == Fraction(3, 1)
+            and end == Fraction(4, 1)
+            and _pitch_matches(note, "D", "5")
+            and note.find("chord") is None
+        ):
+            final_d = note
+        elif (
+            start == Fraction(3, 1)
+            and end == Fraction(4, 1)
+            and _pitch_matches(note, "E", "4")
+            and _note_alter(note) == "0"
+        ):
+            final_has_e = True
+        elif (
+            start == Fraction(3, 1)
+            and end == Fraction(4, 1)
+            and _pitch_matches(note, "F", "4")
+            and _note_alter(note) == "0"
+        ):
+            _set_note_pitch(note, "E", 0, "4")
+            final_has_e = True
+            changed += 1
+        elif _pitch_matches(note, "F", "4") and _note_alter(note) == "0":
+            if _remove_accidental(note):
+                changed += 1
+
+    if final_d is not None and not final_has_e:
+        chord_note = _copy_chord_note_for_host(final_d, "E", 0, "4", divisions)
+        if chord_note is not None:
+            measure.insert(list(measure).index(final_d) + 1, chord_note)
+            changed += 1
+    return changed
+
+
+def _cleanup_a_quiet_place_violin_ii_bar_5(measure: ET.Element, divisions: int) -> int:
+    entries = _measure_note_entries_with_chords(measure, divisions)
+    base: ET.Element | None = None
+    chord_note: ET.Element | None = None
+    final_a: ET.Element | None = None
+    for note, start, end in entries:
+        if (
+            start == Fraction(0, 1)
+            and end in {Fraction(3, 1), Fraction(4, 1)}
+            and _pitch_matches(note, "C", "4")
+            and note.find("chord") is None
+        ):
+            base = note
+        elif (
+            start == Fraction(0, 1)
+            and end in {Fraction(3, 1), Fraction(4, 1)}
+            and _pitch_matches(note, "A", "4")
+            and note.find("chord") is not None
+        ):
+            chord_note = note
+        elif start == Fraction(3, 1) and end == Fraction(4, 1) and _pitch_matches(note, "A", "4"):
+            final_a = note
+
+    changed = 0
+    target_units = 4 * divisions
+    if base is not None and int(base.findtext("duration") or "0") != target_units:
+        if _set_note_duration(base, target_units, divisions):
+            changed += 1
+    if chord_note is not None and int(chord_note.findtext("duration") or "0") != target_units:
+        if _set_note_duration(chord_note, target_units, divisions):
+            changed += 1
+    if final_a is not None:
+        measure.remove(final_a)
+        changed += 1
+    return changed
+
+
+def _cleanup_a_quiet_place_viola_bar_5(measure: ET.Element, divisions: int) -> int:
+    changed = 0
+    for note, start, end in list(_measure_note_entries_with_chords(measure, divisions)):
+        if start == Fraction(0, 1) and end == Fraction(2, 1) and note.find("chord") is None:
+            if not (_pitch_matches(note, "F", "4") and _note_alter(note) == "1"):
+                _set_note_pitch(note, "F", 1, "4")
+                changed += 1
+        elif start == Fraction(2, 1) and end == Fraction(3, 1) and note.find("chord") is None:
+            if not (_pitch_matches(note, "F", "4") and _note_alter(note) == "0"):
+                _set_note_pitch(note, "F", 0, "4")
+                changed += 1
+        elif start == Fraction(3, 1) and end == Fraction(4, 1):
+            if note.find("chord") is not None:
+                measure.remove(note)
+                changed += 1
+            elif not (_pitch_matches(note, "E", "4") and _note_alter(note) == "0"):
+                _set_note_pitch(note, "E", 0, "4")
+                changed += 1
+    return changed
+
+
+def _cleanup_a_quiet_place_cello_bar_5(measure: ET.Element, divisions: int) -> int:
+    for note, start, end in _measure_note_entries_with_chords(measure, divisions):
+        if (
+            start == Fraction(3, 1)
+            and end == Fraction(4, 1)
+            and note.find("chord") is not None
+            and _pitch_matches(note, "G", "2")
+        ):
+            measure.remove(note)
+            return 1
+    return 0
+
+
+def apply_a_quiet_place_line_cleanups(root: ET.Element) -> int:
+    """Apply named editorial cleanups for A Quiet Place."""
+
+    if "a quiet place" not in _ascii_fold(root.findtext("movement-title") or ""):
+        return 0
+
+    changed = 0
+    part_names = _part_names(root)
+    for part in root.findall("part"):
+        part_name = part_names.get(part.get("id") or "", "")
+        if "violin i" in part_name and "violin ii" not in part_name:
+            role = "violin_i"
+        elif "violin ii" in part_name:
+            role = "violin_ii"
+        elif _is_viola_name(part_name):
+            role = "viola"
+        elif _is_cello_name(part_name):
+            role = "cello"
+        else:
+            continue
+
+        divisions = 1
+        for measure in part.findall("measure"):
+            for attributes in measure.findall("attributes"):
+                divisions_text = attributes.findtext("divisions")
+                if divisions_text is not None:
+                    try:
+                        divisions = int(divisions_text)
+                    except ValueError:
+                        divisions = 1
+            if measure.get("number") != "5":
+                continue
+            if role == "violin_i":
+                changed += _cleanup_a_quiet_place_violin_i_bar_5(measure, divisions)
+            elif role == "violin_ii":
+                changed += _cleanup_a_quiet_place_violin_ii_bar_5(measure, divisions)
+            elif role == "viola":
+                changed += _cleanup_a_quiet_place_viola_bar_5(measure, divisions)
+            elif role == "cello":
+                changed += _cleanup_a_quiet_place_cello_bar_5(measure, divisions)
+    return changed
+
+
+def _cleanup_moro_lasso_extend_note_before_rest(
+    measure: ET.Element,
+    divisions: int,
+    *,
+    start: Fraction,
+    step: str,
+    alter: str,
+    octave: str,
+    target_duration: Fraction,
+) -> int:
+    entries = [
+        (note, note_start, note_end)
+        for note, note_start, note_end in _measure_note_entries(measure, divisions)
+        if note.find("grace") is None
+    ]
+    for index, (note, note_start, note_end) in enumerate(entries[:-1]):
+        rest = entries[index + 1][0]
+        if (
+            note_start != start
+            or note_end - note_start >= target_duration
+            or not _pitch_matches(note, step, octave)
+            or _note_alter(note) != alter
+        ):
+            continue
+        current_units = int(note.findtext("duration") or "0")
+        target_units = int(target_duration * divisions)
+        extra_units = target_units - current_units
+        if _extend_note_partway_into_rest(
+            measure,
+            note,
+            rest,
+            extra_units=extra_units,
+            divisions=divisions,
+        ):
+            return 1
+    return 0
+
+
+def _cleanup_moro_lasso_bar_33_handoff(
+    violin_ii_measure: ET.Element,
+    viola_measure: ET.Element,
+    divisions: int,
+) -> int:
+    violin_ii_entries = _measure_note_entries(violin_ii_measure, divisions)
+    viola_entries = _measure_note_entries_with_chords(viola_measure, divisions)
+
+    violin_ii_rest: ET.Element | None = None
+    for note, start, end in violin_ii_entries:
+        if start == Fraction(1, 1) and end == Fraction(3, 2) and _is_plain_rest(note):
+            violin_ii_rest = note
+            break
+
+    viola_low_e: ET.Element | None = None
+    viola_upper_g: ET.Element | None = None
+    for note, start, end in viola_entries:
+        if start != Fraction(1, 1) or end != Fraction(5, 4):
+            continue
+        if _pitch_matches(note, "E", "4") and _note_alter(note) == "0" and note.find("chord") is None:
+            viola_low_e = note
+        elif _pitch_matches(note, "G", "4") and _note_alter(note) == "0" and note.find("chord") is not None:
+            viola_upper_g = note
+
+    if violin_ii_rest is None or viola_low_e is None or viola_upper_g is None:
+        return 0
+
+    _set_note_pitch(violin_ii_rest, "E", 0, "4")
+    if not _set_note_duration(violin_ii_rest, divisions // 2, divisions):
+        return 0
+    if not _promote_chord_note_after_removing_base(viola_measure, viola_low_e, viola_upper_g):
+        return 0
+    return 1
+
+
+def _cleanup_moro_lasso_viola_bar_33_tie_a_through_beat(measure: ET.Element, divisions: int) -> int:
+    entries = [
+        (note, start, end)
+        for note, start, end in _measure_note_entries(measure, divisions)
+        if note.find("grace") is None
+    ]
+    if len(entries) < 6:
+        return 0
+
+    beat_g: ET.Element | None = None
+    first_a: ET.Element | None = None
+    middle_a: ET.Element | None = None
+    long_a: ET.Element | None = None
+    for note, start, end in entries:
+        if (
+            start == Fraction(1, 1)
+            and end == Fraction(5, 4)
+            and _pitch_matches(note, "G", "4")
+            and _note_alter(note) == "0"
+        ):
+            beat_g = note
+        elif (
+            start == Fraction(5, 4)
+            and end in {Fraction(3, 2), Fraction(7, 4)}
+            and _pitch_matches(note, "A", "4")
+            and _note_alter(note) == "0"
+        ):
+            first_a = note
+        elif start in {Fraction(3, 2), Fraction(7, 4)} and end == Fraction(2, 1) and (
+            _is_plain_rest(note) or (_pitch_matches(note, "A", "4") and _note_alter(note) == "0")
+        ):
+            middle_a = note
+        elif (
+            start == Fraction(2, 1)
+            and end == Fraction(4, 1)
+            and _pitch_matches(note, "A", "4")
+            and _note_alter(note) == "0"
+        ):
+            long_a = note
+
+    if first_a is None or middle_a is None or long_a is None:
+        return 0
+
+    changed = 0
+    if _set_note_duration(first_a, divisions // 4, divisions):
+        changed += 1
+    _set_note_pitch(middle_a, "A", 0, "4")
+    if _set_note_duration(middle_a, divisions // 2, divisions):
+        changed += 1
+    changed += _add_tie_type(first_a, "start")
+    changed += _add_tie_type(middle_a, "stop")
+    changed += _add_tie_type(middle_a, "start")
+    changed += _add_tie_type(long_a, "stop")
+    if beat_g is not None:
+        changed += _set_note_beams(beat_g, [("1", "begin"), ("2", "begin")])
+    changed += _set_note_beams(first_a, [("1", "continue"), ("2", "end")])
+    changed += _set_note_beams(middle_a, [("1", "end")])
+    return 1 if changed else 0
+
+
+def apply_moro_lasso_line_cleanups(root: ET.Element) -> int:
+    """Apply named editorial cleanups for Moro, lasso, al mio duolo."""
+
+    if "moro" not in _ascii_fold(root.findtext("movement-title") or ""):
+        return 0
+
+    changed = 0
+    part_names = _part_names(root)
+    measure_lookup: dict[tuple[str, str], tuple[ET.Element, int]] = {}
+    for part in root.findall("part"):
+        part_name = part_names.get(part.get("id") or "", "")
+        if "violin ii" in part_name:
+            role = "violin_ii"
+        elif _is_viola_name(part_name):
+            role = "viola"
+        elif _is_cello_name(part_name):
+            role = "cello"
+        else:
+            continue
+
+        divisions = 1
+        for measure in part.findall("measure"):
+            for attributes in measure.findall("attributes"):
+                divisions_text = attributes.findtext("divisions")
+                if divisions_text is not None:
+                    try:
+                        divisions = int(divisions_text)
+                    except ValueError:
+                        divisions = 1
+            measure_number = measure.get("number") or ""
+            measure_lookup[(role, measure_number)] = (measure, divisions)
+            if role == "violin_ii" and measure_number == "7":
+                changed += _cleanup_moro_lasso_extend_note_before_rest(
+                    measure,
+                    divisions,
+                    start=Fraction(3, 1),
+                    step="D",
+                    alter="0",
+                    octave="4",
+                    target_duration=Fraction(1, 2),
+                )
+            elif role == "viola" and measure_number == "7":
+                changed += _cleanup_moro_lasso_extend_note_before_rest(
+                    measure,
+                    divisions,
+                    start=Fraction(2, 1),
+                    step="G",
+                    alter="0",
+                    octave="3",
+                    target_duration=Fraction(1, 1),
+                )
+            elif role == "viola" and measure_number == "33":
+                changed += _cleanup_moro_lasso_extend_note_before_rest(
+                    measure,
+                    divisions,
+                    start=Fraction(5, 4),
+                    step="A",
+                    alter="0",
+                    octave="4",
+                    target_duration=Fraction(1, 2),
+                )
+                changed += _cleanup_moro_lasso_viola_bar_33_tie_a_through_beat(measure, divisions)
+            elif role == "cello" and measure_number == "7":
+                changed += _cleanup_moro_lasso_extend_note_before_rest(
+                    measure,
+                    divisions,
+                    start=Fraction(2, 1),
+                    step="B",
+                    alter="0",
+                    octave="3",
+                    target_duration=Fraction(1, 1),
+                )
+            elif role == "cello" and measure_number == "9":
+                changed += _cleanup_moro_lasso_extend_note_before_rest(
+                    measure,
+                    divisions,
+                    start=Fraction(5, 2),
+                    step="F",
+                    alter="0",
+                    octave="3",
+                    target_duration=Fraction(1, 1),
+                )
+
+    violin_ii_bar_33 = measure_lookup.get(("violin_ii", "33"))
+    viola_bar_33 = measure_lookup.get(("viola", "33"))
+    if violin_ii_bar_33 is not None and viola_bar_33 is not None:
+        changed += _cleanup_moro_lasso_bar_33_handoff(
+            violin_ii_bar_33[0],
+            viola_bar_33[0],
+            violin_ii_bar_33[1],
+        )
+    return changed
+
+
+def _cleanup_sparge_spellings(root: ET.Element) -> int:
+    changed = 0
+    targets = {
+        ("C", 1): ("D", -1),
+        ("F", 1): ("G", -1),
+        ("E", -1): ("D", 1),
+    }
+    for note in root.findall(".//note"):
+        pitch = note.find("pitch")
+        if pitch is None:
+            continue
+        source = (pitch.findtext("step") or "", _pitch_element_alter(pitch))
+        target = targets.get(source)
+        if target is None:
+            continue
+        target_step, target_alter = target
+        if _respell_note(note, target_step, target_alter):
+            changed += 1
+    return changed
+
+
+def _cleanup_sparge_cello_bar_19(measure: ET.Element, divisions: int) -> int:
+    entries = [
+        (note, start, end)
+        for note, start, end in _measure_note_entries(measure, divisions)
+        if note.find("grace") is None
+    ]
+    for index, (note, start, end) in enumerate(entries):
+        if (
+            start != Fraction(1, 1)
+            or end != Fraction(3, 1)
+            or not _pitch_matches(note, "D", "3")
+            or _note_alter(note) != "0"
+        ):
+            continue
+        if not _set_note_duration(note, divisions, divisions):
+            return 0
+        _set_tie_type(note, None)
+        _add_tie_type(note, "start")
+        second = copy.deepcopy(note)
+        _set_tie_type(second, None)
+        _add_tie_type(second, "stop")
+        for beam in list(note.findall("beam")):
+            note.remove(beam)
+        for beam in list(second.findall("beam")):
+            second.remove(beam)
+        measure.insert(list(measure).index(note) + 1, second)
+        return 1
+
+    if len(entries) < 3:
+        return 0
+    first, first_start, first_end = entries[1]
+    second, second_start, second_end = entries[2]
+    if (
+        first_start == Fraction(1, 1)
+        and first_end == Fraction(2, 1)
+        and second_start == Fraction(2, 1)
+        and second_end == Fraction(3, 1)
+        and _pitch_matches(first, "D", "3")
+        and _pitch_matches(second, "D", "3")
+        and "start" in _tie_types(first)
+        and "stop" in _tie_types(second)
+    ):
+        return 0
+    return 0
+
+
+def apply_sparge_la_morte_line_cleanups(root: ET.Element) -> int:
+    """Apply named editorial cleanups for Sparge la morte."""
+
+    if "sparge la morte" not in _ascii_fold(root.findtext("movement-title") or ""):
+        return 0
+
+    changed = _cleanup_sparge_spellings(root)
+    part_names = _part_names(root)
+    for part in root.findall("part"):
+        part_name = part_names.get(part.get("id") or "", "")
+        if not _is_cello_name(part_name):
+            continue
+        divisions = 1
+        for measure in part.findall("measure"):
+            for attributes in measure.findall("attributes"):
+                divisions_text = attributes.findtext("divisions")
+                if divisions_text is not None:
+                    try:
+                        divisions = int(divisions_text)
+                    except ValueError:
+                        divisions = 1
+            if measure.get("number") == "19":
+                changed += _cleanup_sparge_cello_bar_19(measure, divisions)
+    return changed
+
+
+def _set_measure_key_fifths(measure: ET.Element, fifths: int) -> int:
+    attributes = _ensure_attributes(measure)
+    key = attributes.find("key")
+    changed = 0
+    if key is None:
+        key = ET.Element("key")
+        insert_at = 0
+        for index, child in enumerate(list(attributes)):
+            if child.tag == "divisions":
+                insert_at = index + 1
+        attributes.insert(insert_at, key)
+        changed += 1
+    fifths_element = key.find("fifths")
+    if fifths_element is None:
+        fifths_element = ET.Element("fifths")
+        key.insert(0, fifths_element)
+        changed += 1
+    if fifths_element.text != str(fifths):
+        fifths_element.text = str(fifths)
+        changed += 1
+    return 1 if changed else 0
+
+
+def _respell_note_for_new_key(note: ET.Element, target: tuple[str, int]) -> int:
+    target_step, target_alter = target
+    pitch = note.find("pitch")
+    if pitch is None:
+        return 0
+    before = _pitch_element_spelling(pitch)
+    if before is None:
+        return 0
+    changed = 0
+    if before != (target_step, target_alter):
+        if _set_pitch_element_spelling(pitch, target_step, target_alter):
+            changed += 1
+    if _remove_accidental(note):
+        changed += 1
+    return 1 if changed else 0
+
+
+def _cleanup_hark_cello_bar_10(measure: ET.Element, divisions: int) -> int:
+    for note, start, end in _measure_note_entries_with_chords(measure, divisions):
+        if (
+            start == Fraction(3, 1)
+            and end == Fraction(4, 1)
+            and _pitch_matches(note, "D", "3")
+            and _note_alter(note) == "-1"
+        ):
+            return 1 if _respell_note(note, "C", 1) else 0
+    return 0
+
+
+def _cleanup_hark_violin_ii_bar_12(measure: ET.Element, divisions: int) -> int:
+    entries = [
+        (note, start, end)
+        for note, start, end in _measure_note_entries(measure, divisions)
+        if note.find("grace") is None
+    ]
+    for index, (note, start, end) in enumerate(entries[:-1]):
+        rest = entries[index + 1][0]
+        if (
+            start == Fraction(1, 1)
+            and end == Fraction(3, 2)
+            and _pitch_matches(note, "G", "4")
+            and _note_alter(note) == "0"
+            and _extend_followed_by_rest(measure, note, rest, divisions=divisions)
+        ):
+            return 1
+    return 0
+
+
+def _cleanup_hark_violin_i_bar_34(measure: ET.Element, divisions: int) -> int:
+    entries = [
+        (note, start, end)
+        for note, start, end in _measure_note_entries(measure, divisions)
+        if note.find("grace") is None
+    ]
+    if len(entries) < 2:
+        return 0
+    note, start, end = entries[0]
+    rest, rest_start, rest_end = entries[1]
+    if (
+        start == Fraction(0, 1)
+        and end == Fraction(15, 4)
+        and rest_start == Fraction(15, 4)
+        and rest_end == Fraction(4, 1)
+        and _pitch_matches(note, "D", "5")
+        and _note_alter(note) == "0"
+        and _extend_followed_by_rest(measure, note, rest, divisions=divisions)
+    ):
+        return 1
+    return 0
+
+
+def _cleanup_hark_viola_bar_34(measure: ET.Element, divisions: int) -> int:
+    for note, start, end in _measure_note_entries_with_chords(measure, divisions):
+        if (
+            start == Fraction(2, 1)
+            and end == Fraction(4, 1)
+            and note.find("chord") is not None
+            and (
+                (_pitch_matches(note, "B", "4") and _note_alter(note) == "-1")
+                or (_pitch_matches(note, "C", "5") and _note_alter(note) == "1")
+            )
+        ):
+            _set_note_pitch(note, "A", 1, "4")
+            return 1
+    return 0
+
+
+def _cleanup_hark_violin_i_bar_65(measure: ET.Element, divisions: int) -> int:
+    entries = _measure_note_entries_with_chords(measure, divisions)
+    base_note: ET.Element | None = None
+    chord_note: ET.Element | None = None
+    for note, start, end in entries:
+        if start != Fraction(3, 1) or end != Fraction(7, 2):
+            continue
+        if _pitch_matches(note, "F", "4") and _note_alter(note) == "0" and note.find("chord") is None:
+            base_note = note
+        elif _pitch_matches(note, "C", "5") and note.find("chord") is not None:
+            chord_note = note
+    if base_note is not None and chord_note is not None:
+        return 1 if _promote_chord_note_after_removing_base(measure, base_note, chord_note) else 0
+    return 0
+
+
+def _cleanup_hark_viola_bar_65(measure: ET.Element, divisions: int) -> int:
+    entries = _measure_note_entries_with_chords(measure, divisions)
+    for note, start, end in entries:
+        if (
+            start == Fraction(7, 2)
+            and end == Fraction(4, 1)
+            and note.find("chord") is not None
+            and (pitch := note.find("pitch")) is not None
+            and _pitch_element_midi(pitch) == 66
+        ):
+            measure.remove(note)
+            return 1
+    return 0
+
+
+def _cleanup_hark_ab_major_from_bar_44(part: ET.Element, divisions: int, part_name: str) -> int:
+    changed = 0
+    ab_major_spellings = {
+        0: ("C", 0),
+        1: ("D", -1),
+        3: ("E", -1),
+        5: ("F", 0),
+        7: ("G", 0),
+        8: ("A", -1),
+        10: ("B", -1),
+    }
+    for measure in part.findall("measure"):
+        try:
+            measure_number = int(measure.get("number") or "0")
+        except ValueError:
+            continue
+        for attributes in measure.findall("attributes"):
+            divisions_text = attributes.findtext("divisions")
+            if divisions_text is not None:
+                try:
+                    divisions = int(divisions_text)
+                except ValueError:
+                    divisions = 1
+        if measure_number < 44:
+            continue
+        if measure_number == 44:
+            changed += _set_measure_key_fifths(measure, -4)
+        for note, _start, _end in _measure_note_entries_with_chords(measure, divisions):
+            pitch = note.find("pitch")
+            if pitch is None:
+                continue
+            midi = _pitch_element_midi(pitch)
+            if midi is None:
+                continue
+            target = ab_major_spellings.get(midi % 12)
+            if target is None:
+                continue
+            changed += _respell_note_for_new_key(note, target)
+    return changed
+
+
+def apply_hark_herald_line_cleanups(root: ET.Element) -> int:
+    """Apply named editorial cleanups for Hark! The Herald Angels Sing."""
+
+    title = _ascii_fold(root.findtext("movement-title") or "")
+    if "hark" not in title or "herald" not in title:
+        return 0
+
+    changed = 0
+    part_names = _part_names(root)
+    for part in root.findall("part"):
+        part_name = part_names.get(part.get("id") or "", "")
+        divisions = 1
+        role = ""
+        if "violin i" in part_name and "violin ii" not in part_name:
+            role = "violin_i"
+        elif "violin ii" in part_name:
+            role = "violin_ii"
+        elif _is_viola_name(part_name):
+            role = "viola"
+        elif _is_cello_name(part_name):
+            role = "cello"
+        else:
+            continue
+
+        for measure in part.findall("measure"):
+            for attributes in measure.findall("attributes"):
+                divisions_text = attributes.findtext("divisions")
+                if divisions_text is not None:
+                    try:
+                        divisions = int(divisions_text)
+                    except ValueError:
+                        divisions = 1
+            measure_number = measure.get("number") or ""
+            if role == "cello" and measure_number == "10":
+                changed += _cleanup_hark_cello_bar_10(measure, divisions)
+            elif role == "violin_ii" and measure_number == "12":
+                changed += _cleanup_hark_violin_ii_bar_12(measure, divisions)
+            elif role == "violin_i" and measure_number == "34":
+                changed += _cleanup_hark_violin_i_bar_34(measure, divisions)
+            elif role == "viola" and measure_number == "34":
+                changed += _cleanup_hark_viola_bar_34(measure, divisions)
+            elif role == "violin_i" and measure_number == "65":
+                changed += _cleanup_hark_violin_i_bar_65(measure, divisions)
+            elif role == "viola" and measure_number == "65":
+                changed += _cleanup_hark_viola_bar_65(measure, divisions)
+
+        changed += _cleanup_hark_ab_major_from_bar_44(part, divisions, part_name)
+    return changed
+
+
 def _remove_accidental(note: ET.Element) -> bool:
     accidental = note.find("accidental")
     if accidental is None:
@@ -2079,6 +3298,12 @@ def cleanup_musicxml_engraving(
     report.normalized_fragmented_rests += normalize_fragmented_rests(root)
     report.applied_gia_piansi_line_cleanups += apply_gia_piansi_line_cleanups(root)
     report.applied_luci_serene_line_cleanups += apply_luci_serene_line_cleanups(root)
+    report.applied_sio_non_miro_line_cleanups += apply_sio_non_miro_line_cleanups(root)
+    report.applied_come_unto_me_line_cleanups += apply_come_unto_me_line_cleanups(root)
+    report.applied_a_quiet_place_line_cleanups += apply_a_quiet_place_line_cleanups(root)
+    report.applied_moro_lasso_line_cleanups += apply_moro_lasso_line_cleanups(root)
+    report.applied_sparge_la_morte_line_cleanups += apply_sparge_la_morte_line_cleanups(root)
+    report.applied_hark_herald_line_cleanups += apply_hark_herald_line_cleanups(root)
     report.normalized_fragmented_rests += normalize_fragmented_rests(root)
     report.extended_terminal_short_notes += extend_terminal_short_notes(root)
     report.final_barlines_added += add_final_barlines(root)

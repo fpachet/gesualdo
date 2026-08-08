@@ -244,6 +244,26 @@ longer inherit the generic Music21 metadata.
    selected parts now print a three-beat note plus a one-beat rest instead of a
    tied note fragment followed by a quarter rest and a sixteenth rest.
 
+12. Preserve reviewed local corrections as named overrides.
+
+   Some concert-edition fixes are too specific to become corpus-wide rules but
+   must still survive MusicXML and PDF rebuilds. These are stored as named
+   cleanup cases. In `Come Unto Me`, measure 15, Violin II's held C is shortened
+   to a plain quarter note by removing the extra tied 16th. In measure 23, the
+   A-flat from the Viola double stop is moved to Violin I as a playable
+   double-stop against C, leaving Viola with only E-flat. In measure 49, Violin
+   I's E natural is corrected to E-flat as a source-score correction. In `A
+   Quiet Place`, measure 5, the reviewed voicing gives Violin I E/D double
+   stops at the beginning and end, turns
+   Violin II into a whole-note A/C double stop, gives Viola the F-sharp to
+   F-natural to E line, and removes the final Cello G double-stop. `Hark!
+   The Herald Angels Sing` also has reviewed concert-edition overrides: Cello
+   bar 10 writes D-flat as C-sharp, Violin II bar 12 absorbs a rest into a
+   quarter-note G, Violin I bar 34 extends D to a whole note, Viola bar 34
+   writes B-flat as A-sharp, bar 44 changes to A-flat major with matching
+   later spellings, bar 65 removes redundant double-stop notes, and Viola bar
+   67 writes B-sharp as C and G-sharp as A-flat.
+
 12. Use treble clef for sustained high viola passages.
 
    Viola remains in alto clef by default. When a measure contains at least one

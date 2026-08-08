@@ -139,6 +139,12 @@ def render_pdf(
             report.applied_gia_piansi_line_cleanups = xml_report.applied_gia_piansi_line_cleanups
             report.applied_luci_serene_line_cleanups = xml_report.applied_luci_serene_line_cleanups
             report.applied_dolcissima_line_cleanups = xml_report.applied_dolcissima_line_cleanups
+            report.applied_sio_non_miro_line_cleanups = xml_report.applied_sio_non_miro_line_cleanups
+            report.applied_come_unto_me_line_cleanups = xml_report.applied_come_unto_me_line_cleanups
+            report.applied_a_quiet_place_line_cleanups = xml_report.applied_a_quiet_place_line_cleanups
+            report.applied_moro_lasso_line_cleanups = xml_report.applied_moro_lasso_line_cleanups
+            report.applied_sparge_la_morte_line_cleanups = xml_report.applied_sparge_la_morte_line_cleanups
+            report.applied_hark_herald_line_cleanups = xml_report.applied_hark_herald_line_cleanups
         result = run_musescore_pdf(musescore, clean_path, output_path)
         if result.returncode != 0:
             _render_pdf_from_midi_fallback(musescore, input_path, output_path)
@@ -242,6 +248,12 @@ def write_audit(root: Path, job: RenderJob, rows: list[dict[str, str]]) -> None:
         "applied_gia_piansi_line_cleanups",
         "applied_luci_serene_line_cleanups",
         "applied_dolcissima_line_cleanups",
+        "applied_sio_non_miro_line_cleanups",
+        "applied_come_unto_me_line_cleanups",
+        "applied_a_quiet_place_line_cleanups",
+        "applied_moro_lasso_line_cleanups",
+        "applied_sparge_la_morte_line_cleanups",
+        "applied_hark_herald_line_cleanups",
         "pdf_midi_fallbacks",
         "error",
     ]

@@ -238,6 +238,12 @@ Viola still contained triplet/sixth-note residue. That case is now covered by
 the piece-specific grid fallback described above; the regenerated score has no
 denominator-3, denominator-6, or denominator-12 note/rest durations remaining.
 
+A later `Come Unto Me` concert-edition pass added three named local corrections:
+in measure 15, Violin II's tied C is shortened to a plain quarter; in measure
+23, the A-flat from the Viola double stop is moved to Violin I as a playable
+double-stop against C; and in measure 49, Violin I's E natural is corrected to
+E-flat as a source-score correction.
+
 A later quartet-director pass on the selected Take 6 review PDF identified a
 more general engraving/readability issue: some notes and rests were not grouped
 around the beat, long notes sometimes ended with a stray sixteenth rest, and
@@ -370,6 +376,10 @@ Accidentals:
   respelling pass, because that pass may otherwise reintroduce C-sharps.
 - Specific reviewed case: in `Dolcissima mia vita`, D-sharp spellings are
   written as E-flat throughout the piece.
+- Specific reviewed case: in `S'io non miro non moro`, the Cello E-flats in
+  bars 6 and 11 are written as D-sharps, and the bar 27 Cello A-flat is written
+  as G-sharp, because these local lines read more naturally as chromatic
+  ascent/leading-tone motion than as flat-side color.
 - Tied enharmonics are normalized so a tie does not connect two different
   spellings of the same sounding pitch.
 
@@ -392,6 +402,26 @@ Rhythm and rests:
   with one quarter rest.
 - In `Già piansi nel dolore` bar 27, remove the awkward low G from the Violin II
   opening double stop and lengthen the later E from a 16th to an eighth.
+- In `Già piansi nel dolore` bars 45 and 48, merge successive eighth rests into
+  quarter rests where they only add notation clutter; bar 45 preserves the
+  surrounding hairpin directions. In bar 50, collapse the full-bar Viola and
+  Cello rest fragments to measure rests.
+- In `Già piansi nel dolore` bar 51, move the lower Viola E from the double stop
+  to Violin II as a quarter note after its F. In bar 57, move the lower Viola
+  double-stop notes D and G to Violin II as eighth notes.
+- In `S'io non miro non moro` bar 18, lengthen the Viola A from a 16th to an
+  eighth by absorbing the following 16th rest; in bar 20, lower the high Violin I
+  E-flat by one octave.
+- In `Moro, lasso, al mio duolo`, simplify reviewed short terminal fragments:
+  bar 7 Violin II D becomes an eighth, bar 7 Viola G and Cello B become
+  quarters, bar 9 Cello F becomes a quarter, and bar 33 Viola A becomes an
+  A 16th tied to an A eighth tied into the half note at beat 2, beamed with the
+  preceding G as 16-16-8. In bar 33, move the lower Viola E from the double stop
+  to Violin II as an eighth note, continuing B-E-F-G, while Viola keeps the
+  upper G.
+- In `Sparge la morte`, split the bar 19 Cello D half note into two tied
+  quarters, and use the reviewed piece-wide spellings D-flat instead of
+  C-sharp, G-flat instead of F-sharp, and D-sharp instead of E-flat.
 - Do not split rests merely to expose beat boundaries.
 - Do not split a half note or longer note that starts clearly on the beat just
   for readability.
@@ -410,6 +440,8 @@ Text cleanup:
   "This edition?", and other non-playing annotations.
 
 Reviewed examples now covered by cleanup rules or tests include `Luci serene e
-chiare` bars 7, 9, 31, and 41-42; `Già piansi nel dolore` bars 26, 27, 46, 52, and
-53; `Dolcissima mia vita` bar 13; `Hark! The Herald Angels Sing` bar 6; and
-the `A Quiet Place` triplet-preservation case.
+chiare` bars 7, 9, 31, and 41-42; `Già piansi nel dolore` bars 26, 27, 45, 46,
+48, 50, 51, 52, 57, and 53; `Dolcissima mia vita` bar 13; `S'io non miro non
+moro` bars 6, 11, 18, 20, and 27; `Hark! The Herald Angels Sing` bars 6, 10,
+12, 34, 44, 65, and 67; `A Quiet Place` bar 5; and the `A Quiet Place`
+triplet-preservation case.

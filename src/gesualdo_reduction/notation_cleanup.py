@@ -35,6 +35,12 @@ class NotationCleanupReport:
     applied_gia_piansi_line_cleanups: int = 0
     applied_luci_serene_line_cleanups: int = 0
     applied_dolcissima_line_cleanups: int = 0
+    applied_sio_non_miro_line_cleanups: int = 0
+    applied_come_unto_me_line_cleanups: int = 0
+    applied_a_quiet_place_line_cleanups: int = 0
+    applied_moro_lasso_line_cleanups: int = 0
+    applied_sparge_la_morte_line_cleanups: int = 0
+    applied_hark_herald_line_cleanups: int = 0
     pdf_midi_fallbacks: int = 0
 
     def as_row(self) -> dict[str, str]:

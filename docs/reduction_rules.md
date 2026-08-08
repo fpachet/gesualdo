@@ -428,7 +428,13 @@ only the short version.
    C-sharp spellings are forced to D-flat after the generic chromatic spelling
    pass, so the conductor score, part XMLs, and rebuilt PDFs remain consistent.
    The same principle is used in `Dolcissima mia vita`, where D-sharp spellings
-   are forced to E-flat.
+   are forced to E-flat. Some reviewed cases override the general flat-side
+   preference when the melodic motion reads more clearly as a leading-tone or
+   chromatic ascent: in `S'io non miro non moro`, the Cello E-flats in bars 6
+   and 11 are written as D-sharps, and the bar 27 Cello A-flat is written as
+   G-sharp. In `Sparge la morte`, the reviewed piece-wide policy is D-flat
+   instead of C-sharp, G-flat instead of F-sharp, and D-sharp instead of
+   E-flat.
 
 3. Automatic cleanup must not hide musical decisions.
 
@@ -452,16 +458,40 @@ only the short version.
    nel dolore` bar 8, the cello's dotted-eighth C is lengthened to a quarter
    note and the trailing rest fragments are collapsed to one quarter rest. In
    bar 27, the low G is removed from the Violin II double stop and the later E
-   is lengthened from a 16th to an eighth.
+   is lengthened from a 16th to an eighth. In bars 45 and 48, successive eighth
+   rests are merged into quarter rests where they only add notation clutter;
+   bar 45 preserves the surrounding hairpin directions. In bar 50, Viola and
+   Cello full-bar rest fragments are collapsed to measure rests. In bar 51,
+   the lower Viola E is moved from a double stop to Violin II as a quarter note;
+   in bar 57, the lower Viola double-stop notes D and G move to Violin II as
+   eighth notes. In `S'io non miro non moro` bar 18, the Viola A 16th absorbs
+   the following 16th rest and becomes an eighth note. In `Moro, lasso, al mio
+   duolo`, reviewed short terminal fragments are lengthened without consuming
+   the whole remaining silence: bar 7 Violin II D becomes an eighth, bar 7
+   Viola G and Cello B become quarters, bar 9 Cello F becomes a quarter, and bar
+   33 Viola A is notated as a 16th tied to an eighth tied into the following
+   half note, with the preceding G and the two A fragments beamed as 16-16-8 so
+   both the internal subdivision and beat 2 remain readable. In bar 33, the
+   lower Viola E from the double stop moves to Violin II as an eighth note so
+   the Violin II line continues B-E-F-G while Viola keeps the upper G. In
+   `Sparge la morte`, bar 19 Cello D is split from a half note into two tied
+   quarter notes so the beat boundary is visible.
 
-5. Clefs should avoid one-note flicker.
+5. Keep register corrections pitch-class preserving.
+
+   Local octave repairs may move a note by octave when the notated register is
+   visibly wrong or unnecessarily awkward and the pitch class remains unchanged.
+   The reviewed case is `S'io non miro non moro` bar 20, where the high Violin I
+   E-flat is lowered by one octave.
+
+6. Clefs should avoid one-note flicker.
 
    Cello defaults to bass clef. Tenor or treble clef is reserved for sustained
    high passages, not isolated high notes in the middle of a phrase. Viola
    defaults to alto clef; treble clef is only for unusually high sustained
    writing.
 
-6. Imported text is removed unless it is musical tempo information.
+7. Imported text is removed unless it is musical tempo information.
 
    Review and concert scores keep the title, composer, and beginning tempo
    indications, but remove imported vocal-edition page numbers, lyrics, edition

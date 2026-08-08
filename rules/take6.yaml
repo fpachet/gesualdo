@@ -550,6 +550,91 @@ rules:
     reports: []
     examples: []
   exceptions: []
+- id: apply_reviewed_take6_local_corrections
+  title: Apply reviewed Take 6 local corrections
+  scope: notation_cleanup
+  priority: high
+  action: apply_piece_specific_reviewed_corrections
+  parameters:
+    corrections:
+      come_unto_me:
+      - measure: 15
+        part: violin_2
+        action: shorten_tied_C_to_plain_quarter
+        reason: The extra tied 16th does not improve the line and makes the phrase less plain.
+      - measure: 23
+        part: viola_to_violin_1
+        action: move_A_flat_from_viola_double_stop_to_violin_1_C_double_stop
+        reason: Violin I can take the A-flat more naturally, leaving the Viola line simpler.
+      - measure: 49
+        part: violin_1
+        action: correct_E_natural_to_E_flat
+        reason: Reviewed source-score correction.
+      a_quiet_place:
+      - measure: 5
+        part: all
+        action: apply_reviewed_bar_5_voicing
+        reason: The reviewed concert voicing gives Violin I E/D double stops at the beginning and end, turns Violin II into a whole-note A/C double stop, gives Viola the F-sharp to F-natural to E line, and removes the final Cello G double-stop.
+      hark_herald:
+      - measure: 10
+        part: cello
+        action: write_D_flat_as_C_sharp
+        reason: Reviewed local spelling in the bass line.
+      - measure: 12
+        part: violin_2
+        action: extend_G_eighth_to_quarter
+        reason: The following rest can be absorbed for a plainer phrase.
+      - measure: 34
+        part: violin_1
+        action: extend_D_to_whole_note
+        reason: The terminal short rest does not add musical clarity.
+      - measure: 34
+        part: viola
+        action: respell_B_flat_as_A_sharp
+        reason: Reviewed local enharmonic spelling correction.
+      - measure: 44
+        part: all
+        action: change_key_signature_to_A_flat_major_and_respell_following_key_tones
+        reason: The later section reads more clearly in A-flat major, with key-signature notes printed without redundant accidentals.
+      - measure: 65
+        part: viola
+        action: remove_redundant_F_sharp_from_double_stop
+        reason: The lower line remains covered and the Viola double stop becomes simpler.
+      - measure: 65
+        part: violin_1
+        action: remove_redundant_F_from_double_stop
+        reason: The upper note is sufficient and the double stop is unnecessary.
+      - measure: 67
+        part: viola
+        action: write_B_sharp_as_C_and_G_sharp_as_A_flat
+        reason: The spellings should agree with the new A-flat-major key signature.
+  rationale: 'A few concert-edition corrections are intentionally local and should survive future MusicXML/PDF regeneration without becoming corpus-wide heuristics.'
+  evidence:
+    docs:
+    - path: docs/take6_reduction_rules.md
+      note: Documents the reviewed Take 6 local corrections.
+    code: []
+    reports: []
+    examples:
+    - piece_id: come_unto_me
+      measure: 15
+      note: Violin II C is shortened from a tied quarter-plus-16th to a plain quarter note.
+    - piece_id: come_unto_me
+      measure: 23
+      note: A-flat moves from the Viola double stop to Violin I's C double stop.
+    - piece_id: come_unto_me
+      measure: 49
+      note: Violin I E natural is corrected to E-flat.
+    - piece_id: a_quiet_place
+      measure: 5
+      note: 'Reviewed voicing: Violin I prints E/D double stops at the beginning and end, Violin II prints a whole-note A/C double stop, Viola carries F-sharp/F-natural/E, and Cello drops the final G double-stop.'
+    - piece_id: hark_herald
+      measure: 44
+      note: A-flat major key signature is inserted from bar 44, and later key tones are respelled without redundant accidentals.
+    - piece_id: hark_herald
+      measure: 65
+      note: Redundant double-stop notes are removed from Viola and Violin I.
+  exceptions: []
 - id: use_take6_review_cases_as_regression_corpus
   title: Use Take 6 review cases as regression corpus
   scope: evaluation
