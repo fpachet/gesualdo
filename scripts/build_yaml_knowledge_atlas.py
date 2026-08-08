@@ -329,7 +329,7 @@ def render_html(data: dict[str, Any]) -> str:
     .metric span {{ color: var(--muted); font-size: 13px; display: block; }}
     .layout {{
       display: grid;
-      grid-template-columns: minmax(420px, 1.05fr) minmax(360px, .95fr);
+      grid-template-columns: minmax(720px, 1.45fr) minmax(300px, .55fr);
       gap: 18px;
       align-items: start;
     }}
@@ -342,51 +342,31 @@ def render_html(data: dict[str, Any]) -> str:
     .panel h2 {{ margin: 0 0 12px; font-size: 18px; }}
     .atlas-map {{
       position: relative;
-      min-height: 520px;
-      display: grid;
-      place-items: center;
+      min-height: 760px;
+      display: block;
       overflow: hidden;
       border: 1px solid var(--line);
       background: linear-gradient(135deg, rgba(13,111,111,.08), rgba(168,117,33,.08));
     }}
-    .ring {{
-      position: absolute;
-      border: 1px solid rgba(32,36,38,.14);
-      border-radius: 50%;
-      pointer-events: none;
-    }}
-    .ring.one {{ width: 72%; aspect-ratio: 1; }}
-    .ring.two {{ width: 52%; aspect-ratio: 1; }}
-    .ring.three {{ width: 31%; aspect-ratio: 1; }}
-    .core {{
-      position: relative;
-      width: 190px;
-      height: 190px;
-      border-radius: 50%;
-      background: var(--ink);
-      color: var(--panel);
-      display: grid;
-      place-items: center;
-      text-align: center;
-      padding: 22px;
-      box-shadow: 0 22px 50px rgba(32,36,38,.24);
-      z-index: 2;
-    }}
-    .core strong {{ display: block; font-size: 48px; line-height: 1; }}
-    .scope-node {{
-      position: absolute;
-      width: 118px;
-      min-height: 58px;
-      transform: translate(-50%, -50%);
-      border: 1px solid rgba(32,36,38,.2);
-      background: rgba(255, 250, 241, 0.94);
-      padding: 8px 10px;
-      text-align: center;
-      box-shadow: 0 8px 20px rgba(45,38,27,.1);
-    }}
-    .scope-node b {{ display: block; font-size: 20px; }}
-    .scope-node span {{ color: var(--muted); font-size: 12px; }}
-    .scope-node.major {{ border-color: var(--teal); }}
+    .atlas-map svg {{ display: block; width: 100%; height: auto; }}
+    .atlas-ring {{ fill: none; stroke: rgba(32,36,38,.16); stroke-width: 1.2; }}
+    .atlas-spoke {{ stroke: rgba(32,36,38,.18); stroke-width: 1; }}
+    .atlas-link {{ stroke: rgba(13,111,111,.45); stroke-width: 1.15; fill: none; }}
+    .atlas-link.alt {{ stroke: rgba(168,117,33,.45); }}
+    .atlas-node {{ fill: var(--panel); stroke: var(--teal); stroke-width: 1.6; }}
+    .atlas-node.major {{ fill: var(--teal); }}
+    .atlas-node-count {{ font-size: 12px; font-weight: 700; text-anchor: middle; dominant-baseline: central; fill: var(--ink); }}
+    .atlas-node-count.major {{ fill: var(--panel); }}
+    .atlas-core {{ fill: var(--ink); filter: drop-shadow(0 18px 22px rgba(32,36,38,.26)); }}
+    .atlas-core-count {{ fill: var(--panel); font-size: 56px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }}
+    .atlas-core-label {{ fill: var(--panel); opacity: .86; font-size: 13px; text-anchor: middle; }}
+    .atlas-label-card {{ fill: rgba(255,250,241,.96); stroke: rgba(32,36,38,.22); stroke-width: 1; }}
+    .atlas-label-card.major {{ stroke: var(--teal); stroke-width: 1.4; }}
+    .atlas-label-text {{ fill: var(--ink); font-size: 13px; font-weight: 650; dominant-baseline: central; }}
+    .atlas-label-count {{ fill: var(--teal); font-size: 15px; font-weight: 750; text-anchor: middle; dominant-baseline: central; }}
+    .atlas-label-count.major {{ fill: var(--panel); }}
+    .atlas-label-count-bg {{ fill: rgba(13,111,111,.12); }}
+    .atlas-label-count-bg.major {{ fill: var(--teal); }}
     .file-bars {{ display: grid; gap: 10px; margin-top: 12px; }}
     .bar-row {{ display: grid; grid-template-columns: 150px 1fr 34px; gap: 10px; align-items: center; font-size: 13px; }}
     .bar-track {{ height: 12px; border: 1px solid var(--line); background: rgba(32,36,38,.05); }}
@@ -479,8 +459,7 @@ def render_html(data: dict[str, Any]) -> str:
       .metrics {{ grid-template-columns: repeat(2, 1fr); }}
       .controls {{ grid-template-columns: 1fr; }}
       .rule-grid, .deep-grid, .corpus-strip {{ grid-template-columns: 1fr; }}
-      .atlas-map {{ min-height: 680px; }}
-      .scope-node {{ width: 104px; }}
+      .atlas-map {{ min-height: 0; }}
     }}
     @media print {{
       body {{ background: #fff; }}
@@ -495,7 +474,7 @@ def render_html(data: dict[str, Any]) -> str:
     <section class="topbar">
       <div>
         <div class="kicker">Reduction knowledge atlas</div>
-        <h1>Forty-four explicit rules for turning voices into quartet notation.</h1>
+        <h1>{data["metrics"]["ruleCount"]} explicit rules for turning voices into quartet notation.</h1>
         <p class="subtitle">A presentation view of the YAML knowledge base: what it knows, how precise it is, and where the clean-room reducer can test itself.</p>
       </div>
       <div class="badge" id="sourceBadge"></div>
@@ -507,10 +486,6 @@ def render_html(data: dict[str, Any]) -> str:
       <div class="panel">
         <h2>Rule Family Map</h2>
         <div class="atlas-map" id="atlasMap" aria-label="Rule scopes arranged around the reduction knowledge core">
-          <div class="ring one"></div>
-          <div class="ring two"></div>
-          <div class="ring three"></div>
-          <div class="core"><div><strong id="coreCount"></strong><span>encoded reduction rules</span></div></div>
         </div>
       </div>
       <div class="panel">
@@ -563,28 +538,84 @@ def render_html(data: dict[str, Any]) -> str:
       byId("metrics").innerHTML = metrics.map(([value, label]) => `
         <article class="metric"><strong>${{escapeHtml(value)}}</strong><span>${{escapeHtml(label)}}</span></article>
       `).join("");
-      byId("coreCount").textContent = DATA.metrics.ruleCount;
       byId("sourceBadge").textContent = `${{DATA.metrics.fileCount}} YAML files - ${{DATA.metrics.reviewArtifactCount}} review artifacts - ${{DATA.metrics.auditReportCount}} audit reports`;
     }}
 
     function renderMap() {{
       const map = byId("atlasMap");
       const scopes = DATA.scopeCounts;
-      const width = map.clientWidth || 700;
-      const height = map.clientHeight || 520;
-      const radiusX = width * 0.38;
-      const radiusY = height * 0.37;
-      scopes.forEach((scope, index) => {{
-        const angle = (-Math.PI / 2) + (index / scopes.length) * Math.PI * 2;
-        const x = 50 + Math.cos(angle) * (radiusX / width) * 100;
-        const y = 50 + Math.sin(angle) * (radiusY / height) * 100;
-        const node = document.createElement("div");
-        node.className = `scope-node ${{scope.count > 1 ? "major" : ""}}`;
-        node.style.left = `${{x}}%`;
-        node.style.top = `${{y}}%`;
-        node.innerHTML = `<b>${{scope.count}}</b><span>${{escapeHtml(scope.label)}}</span>`;
-        map.appendChild(node);
-      }});
+      const width = 980;
+      const height = 760;
+      const cx = width / 2;
+      const cy = height / 2 + 4;
+      const orbit = 184;
+      const left = scopes.filter((_, index) => index % 2 === 0);
+      const right = scopes.filter((_, index) => index % 2 === 1);
+      const maxSide = Math.max(left.length, right.length);
+      const top = 64;
+      const spacing = (height - top * 2) / Math.max(maxSide - 1, 1);
+      const cardW = 226;
+      const cardH = 38;
+      const leftX = 34;
+      const rightX = width - cardW - 34;
+
+      const labelPos = new Map();
+      left.forEach((scope, i) => labelPos.set(scope.scope, {{ x: leftX, y: top + i * spacing, side: "left" }}));
+      right.forEach((scope, i) => labelPos.set(scope.scope, {{ x: rightX, y: top + i * spacing, side: "right" }}));
+
+      function polar(index, total) {{
+        const angle = -Math.PI / 2 + (index / total) * Math.PI * 2;
+        return {{ x: cx + Math.cos(angle) * orbit, y: cy + Math.sin(angle) * orbit, angle }};
+      }}
+
+      const defs = `
+        <defs>
+          <radialGradient id="atlasCoreGradient" cx="50%" cy="38%" r="65%">
+            <stop offset="0%" stop-color="rgba(255,250,241,.18)" />
+            <stop offset="100%" stop-color="rgba(32,36,38,1)" />
+          </radialGradient>
+        </defs>`;
+      const rings = [112, 184, 258].map(r => `<circle class="atlas-ring" cx="${{cx}}" cy="${{cy}}" r="${{r}}"/>`).join("");
+      const spokes = scopes.map((scope, index) => {{
+        const p = polar(index, scopes.length);
+        return `<line class="atlas-spoke" x1="${{cx}}" y1="${{cy}}" x2="${{p.x.toFixed(1)}}" y2="${{p.y.toFixed(1)}}"/>`;
+      }}).join("");
+      const links = scopes.map((scope, index) => {{
+        const p = polar(index, scopes.length);
+        const pos = labelPos.get(scope.scope);
+        const targetX = pos.side === "left" ? pos.x + cardW : pos.x;
+        const targetY = pos.y + cardH / 2;
+        const midX = pos.side === "left" ? p.x - 54 : p.x + 54;
+        return `<path class="atlas-link${{index % 2 ? " alt" : ""}}" d="M ${{p.x.toFixed(1)}} ${{p.y.toFixed(1)}} C ${{midX.toFixed(1)}} ${{p.y.toFixed(1)}}, ${{midX.toFixed(1)}} ${{targetY.toFixed(1)}}, ${{targetX.toFixed(1)}} ${{targetY.toFixed(1)}}"/>`;
+      }}).join("");
+      const nodes = scopes.map((scope, index) => {{
+        const p = polar(index, scopes.length);
+        const major = scope.count >= 3 ? " major" : "";
+        const radius = 15 + Math.min(scope.count, 5) * 2;
+        return `<g>
+          <circle class="atlas-node${{major}}" cx="${{p.x.toFixed(1)}}" cy="${{p.y.toFixed(1)}}" r="${{radius}}"/>
+          <text class="atlas-node-count${{major}}" x="${{p.x.toFixed(1)}}" y="${{p.y.toFixed(1)}}">${{scope.count}}</text>
+        </g>`;
+      }}).join("");
+      const labels = scopes.map((scope) => {{
+        const pos = labelPos.get(scope.scope);
+        const major = scope.count >= 3 ? " major" : "";
+        const countX = pos.side === "left" ? pos.x + cardW - 21 : pos.x + 21;
+        const labelX = pos.side === "left" ? pos.x + 13 : pos.x + 48;
+        const anchor = pos.side === "left" ? "start" : "start";
+        return `<g>
+          <rect class="atlas-label-card${{major}}" x="${{pos.x}}" y="${{pos.y}}" width="${{cardW}}" height="${{cardH}}" rx="0"/>
+          <circle class="atlas-label-count-bg${{major}}" cx="${{countX}}" cy="${{pos.y + cardH / 2}}" r="14"/>
+          <text class="atlas-label-count${{major}}" x="${{countX}}" y="${{pos.y + cardH / 2}}">${{scope.count}}</text>
+          <text class="atlas-label-text" x="${{labelX}}" y="${{pos.y + cardH / 2}}" text-anchor="${{anchor}}">${{escapeHtml(scope.label)}}</text>
+        </g>`;
+      }}).join("");
+      const core = `<g>
+        <circle class="atlas-core" cx="${{cx}}" cy="${{cy}}" r="92" fill="url(#atlasCoreGradient)"/>
+        <text class="atlas-core-count" x="${{cx}}" y="${{cy - 12}}">${{DATA.metrics.ruleCount}}</text>
+        <text class="atlas-core-label" x="${{cx}}" y="${{cy + 34}}">encoded rules</text>
+      </g>`;
+      map.innerHTML = `<svg viewBox="0 0 ${{width}} ${{height}}" role="img" aria-label="Circular map of ${{DATA.metrics.ruleCount}} reduction rules grouped into ${{DATA.metrics.scopeCount}} families">${{defs}}${{rings}}${{spokes}}${{links}}${{labels}}${{nodes}}${{core}}</svg>`;
     }}
 
     function renderBars() {{

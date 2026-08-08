@@ -8,7 +8,7 @@ Generated from structured files in `rules/`.
 | --- | ---: |
 | `rules/gesualdo.yaml` | 14 |
 | `rules/shared_quartet.yaml` | 15 |
-| `rules/take6.yaml` | 16 |
+| `rules/take6.yaml` | 17 |
 
 ## Rules By Scope
 
@@ -55,7 +55,8 @@ Generated from structured files in `rules/`.
 - `musescore_compatibility`: 2
   - `normalize_musescore_time_modification_import`: Normalize MuseScore time-modification import
   - `normalize_piece_level_musescore_grid_rhythm`: Normalize piece-level MuseScore grid rhythm
-- `notation_cleanup`: 2
+- `notation_cleanup`: 3
+  - `apply_reviewed_take6_local_corrections`: Apply reviewed Take 6 local corrections
   - `cleanup_review_notation`: Clean notation for review
   - `normalize_short_note_rest_artifacts`: Normalize short note/rest MIDI artifacts
 - `outer_voice_assignment`: 2
@@ -122,6 +123,7 @@ Generated from structured files in `rules/`.
 ## Take 6-Specific Rules
 
 - `allow_source_based_double_stops`
+- `apply_reviewed_take6_local_corrections`
 - `apply_reviewed_take6_tempo_overrides`
 - `apply_reviewed_take6_transposition_overrides`
 - `continue_source_lines_before_redundant_doubling`
