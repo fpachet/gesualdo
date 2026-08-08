@@ -71,9 +71,8 @@ PROGRAM: tuple[ProgramPartSource, ...] = (
     ProgramPartSource(7, "Moro, lasso, al mio duolo", "Carlo Gesualdo", ROOT / "data/cpdl/5-voices/reductions/string_quartet/121_moro_lasso_al_mio_duolo.musicxml"),
     ProgramPartSource(8, "Sparge la morte", "Carlo Gesualdo", ROOT / "data/cpdl/5-voices/reductions/string_quartet/161_sparge_la_morte.musicxml"),
     ProgramPartSource(9, "Beltà, poi che t'assenti", "Carlo Gesualdo", ROOT / "data/cpdl/5-voices/reductions/string_quartet/074_belt_poi_che_t_assenti.musicxml"),
-    ProgramPartSource(10, "Tristis est anima mea", "Carlo Gesualdo", ROOT / "data/cpdl/6-voices/reductions/string_quartet/051_tristis_est_anima_mea.musicxml"),
-    ProgramPartSource(11, "Hark! The Herald Angels Sing", "Take 6", ROOT / "data/take6/reductions/string_quartet_double_stops/hark_herald.musicxml"),
-    ProgramPartSource(12, "A Quiet Place", "Take 6", ROOT / "data/take6/reductions/string_quartet_double_stops/a_quiet_place.musicxml"),
+    ProgramPartSource(10, "Hark! The Herald Angels Sing", "Take 6", ROOT / "data/take6/reductions/string_quartet_double_stops/hark_herald.musicxml"),
+    ProgramPartSource(11, "A Quiet Place", "Take 6", ROOT / "data/take6/reductions/string_quartet_double_stops/a_quiet_place.musicxml"),
 )
 
 
@@ -419,7 +418,16 @@ def _front_matter_pdf(instrument_name: str, start_pages: dict[int, int]) -> byte
     y -= 6 * mm
     y = _draw_paragraph(c, f"{instrument_name} Part Book", subtitle_style, margin, y, width - 2 * margin)
     y -= 10 * mm
-    _draw_paragraph(c, "Beach Boys / Gesualdo / Take 6", subtitle_style, margin, y, width - 2 * margin)
+    y = _draw_paragraph(c, "Beach Boys / Gesualdo / Take 6", subtitle_style, margin, y, width - 2 * margin)
+    y -= 8 * mm
+    _draw_paragraph(
+        c,
+        "All pieces are arranged for String quartet by F. Pachet and AI.",
+        subtitle_style,
+        margin,
+        y,
+        width - 2 * margin,
+    )
     c.showPage()
 
     c.setFont("Helvetica-Bold", 16)

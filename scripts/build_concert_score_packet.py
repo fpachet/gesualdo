@@ -95,20 +95,13 @@ PROGRAM: tuple[ProgramScore, ...] = (
     ),
     ProgramScore(
         10,
-        "Tristis est anima mea",
-        "Carlo Gesualdo",
-        "6 voices",
-        ROOT / "data/cpdl/6-voices/renders/string_quartet_pdf/051_tristis_est_anima_mea.pdf",
-    ),
-    ProgramScore(
-        11,
         "Hark! The Herald Angels Sing",
         "Take 6",
         "6 vocal parts",
         ROOT / "data/take6/renders/string_quartet_double_stops_pdf/hark_herald.pdf",
     ),
     ProgramScore(
-        12,
+        11,
         "A Quiet Place",
         "Take 6",
         "6 vocal parts",
@@ -183,14 +176,22 @@ def _front_matter_pdf(program: tuple[ProgramScore, ...], start_pages: dict[int, 
         y,
         width - 2 * margin,
     )
+    _draw_paragraph(
+        c,
+        "All pieces are arranged for String quartet by F. Pachet and AI.",
+        small_style,
+        margin,
+        y - 8 * mm,
+        width - 2 * margin,
+    )
     c.setStrokeColor(colors.HexColor("#909090"))
-    c.line(width / 2 - 38 * mm, y - 13 * mm, width / 2 + 38 * mm, y - 13 * mm)
+    c.line(width / 2 - 38 * mm, y - 21 * mm, width / 2 + 38 * mm, y - 21 * mm)
     _draw_paragraph(
         c,
         f"{len(program)} scores in concert order",
         small_style,
         margin,
-        y - 24 * mm,
+        y - 32 * mm,
         width - 2 * margin,
     )
     c.showPage()
